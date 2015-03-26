@@ -1,11 +1,10 @@
 ; main.asm
-PPU_DATA                         = $E032
-init_sprites                     = $C04E
 load_palettes                    = $C037
 sprite_data_len                  = $E031
 palette                          = $E000
 load_sprites                     = $C058
 vblank_wait_1                    = $C00E
+init_PPU                         = $C04E
 vblank_wait_2                    = $C032
 load_palettes_loop               = $C043
 clr_mem_loop                     = $C013

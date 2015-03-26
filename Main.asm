@@ -7,13 +7,13 @@
 
   .bank 3               ;uses the fourth bank, which is a 8kb ROM memory region
   .org $8000            ;places graphics tiles at the beginning of ROM (8000 - a000, offset: 0kb)
-  .incbin "mario.chr"   ;includes 8KB graphics file from SMB1
+  .incbin "assets/mario.chr"   ;includes 8KB graphics file from SMB1
 
 ;------------------------------------------------------------------------------------;
 
   .bank 2               ;uses the third bank, which is a 8kb ROM memory region
   .org $a000            ;places graphics tiles in the first quarter of ROM (a000 - e000, offset: 8kb)
-  .incbin "mario.chr"   ;includes 8KB graphics file from SMB1
+  .incbin "assets/mario.chr"   ;includes 8KB graphics file from SMB1
 
 ;------------------------------------------------------------------------------------;
 
@@ -68,7 +68,7 @@ RESET:
 
 ;first wait for vertical blank to make sure the PPU is ready
 vblank_wait_1:
-    LDA $2002           ;loads the PPU status into register a
+    LDA $2002           ;loads PPU_STATUS into register a
     BPL vblank_wait_1   ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
     
 ;while waiting to make sure the PPU has properly stabalised, we will put the 
@@ -120,13 +120,13 @@ init_PPU:
     LDA #%00010000                ;enable sprite rendering
     STA $2001
 
-;loads all sprite memory into $0200 (OAM - object attribute memory)
+;loads all sprite attribs into $0200 (OAM - object attribute memory)
 load_sprites:
     LDX #$00                      ;start x register counter at 0
 
     load_sprites_loop:
         LDA sprites, x            ;load sprite attrib into a register (sprite + x)
-        STA $0200, x              ;store attrib in OAM (address + x)
+        STA $0200, x              ;store attrib in OAM on RAM(address + x)
         INX
 
         CPX sprite_data_len       ;check if all attribs have been stored by comparing x to the data length of all sprites
@@ -135,7 +135,7 @@ load_sprites:
         JMP game_loop
 
 game_loop:
-    LDA $2002                     ;loads the PPU status into register a
+    LDA $2002                     ;loads PPU_STATUS into register a
     BPL game_loop                 ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
     
     LDX #$00
