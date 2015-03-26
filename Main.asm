@@ -3,15 +3,35 @@
   .inesmap 0   ;mapper 0 = NROM, no bank swapping
   .inesmir 1   ;background mirroring
 
-  ;------------------------------------------------------------------------------------;
-  
-  .bank 1
-  .org $E000
+;------------------------------------------------------------------------------------;
+
+  .bank 3               ;uses the fourth bank, which is a 8kb ROM memory region
+  .org $8000            ;places graphics tiles at the beginning of ROM (8000 - a000, offset: 0kb)
+  .incbin "mario.chr"   ;includes 8KB graphics file from SMB1
+
+;------------------------------------------------------------------------------------;
+
+  .bank 2               ;uses the third bank, which is a 8kb ROM memory region
+  .org $a000            ;places graphics tiles in the first quarter of ROM (a000 - e000, offset: 8kb)
+  .incbin "mario.chr"   ;includes 8KB graphics file from SMB1
+
+;------------------------------------------------------------------------------------;
+
+  .bank 1               ;uses the second bank, which is a 8kb ROM memory region
+
+  .org $fffa            ;places the address of NMI, reset and BRK handlers at the very end of the ROM
+  .dw NMI               ;address for NMI (non maskable interrupt). when an NMI happens (once per frame if enabled) the 
+                        ;processor will jump to the label NMI and return to the point where it was interrupted
+  .dw RESET             ;when the processor first turns on or is reset, it will jump to the RESET label
+  .dw 0                 ;BRK is not used here
+
+  .org $e000            ;place all program code at the third quarter of ROM (e000 - fffa, offset: 16kb)
+
   palette:
     ;.db $0F,$31,$32,$33,$0F,$35,$36,$37,$0F,$39,$3A,$3B,$0F,$3D,$3E,$0F
     ;.db $0F,$1C,$15,$14,$0F,$02,$38,$3C,$0F,$1C,$15,$14,$0F,$02,$38,$3C
 
-    .db $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$3A,$3B,$3c,$3D,$3E,$3d
+    .db $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$3a,$3b,$3c,$3d,$3e,$3d
     .db $20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$2a,$2b,$2c,$2d,$2e,$2d
 
   sprites:
@@ -25,22 +45,10 @@
   sprite_data_len:
     .db 16
 
-  .org $FFFA     ;first of the three vectors starts here
-  .dw NMI        ;when an NMI happens (once per frame if enabled) the 
-                 ;processor will jump to the label NMI and return to the point where it was interrupted
-  .dw RESET      ;when the processor first turns on or is reset, it will jump to the RESET label
-  .dw 0          ;external interrupt IRQ is not used here
-
 ;------------------------------------------------------------------------------------;
 
-  .bank 2
-  .org $0000
-  .incbin "mario.chr"   ;includes 8KB graphics file from SMB1
-
-;------------------------------------------------------------------------------------;
-
-  .bank 0
-  .org $C000
+  .bank 0             ;uses the first bank, which is a 8kb ROM memory region
+  .org $c000          ;place all program code in the middle of PGR_ROM memory (c000 - e000, offset: 24kb)
 
 ;RESET is called when the NES starts up
 RESET:
@@ -55,7 +63,11 @@ RESET:
     STX $2001    ; disable rendering
     STX $4010    ; disable DMC IRQs
 
-vblank_wait_1:       ; First wait for vblank to make sure PPU is ready
+;------------------------------------------------------------------------------------;
+;wait for the PPU to be ready and clear all mem from 0000 to 0800
+
+;first wait for vertical blank to make sure the PPU is ready
+vblank_wait_1:
     BIT $2002
     BPL vblank_wait_1
 
@@ -73,6 +85,7 @@ mem_clr:
     INX
     BNE mem_clr
 
+;second and last wait for vertical blank to make sure the PPU is ready
 vblank_wait_2:      ; Second wait for vblank, PPU is ready after this
     BIT $2002
     BPL vblank_wait_2
@@ -95,30 +108,51 @@ load_palettes:
         BNE load_palettes_loop  ;if x = $20, 32 bytes copied, all done
 
 init_sprites:
-    LDA #%10000000   ; enable NMI, sprites from Pattern Table 0
+    LDA #%10000000              ;enable NMI, sprites from Pattern Table 0
     STA $2000
 
-    LDA #%00010000   ; enable sprites
+    LDA #%00010000              ;enable sprite rendering
     STA $2001
 
 load_sprites:
-    LDX #$00              ; start at 0
+    LDX #$00                    ;start x register counter at 0
 
     load_sprites_loop:
-        LDA sprites, x        ;load sprite attrib into a (sprite + x)
-        STA $0200, x          ;store attrib into ram (address + x)
+        LDA sprites, x          ;load sprite attrib into a register (sprite + x)
+        STA $0200, x            ;store attrib into ram (address + x)
         INX
 
-        CPX sprite_data_len              ; Compare X to hex $10, decimal 16
+        CPX sprite_data_len     ;compare x register to the data length of all sprites
+        BNE load_sprites_loop   ;continue loop if x register is not equal to 0, otherwise move down
 
-        BNE load_sprites_loop   ; Branch to load_sprites_loop if compare was Not Equal to zero
-                                ; if compare was equal to 16, continue down
+        JMP game_loop
+
+;wait_nmi:
+;    LDA retraces
+;notYet:
+;    CMP retraces
+;    BEQ notYet
+;    RTS
+;
+;nmi_handler:
+;    INC retraces
+;    RTI
 
 game_loop:
     BIT $2002
     BPL game_loop
 
-    ;INC $0207
+    LDX #$00
+    loop:
+      INC $0200, x
+
+      TXA
+      CLC
+      ADC #4
+      TAX
+
+      CPX sprite_data_len
+      BNE loop
 
     JMP game_loop     ;jump back to game_loop, infinite loop
 
