@@ -1,10 +1,10 @@
-; C:\Users\FlynnUser\Desktop\Development\Assembly\NES_game\main.asm
-LoadPalettes                     = $C03D
-Forever                          = $C071
+; main.asm
+load_palettes                    = $C03D
 palette                          = $E000
-LoadPalettesLoop                 = $C04C
-vblankwait1                      = $C014
-vblankwait2                      = $C038
-clrmem                           = $C019
+mem_clr                          = $C019
+load_palettes_loop               = $C04C
 RESET                            = $C000
-NMI                              = $C074
+NMI                              = $C082
+v_blank_wait_1                   = $C014
+v_blank_wait_2                   = $C038
+game_loop                        = $C075
