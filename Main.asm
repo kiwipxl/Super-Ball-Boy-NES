@@ -1,5 +1,5 @@
-  .inesprg 1   ;1 16KB PRG code
-  .ineschr 1   ;1 8KB CHR data
+  .inesprg 1   ;1 16kb PRG code
+  .ineschr 1   ;1 8kb CHR data
   .inesmap 0   ;mapper 0 = NROM, no bank swapping
   .inesmir 1   ;background mirroring
 
@@ -31,7 +31,9 @@
     ;.db $0F,$31,$32,$33,$0F,$35,$36,$37,$0F,$39,$3A,$3B,$0F,$3D,$3E,$0F
     ;.db $0F,$1C,$15,$14,$0F,$02,$38,$3C,$0F,$1C,$15,$14,$0F,$02,$38,$3C
 
+    ;bg palette
     .db $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$3a,$3b,$3c,$3d,$3e,$3d
+    ;sprite palette
     .db $20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$2a,$2b,$2c,$2d,$2e,$2d
 
   sprites:
@@ -75,7 +77,7 @@ clr_mem_loop:
     LDA #$00
     STA $0000, x        ;set the zero page to 0
     STA $0100, x        ;set the stack memory to 0
-    STA $0200, x        ;set sprite memory in RAM to 0
+    STA $0200, x        ;set OAM (object attribute memory) in RAM to 0
     STA $0300, x        ;set RAM to 0
     STA $0400, x        ;set RAM to 0
     STA $0500, x        ;set RAM to 0
@@ -87,11 +89,12 @@ clr_mem_loop:
 
 ;second and last wait for vertical blank to make sure the PPU is ready
 vblank_wait_2:
-    LDA $2002           ;loads the PPU status into register a
+    LDA $2002           ;loads PPU_STATUS into register a
     BPL vblank_wait_2   ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
 
 ;------------------------------------------------------------------------------------;
-  
+
+;writes bg and sprite palette data to the PPU
 load_palettes:
     ;write the PPU bg palette address $3F00 to the PPU memory address stored on the CPU
     LDA #$3F
@@ -102,34 +105,38 @@ load_palettes:
     LDX #$00                      ;set x counter register to 0
     load_palettes_loop:
         LDA palette, x            ;load palette byte
-        STA $2007                 ;write byte to the PPU
+        STA $2007                 ;write byte to the PPU data address
         INX                       ;add by 1 to move to next byte
         CPX #$20                  ;check if x is equal to 32
         BNE load_palettes_loop    ;keep looping if x is not equal to 32, otherwise continue
 
-init_sprites:
-    LDA #%10000000              ;enable NMI, sprites from Pattern Table 0
+;initialises PPU settings
+init_PPU:
+    ;setup PPU_CTRL bits
+    LDA #%10000000                ;enable NMI calling and set sprite pattern table to $0000 (0)
     STA $2000
 
-    LDA #%00010000              ;enable sprite rendering
+    ;setup PPU_MASK bits
+    LDA #%00010000                ;enable sprite rendering
     STA $2001
 
+;loads all sprite memory into $0200 (OAM - object attribute memory)
 load_sprites:
-    LDX #$00                    ;start x register counter at 0
+    LDX #$00                      ;start x register counter at 0
 
     load_sprites_loop:
-        LDA sprites, x          ;load sprite attrib into a register (sprite + x)
-        STA $0200, x            ;store attrib into ram (address + x)
+        LDA sprites, x            ;load sprite attrib into a register (sprite + x)
+        STA $0200, x              ;store attrib in OAM (address + x)
         INX
 
-        CPX sprite_data_len     ;compare x register to the data length of all sprites
-        BNE load_sprites_loop   ;continue loop if x register is not equal to 0, otherwise move down
+        CPX sprite_data_len       ;check if all attribs have been stored by comparing x to the data length of all sprites
+        BNE load_sprites_loop     ;continue loop if x register is not equal to 0, otherwise move down
 
         JMP game_loop
 
 game_loop:
-    LDA $2002           ;loads the PPU status into register a
-    BPL game_loop   ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
+    LDA $2002                     ;loads the PPU status into register a
+    BPL game_loop                 ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
     
     LDX #$00
     loop:
@@ -148,10 +155,12 @@ game_loop:
 ;NMI interrupts the cpu and is called once per video frame
 ;PPU is starting vblank time and is available for graphics updates
 NMI:
+    ;copies 256 bytes of OAM data in RAM ($0200 - $02FF) to the PPU internal OAM
+    ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
     LDA #$00
-    STA $2003   ;sets the low byte of the sprite memory access to 0
+    STA $2003                     ;sets the low byte of PPU OAM_ADDR to 0
+    ;stores #$02 high byte + #$00 in $4014 (OAM_DMA) and then begins the transfer
     LDA #$02
-    STA $4014   ;sets the high byte of DMA access to 2
-                ;this starts a data transfer of sprite memory while the cpu is running
+    STA $4014                     ;sets the high byte of OAM_DMA to #$02
 
-    RTI         ;returns from the interrupt
+    RTI                           ;returns from the interrupt

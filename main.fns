@@ -1,4 +1,5 @@
 ; main.asm
+PPU_DATA                         = $E032
 init_sprites                     = $C04E
 load_palettes                    = $C037
 sprite_data_len                  = $E031
