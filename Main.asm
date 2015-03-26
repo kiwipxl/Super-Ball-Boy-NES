@@ -1,5 +1,5 @@
-  .inesprg 1   ;1x 16KB PRG code
-  .ineschr 1   ;1x  8KB CHR data
+  .inesprg 1   ;1 16KB PRG code
+  .ineschr 1   ;1 8KB CHR data
   .inesmap 0   ;mapper 0 = NROM, no bank swapping
   .inesmir 1   ;background mirroring
 
@@ -52,16 +52,14 @@
 
 ;RESET is called when the NES starts up
 RESET:
-    SEI           ;disables IRQ (inerrupt request)
-    CLD          ; disable decimal mode
+    SEI           ;disables external interrupt requests (BRK points)
+    CLD           ;disables decimal mode (???)
     LDX #$40
-    STX $4017    ; disable APU frame IRQ
+    STX $4017     ;disables APU frame IRQ by writing to joystick 2 (???)
     LDX #$FF
-    TXS          ; Set up stack
-    INX          ; now X = 0
-    STX $2000    ; disable NMI
-    STX $2001    ; disable rendering
-    STX $4010    ; disable DMC IRQs
+    TXS           ;set the stack pointer to point to 256 bytes in RAM where the stack memory is located
+    INX           ;add 1 to the x register and overflow it which results in 0
+    STX $4010     ;disable DMC IRQs (???)
 
 ;------------------------------------------------------------------------------------;
 ;wait for the PPU to be ready and clear all mem from 0000 to 0800
@@ -71,19 +69,21 @@ vblank_wait_1:
     BIT $2002
     BPL vblank_wait_1
 
-mem_clr:
+;while waiting to make sure the PPU has properly stabalised, we will put the 
+;zero page, stack memory and RAM into a known state by filling it with #$00
+clr_mem_loop:
     LDA #$00
-    STA $0000, x
-    STA $0100, x
-    STA $0300, x
-    STA $0400, x
-    STA $0500, x
-    STA $0600, x
-    STA $0700, x
-    LDA #$FE
-    STA $0200, x    ;move all sprites off screen
-    INX
-    BNE mem_clr
+    STA $0000, x        ;set the zero page to 0
+    STA $0100, x        ;set the stack memory to 0
+    STA $0200, x        ;set sprite memory in RAM to 0
+    STA $0300, x        ;set RAM to 0
+    STA $0400, x        ;set RAM to 0
+    STA $0500, x        ;set RAM to 0
+    STA $0600, x        ;set RAM to 0
+    STA $0700, x        ;set RAM to 0
+    INX                 ;increase x by 1
+    CPX #$00            ;check if x has overflowed into 0
+    BNE clr_mem_loop    ;continue clearing memory if x is not equal to 0
 
 ;second and last wait for vertical blank to make sure the PPU is ready
 vblank_wait_2:      ; Second wait for vblank, PPU is ready after this
