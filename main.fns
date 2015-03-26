@@ -1,17 +1,17 @@
 ; main.asm
-init_sprites                     = $C051
+init_sprites                     = $C04E
 load_palettes                    = $C037
 sprite_data_len                  = $E031
 palette                          = $E000
-load_sprites                     = $C05B
+load_sprites                     = $C058
 vblank_wait_1                    = $C00E
 vblank_wait_2                    = $C032
-load_palettes_loop               = $C046
+load_palettes_loop               = $C043
 clr_mem_loop                     = $C013
 RESET                            = $C000
-loop                             = $C073
+loop                             = $C070
 sprites                          = $E020
-load_sprites_loop                = $C05D
-NMI                              = $C083
-game_loop                        = $C06C
+load_sprites_loop                = $C05A
+NMI                              = $C080
+game_loop                        = $C069
 num_sprites                      = $E030

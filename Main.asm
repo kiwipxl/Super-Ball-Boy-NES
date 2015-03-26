@@ -66,9 +66,9 @@ RESET:
 
 ;first wait for vertical blank to make sure the PPU is ready
 vblank_wait_1:
-    BIT $2002
-    BPL vblank_wait_1
-
+    LDA $2002           ;loads the PPU status into register a
+    BPL vblank_wait_1   ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
+    
 ;while waiting to make sure the PPU has properly stabalised, we will put the 
 ;zero page, stack memory and RAM into a known state by filling it with #$00
 clr_mem_loop:
@@ -86,26 +86,26 @@ clr_mem_loop:
     BNE clr_mem_loop    ;continue clearing memory if x is not equal to 0
 
 ;second and last wait for vertical blank to make sure the PPU is ready
-vblank_wait_2:      ; Second wait for vblank, PPU is ready after this
-    BIT $2002
-    BPL vblank_wait_2
+vblank_wait_2:
+    LDA $2002           ;loads the PPU status into register a
+    BPL vblank_wait_2   ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
 
 ;------------------------------------------------------------------------------------;
   
 load_palettes:
-    LDA $2002       ;read PPU status to reset the high/low latch
+    ;write the PPU bg palette address $3F00 to the PPU memory address stored on the CPU
     LDA #$3F
-    STA $2006    ; write the high byte of $3F00 address
+    STA $2006                     ;write the high byte of $3F00 address
     LDA #$00
-    STA $2006    ; write the low byte of $3F00 address
+    STA $2006                     ;write the low byte of $3F00 address
 
-    LDX #$00        ;set x counter register to 0
+    LDX #$00                      ;set x counter register to 0
     load_palettes_loop:
-        LDA palette, x        ;load palette byte
-        STA $2007             ;write to PPU
-        INX                   ;set index to next byte
-        CPX #$20            
-        BNE load_palettes_loop  ;if x = $20, 32 bytes copied, all done
+        LDA palette, x            ;load palette byte
+        STA $2007                 ;write byte to the PPU
+        INX                       ;add by 1 to move to next byte
+        CPX #$20                  ;check if x is equal to 32
+        BNE load_palettes_loop    ;keep looping if x is not equal to 32, otherwise continue
 
 init_sprites:
     LDA #%10000000              ;enable NMI, sprites from Pattern Table 0
@@ -127,21 +127,10 @@ load_sprites:
 
         JMP game_loop
 
-;wait_nmi:
-;    LDA retraces
-;notYet:
-;    CMP retraces
-;    BEQ notYet
-;    RTS
-;
-;nmi_handler:
-;    INC retraces
-;    RTI
-
 game_loop:
-    BIT $2002
-    BPL game_loop
-
+    LDA $2002           ;loads the PPU status into register a
+    BPL game_loop   ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
+    
     LDX #$00
     loop:
       INC $0200, x
