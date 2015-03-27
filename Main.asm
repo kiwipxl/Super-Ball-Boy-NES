@@ -5,15 +5,15 @@
 
 ;------------------------------------------------------------------------------------;
 
-  .bank 3               ;uses the fourth bank, which is a 8kb ROM memory region
-  .org $8000            ;places graphics tiles at the beginning of ROM (8000 - a000, offset: 0kb)
-  .incbin "assets/mario.chr"   ;includes 8KB graphics file from SMB1
+  .bank 3                           ;uses the fourth bank, which is a 8kb ROM memory region
+  .org $8000                        ;places graphics tiles at the beginning of ROM (8000 - a000, offset: 0kb)
+  .incbin "assets/mario.chr"        ;includes 8kb graphics file from SMB1
 
 ;------------------------------------------------------------------------------------;
 
-  .bank 2               ;uses the third bank, which is a 8kb ROM memory region
-  .org $a000            ;places graphics tiles in the first quarter of ROM (a000 - e000, offset: 8kb)
-  .incbin "assets/mario.chr"   ;includes 8KB graphics file from SMB1
+  .bank 2                           ;uses the third bank, which is a 8kb ROM memory region
+  .org $a000                        ;places graphics tiles in the first quarter of ROM (a000 - e000, offset: 8kb)
+  .incbin "assets/mario.chr"        ;includes 8kb graphics file from SMB1
 
 ;------------------------------------------------------------------------------------;
 
@@ -32,16 +32,16 @@
     ;.db $0F,$1C,$15,$14,$0F,$02,$38,$3C,$0F,$1C,$15,$14,$0F,$02,$38,$3C
 
     ;bg palette
-    .db $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$3a,$3b,$3c,$3d,$3e,$3d
+    .db $22, $29, $1a, $0f,     $0f, $36, $17, $0f,     $0f, $30, $21, $0f,     $0f, $07, $17, $0f
     ;sprite palette
-    .db $20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$2a,$2b,$2c,$2d,$2e,$2d
+    .db $22, $16, $27, $18,     $0f, $1a, $30, $27,     $0f, $16, $30, $27,     $0f, $0f, $36, $17
 
   sprites:
-    ;y, tile index, palette index, x
-    .db $80, $32, $00, $80
-    .db $80, $33, $00, $88
-    .db $88, $34, $00, $80
-    .db $88, $35, $00, $88
+    ;y, tile index, attribs (palette 4 to 7, priority, flip), x
+    .db $80, $32, %00000000, $80
+    .db $80, $33, %00000000, $88
+    .db $88, $34, %00000000, $80
+    .db $88, $35, %00000000, $88
   num_sprites:
     .db 4
   sprite_data_len:
@@ -54,14 +54,14 @@
 
 ;RESET is called when the NES starts up
 RESET:
-    SEI           ;disables external interrupt requests (BRK points)
-    CLD           ;disables decimal mode (???)
+    SEI           ;disables external interrupt requests
+    CLD           ;the NES does not use decimal mode, so disable it
     LDX #$40
-    STX $4017     ;disables APU frame IRQ by writing to joystick 2 (???)
+    STX $4017     ;disables APU frame counter IRQ by writing 64 to the APU register (todo: better understanding)
     LDX #$FF
     TXS           ;set the stack pointer to point to 256 bytes in RAM where the stack memory is located
     INX           ;add 1 to the x register and overflow it which results in 0
-    STX $4010     ;disable DMC IRQs (???)
+    STX $4010     ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
 
 ;------------------------------------------------------------------------------------;
 ;wait for the PPU to be ready and clear all mem from 0000 to 0800
@@ -97,6 +97,7 @@ vblank_wait_2:
 ;writes bg and sprite palette data to the PPU
 load_palettes:
     ;write the PPU bg palette address $3F00 to the PPU memory address stored on the CPU
+    ;so whenever we write data to the PPU data address it will map to $3F00
     LDA #$3F
     STA $2006                     ;write the high byte of $3F00 address
     LDA #$00
@@ -124,6 +125,10 @@ init_PPU:
 load_sprites:
     LDX #$00                      ;start x register counter at 0
 
+    LDA #$00
+    STA $0300
+    STA $0301
+
     load_sprites_loop:
         LDA sprites, x            ;load sprite attrib into a register (sprite + x)
         STA $0200, x              ;store attrib in OAM on RAM(address + x)
@@ -137,14 +142,22 @@ load_sprites:
 game_loop:
     LDA $2002                     ;loads PPU_STATUS into register a
     BPL game_loop                 ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
-    
+
     LDX #$00
     loop:
-      INC $0200, x
+      LDA $0200, x
+      CLC
+      ADC $0301
+      STA $0200, x
+
+      LDA $0203, x
+      CLC
+      ADC $0300
+      STA $0203, x
 
       TXA
       CLC
-      ADC #4
+      ADC #$04
       TAX
 
       CPX sprite_data_len
@@ -159,8 +172,68 @@ NMI:
     ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
     LDA #$00
     STA $2003                     ;sets the low byte of PPU OAM_ADDR to 0
-    ;stores #$02 high byte + #$00 in $4014 (OAM_DMA) and then begins the transfer
+    ;stores the #$02 high byte + #$00 sprite attribs memory address in $4014 (OAM_DMA) and then begins the transfer
     LDA #$02
     STA $4014                     ;sets the high byte of OAM_DMA to #$02
 
+latch_controller:
+    ;write $0100 to $4016 to tell the controllers to latch the current button positions (???)
+    LDA #$01
+    STA $4016
+    LDA #$00
+    STA $4016
+
+check_a_press:
+    LDA $4016                     ;load input status byte into a register
+    AND #$00000001                ;check if bit 0 is equal to 1
+    BEQ check_b_press             ;branches if a register equals 0, therefore no button was pressed
+    ;-- a was pressed --
+
+check_b_press:
+    LDA $4016                     ;load input status byte into a register
+    AND #$00000001                ;check if bit 0 is equal to 1
+    BEQ check_select_press        ;branches if a register equals 0, therefore no button was pressed
+    ;-- b was pressed --
+
+check_select_press:
+    LDA $4016                     ;load input status byte into a register
+    AND #$00000001                ;check if bit 0 is equal to 1
+    BEQ check_start_press        ;branches if a register equals 0, therefore no button was pressed
+    ;-- select was pressed --
+
+check_start_press:
+    LDA $4016                     ;load input status byte into a register
+    AND #$00000001                ;check if bit 0 is equal to 1
+    BEQ check_up_press            ;branches if a register equals 0, therefore no button was pressed
+    ;-- start was pressed --
+
+check_up_press:
+    LDA $4016                     ;load input status byte into a register
+    AND #$00000001                ;check if bit 0 is equal to 1
+    BEQ check_down_press          ;branches if a register equals 0, therefore no button was pressed
+    ;-- up was pressed --
+    DEC $301
+
+check_down_press:
+    LDA $4016                     ;load input status byte into a register
+    AND #$00000001                ;check if bit 0 is equal to 1
+    BEQ check_left_press          ;branches if a register equals 0, therefore no button was pressed
+    ;-- down was pressed --
+    INC $301
+
+check_left_press:
+    LDA $4016                     ;load input status byte into a register
+    AND #$00000001                ;check if bit 0 is equal to 1
+    BEQ check_right_press         ;branches if a register equals 0, therefore no button was pressed
+    ;-- left was pressed --
+    DEC $300
+
+check_right_press:
+    LDA $4016                     ;load input status byte into a register
+    AND #$00000001                ;check if bit 0 is equal to 1
+    BEQ input_end                 ;branches if a register equals 0, therefore no button was pressed
+    ;-- right was pressed --
+    INC $300
+
+input_end:
     RTI                           ;returns from the interrupt
