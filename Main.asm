@@ -118,7 +118,7 @@ vblank_wait_2:
 load_palettes:
     ;write the PPU bg palette address $3F00 to the PPU register
     ;so whenever we write data to $2006, it will map to $3F00 in the PPU VRAM
-    LDA $2002                       ;read PPU status to reset the high/low latch (may not be needed)
+    LDA $2002                       ;read PPU status to reset the high/low latch (may not be needed, but just in case)
 
     LDA #$3F
     STA $2006                       ;write the high byte of $3F00 address
@@ -127,8 +127,8 @@ load_palettes:
 
     LDX #$00                        ;set x counter register to 0
     load_palettes_loop:
-        LDA palette, x              ;load palette byte
-        STA $2007                   ;write byte to the PPU data address
+        LDA palette, x              ;load palette byte (palette + x byte offset)
+        STA $2007                   ;write byte to the PPU palette address
         INX                         ;add by 1 to move to next byte
 
         CPX #$20                    ;check if x is equal to 32
@@ -137,43 +137,41 @@ load_palettes:
 load_background:
     ;write the PPU nametable address $2000 to the PPU register
     ;so whenever we write data to $2006, it will map to $2000 in the PPU VRAM
-    LDA $2002                       ;read PPU status to reset the high/low latch (may not be needed)
+    LDA $2002                       ;read PPU status to reset the high/low latch (may not be needed, but just in case)
 
     LDA #$20
     STA $2006                       ;write the high byte of $2000 address
     LDA #$00
-    STA $2006             ; write the low byte of $2000 address
+    STA $2006                       ;write the low byte of $2000 address
 
-    LDX #$00              ; start out at 0
-
+    LDX #$00
     load_background_loop:
-        LDA nametable, x     ; load data from address (background + the value in x)
-        STA $2007             ; write to PPU
-        INX                   ; X = X + 1
+        LDA nametable, x            ;load nametable byte (nametable + x byte offset)
+        STA $2007                   ;write byte to the PPU nametable address
+        INX                         ;add by 1 to move to the next byte
 
-        CPX #$80              ; Compare X to hex $80, decimal 128 - copying 128 bytes
-        BNE load_background_loop  ; Branch to load_background_loop if compare was Not Equal to zero
-                                  ; if compare was equal to 128, keep going down
+        CPX #$80                    ;check if x is equal to 128
+        BNE load_background_loop    ;keep looping if x is not equal to 128, otherwise continue
 
 load_attributes:
     ;write the PPU attributes address $23C0 to the PPU register
     ;so whenever we write data to $2006, it will map to $23C0 in the PPU VRAM
-    LDA $2002             ; read PPU status to reset the high/low latch
+    LDA $2002                       ;read PPU status to reset the high/low latch (may not be needed, but just in case)
 
     LDA #$23
-    STA $2006             ; write the high byte of $23C0 address
+    STA $2006                       ;write the high byte of $23C0 address
     LDA #$C0
-    STA $2006             ; write the low byte of $23C0 address
-    LDX #$00              ; start out at 0
+    STA $2006                       ;write the low byte of $23C0 address
 
+    LDX #$00
     load_attributes_loop:
-        LDA attributes, x      ; load data from address (attribute + the value in x)
-        STA $2007             ; write to PPU
-        INX                   ; X = X + 1
+        LDA attributes, x           ;load attributes byte (attributes + x byte offset)
+        STA $2007                   ;write byte to the PPU attributes address
+        INX                         ;add by 1 to move to the next byte
 
-        CPX #$08              ; Compare X to hex $08, decimal 8 - copying 8 bytes
-        BNE load_attributes_loop
-
+        CPX #$08                    ;check if x is equal to 8
+        BNE load_attributes_loop    ;keep looping if x is not equal to 8, otherwise continue
+        
 ;------------------------------------------------------------------------------------;
 
 ;initialises PPU settings
@@ -204,12 +202,15 @@ load_sprites:
         BNE load_sprites_loop     ;continue loop if x register is not equal to 0, otherwise move down
 
         JMP game_loop
-        
+
+;------------------------------------------------------------------------------------;
+
 game_loop:
-    LDA $0000
+    ;keep looping until NMI is called and changes the vblank counter
+    LDA $0000                     ;load the vblank counter
     vblank_wait_main:
-        CMP $0000
-        BEQ vblank_wait_main
+        CMP $0000                 ;compare register a with the vblank counter
+        BEQ vblank_wait_main      ;keep looping if they are equal, otherwise continue if the vblank counter has changed
 
     LDX #$00
     loop:
@@ -233,6 +234,8 @@ game_loop:
 
     JMP game_loop     ;jump back to game_loop, infinite loop
 
+;------------------------------------------------------------------------------------;
+
 ;NMI interrupts the cpu and is called once per video frame
 ;PPU is starting vblank time and is available for graphics updates
 NMI:
@@ -250,7 +253,7 @@ NMI:
     ;LDA #$00
     ;STA $2005
 
-    INC $0000
+    INC $0000                     ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 
 latch_controller:
     ;write $0100 to $4016 to tell the controllers to latch the current button positions (???)
