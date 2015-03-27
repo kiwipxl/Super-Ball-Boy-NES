@@ -47,6 +47,26 @@
   sprite_data_len:
     .db 16
 
+  nametable:
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
+
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;all sky ($24 = sky)
+
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 2
+
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;all sky
+
+    .db $24,$24,$24,$24,$45,$45,$24,$24,$45,$45,$45,$45,$45,$45,$24,$24  ;;row 3
+
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$53,$54,$24,$24  ;;some brick tops
+
+    .db $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24  ;;row 4
+
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24  ;;brick bottoms
+
+  attributes:
+    .db %00000000, %00010000, %0010000, %00010000, %00000000, %00000000, %00000000, %00110000
+
 ;------------------------------------------------------------------------------------;
 
   .bank 0             ;uses the first bank, which is a 8kb ROM memory region
@@ -108,17 +128,56 @@ load_palettes:
         LDA palette, x            ;load palette byte
         STA $2007                 ;write byte to the PPU data address
         INX                       ;add by 1 to move to next byte
+
         CPX #$20                  ;check if x is equal to 32
         BNE load_palettes_loop    ;keep looping if x is not equal to 32, otherwise continue
+
+load_background:
+    LDA $2002             ; read PPU status to reset the high/low latch
+
+    LDA #$20
+    STA $2006             ; write the high byte of $2000 address
+    LDA #$00
+    STA $2006             ; write the low byte of $2000 address
+
+    LDX #$00              ; start out at 0
+
+    load_background_loop:
+        LDA nametable, x     ; load data from address (background + the value in x)
+        STA $2007             ; write to PPU
+        INX                   ; X = X + 1
+
+        CPX #$80              ; Compare X to hex $80, decimal 128 - copying 128 bytes
+        BNE load_background_loop  ; Branch to load_background_loop if compare was Not Equal to zero
+                                  ; if compare was equal to 128, keep going down
+
+load_attributes:
+    LDA $2002             ; read PPU status to reset the high/low latch
+
+    LDA #$23
+    STA $2006             ; write the high byte of $23C0 address
+    LDA #$C0
+    STA $2006             ; write the low byte of $23C0 address
+    LDX #$00              ; start out at 0
+
+    load_attributes_loop:
+        LDA attributes, x      ; load data from address (attribute + the value in x)
+        STA $2007             ; write to PPU
+        INX                   ; X = X + 1
+
+        CPX #$08              ; Compare X to hex $08, decimal 8 - copying 8 bytes
+        BNE load_attributes_loop
+
+;------------------------------------------------------------------------------------;
 
 ;initialises PPU settings
 init_PPU:
     ;setup PPU_CTRL bits
-    LDA #%10000000                ;enable NMI calling and set sprite pattern table to $0000 (0)
+    LDA #%10010000                ;enable NMI calling and set sprite pattern table to $0000 (0)
     STA $2000
 
     ;setup PPU_MASK bits
-    LDA #%00010000                ;enable sprite rendering
+    LDA #%00011110                ;enable sprite rendering
     STA $2001
 
 ;loads all sprite attribs into $0200 (OAM - object attribute memory)
@@ -128,9 +187,10 @@ load_sprites:
     LDA #$00
     STA $0300
     STA $0301
+    STA $0302
 
     load_sprites_loop:
-        LDA sprites, x            ;load sprite attrib into a register (sprite + x)
+        LDA sprites, x            ;load sprite attrib into register a (sprite + x)
         STA $0200, x              ;store attrib in OAM on RAM(address + x)
         INX
 
@@ -176,6 +236,12 @@ NMI:
     LDA #$02
     STA $4014                     ;sets the high byte of OAM_DMA to #$02
 
+    ;INC $0302
+    ;LDA $0302
+    ;STA $2005
+    ;LDA #$00
+    ;STA $2005
+
 latch_controller:
     ;write $0100 to $4016 to tell the controllers to latch the current button positions (???)
     LDA #$01
@@ -184,54 +250,54 @@ latch_controller:
     STA $4016
 
 check_a_press:
-    LDA $4016                     ;load input status byte into a register
+    LDA $4016                     ;load input status byte into register a
     AND #$00000001                ;check if bit 0 is equal to 1
-    BEQ check_b_press             ;branches if a register equals 0, therefore no button was pressed
+    BEQ check_b_press             ;branches if register a equals 0, therefore no button was pressed
     ;-- a was pressed --
 
 check_b_press:
-    LDA $4016                     ;load input status byte into a register
+    LDA $4016                     ;load input status byte into register a
     AND #$00000001                ;check if bit 0 is equal to 1
-    BEQ check_select_press        ;branches if a register equals 0, therefore no button was pressed
+    BEQ check_select_press        ;branches if register a equals 0, therefore no button was pressed
     ;-- b was pressed --
 
 check_select_press:
-    LDA $4016                     ;load input status byte into a register
+    LDA $4016                     ;load input status byte into register a
     AND #$00000001                ;check if bit 0 is equal to 1
-    BEQ check_start_press        ;branches if a register equals 0, therefore no button was pressed
+    BEQ check_start_press        ;branches if register a equals 0, therefore no button was pressed
     ;-- select was pressed --
 
 check_start_press:
-    LDA $4016                     ;load input status byte into a register
+    LDA $4016                     ;load input status byte into register a
     AND #$00000001                ;check if bit 0 is equal to 1
-    BEQ check_up_press            ;branches if a register equals 0, therefore no button was pressed
+    BEQ check_up_press            ;branches if register a equals 0, therefore no button was pressed
     ;-- start was pressed --
 
 check_up_press:
-    LDA $4016                     ;load input status byte into a register
+    LDA $4016                     ;load input status byte into register a
     AND #$00000001                ;check if bit 0 is equal to 1
-    BEQ check_down_press          ;branches if a register equals 0, therefore no button was pressed
+    BEQ check_down_press          ;branches if register a equals 0, therefore no button was pressed
     ;-- up was pressed --
     DEC $301
 
 check_down_press:
-    LDA $4016                     ;load input status byte into a register
+    LDA $4016                     ;load input status byte into register a
     AND #$00000001                ;check if bit 0 is equal to 1
-    BEQ check_left_press          ;branches if a register equals 0, therefore no button was pressed
+    BEQ check_left_press          ;branches if register a equals 0, therefore no button was pressed
     ;-- down was pressed --
     INC $301
 
 check_left_press:
-    LDA $4016                     ;load input status byte into a register
+    LDA $4016                     ;load input status byte into register a
     AND #$00000001                ;check if bit 0 is equal to 1
-    BEQ check_right_press         ;branches if a register equals 0, therefore no button was pressed
+    BEQ check_right_press         ;branches if register a equals 0, therefore no button was pressed
     ;-- left was pressed --
     DEC $300
 
 check_right_press:
-    LDA $4016                     ;load input status byte into a register
+    LDA $4016                     ;load input status byte into register a
     AND #$00000001                ;check if bit 0 is equal to 1
-    BEQ input_end                 ;branches if a register equals 0, therefore no button was pressed
+    BEQ input_end                 ;branches if register a equals 0, therefore no button was pressed
     ;-- right was pressed --
     INC $300
 
