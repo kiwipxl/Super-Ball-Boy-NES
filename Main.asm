@@ -77,12 +77,18 @@
 PPU_CTRL 		= $2000
 PPU_MASK 		= $2001
 PPU_STATUS 		= $2002
-OAM_ADDR 		= $2003
-OAM_DATA 		= $2004
 PPU_SCROLL 		= $2005
 PPU_ADDR 		= $2006 			;a address on the PPU is stored here which PPU_DATA uses to write/read from
 PPU_DATA 		= $2007 			;register used to read/write from VRAM
-OAM_DMA 		= $4014
+
+;-- OAM (object attribute memory) register constants --;
+OAM_ADDR 		= $2003 			;stores the address of where to place RAM OAM in internal PPU OAM (#$00 if using OAM_DMA) 
+OAM_DATA 		= $2004 			;used to write data through OAM_ADDR into internal PPU OAM
+									;it is only useful for partial updates, but OAM_DMA transfer is faster
+OAM_DMA 		= $4014 			;stores the address of OAM_RAM_ADDR and starts a transfer of 256 bytes of OAM
+
+;-- OAM RAM address constant --
+OAM_RAM_ADDR 	= $0200 			;address in RAM that stores all sprite attribs (low byte has to be #$00)
 
 ;-- PPU VRAM memory address constants --;
 ;the following are all addresses that map to different parts of the PPU's VRAM
@@ -141,7 +147,7 @@ clr_mem_loop:
     STA $0700, x                    ;set RAM to 0
 
     LDA #$FF
-    STA $0200, x                    ;set OAM (object attribute memory) in RAM to #$FF so that sprites are off-screen
+    STA OAM_RAM_ADDR, x             ;set OAM (object attribute memory) in RAM to #$FF so that sprites are off-screen
     INX                             ;increase x by 1
     CPX #$00                        ;check if x has overflowed into 0
     BNE clr_mem_loop                ;continue clearing memory if x is not equal to 0
@@ -180,10 +186,10 @@ load_background:
 
     LDA $2002                       ;read PPU status to reset the high/low latch (may not be needed, but just in case)
 
-    LDA #HIGH(VRAM_NT_0) 			;load the PPU nametable 0 address high byte
-    STA PPU_ADDR                    ;write the high byte of the VRAM_NT_0 address
-    LDA #LOW(VRAM_NT_0) 			;load the PPU nametable 0 address low byte
-    STA PPU_ADDR                    ;write the low byte of the VRAM_NT_0 address
+    LDA #HIGH(VRAM_NT_1) 			;load the PPU nametable 0 address high byte
+    STA PPU_ADDR 					;write high byte to PPU_ADDR
+    LDA #LOW(VRAM_NT_1) 			;load the PPU nametable 0 address low byte
+    STA PPU_ADDR 					;write low byte to PPU_ADDR
 
     LDX #$00
     load_background_loop:
@@ -195,15 +201,15 @@ load_background:
         BNE load_background_loop    ;keep looping if x is not equal to 128, otherwise continue
 
 load_attributes:
-    ;write the PPU attributes address $23C0 to the PPU register
-    ;so whenever we write data to $2006, it will map to $23C0 in the PPU VRAM
+    ;write the PPU attributes address VRAM_ATTRIB_0 to the PPU register
+    ;so whenever we write data to PPU_ADDR, it will map to VRAM_ATTRIB_0 in the PPU VRAM
 
     LDA $2002                       ;read PPU status to reset the high/low latch (may not be needed, but just in case)
 
-    LDA #$23
-    STA $2006                       ;write the high byte of $23C0 address
-    LDA #$C0
-    STA $2006                       ;write the low byte of $23C0 address
+    LDA #HIGH(VRAM_ATTRIB_1) 		;load the PPU attrib 0 address high byte
+    STA PPU_ADDR 					;write high byte to PPU_ADDR
+    LDA #LOW(VRAM_ATTRIB_1) 		;load the PPU attrib 0 address low byte
+    STA PPU_ADDR 					;write low byte to PPU_ADDR
 
     LDX #$00
     load_attributes_loop:
@@ -226,7 +232,7 @@ init_PPU:
     LDA #%00011110                  ;enable sprite rendering
     STA $2001
 
-;loads all sprite attribs into $0200 (OAM - object attribute memory)
+;loads all sprite attribs into OAM_RAM_ADDR
 load_sprites:
     LDX #$00                        ;start x register counter at 0
 
@@ -237,7 +243,7 @@ load_sprites:
 
     load_sprites_loop:
         LDA sprites, x              ;load sprite attrib into register a (sprite + x)
-        STA $0200, x                ;store attrib in OAM on RAM(address + x)
+        STA OAM_RAM_ADDR, x         ;store attrib in OAM on RAM(address + x)
         INX
 
         CPX sprite_data_len         ;check if all attribs have been stored by comparing x to the data length of all sprites
@@ -256,15 +262,15 @@ game_loop:
 
     LDX #$00
     loop:
-      LDA $0200, x
+      LDA OAM_RAM_ADDR, x
       CLC
       ADC $0301
-      STA $0200, x
+      STA OAM_RAM_ADDR, x
 
-      LDA $0203, x
+      LDA OAM_RAM_ADDR + 3, x
       CLC
       ADC $0300
-      STA $0203, x
+      STA OAM_RAM_ADDR + 3, x
 
       TXA
       CLC
@@ -281,13 +287,16 @@ game_loop:
 ;NMI interrupts the cpu and is called once per video frame
 ;PPU is starting vblank time and is available for graphics updates
 NMI:
-    ;copies 256 bytes of OAM data in RAM ($0200 - $02FF) to the PPU internal OAM
+    ;copies 256 bytes of OAM data in RAM (OAM_RAM_ADDR - OAM_RAM_ADDR + $FF) to the PPU internal OAM
     ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
+
     LDA #$00
-    STA $2003                       ;sets the low byte of PPU OAM_ADDR to 0
-    ;stores the #$02 high byte + #$00 sprite attribs memory address in $4014 (OAM_DMA) and then begins the transfer
-    LDA #$02
-    STA $4014                       ;sets the high byte of OAM_DMA to #$02
+    STA OAM_ADDR                      ;sets the low byte of OAM_ADDR to #$00 (the start of internal OAM memory on PPU)
+
+    ;stores the #$02 high byte + #$00 sprite attribs memory address in OAM_DMA and then begins the transfer
+    LDA #HIGH(OAM_RAM_ADDR)
+    STA OAM_DMA                       ;stores OAM_RAM_ADDR to high byte of OAM_DMA
+    ;CPU is now suspended and transfer begins
 
     INC $0302
     LDA $0302
@@ -295,9 +304,9 @@ NMI:
     LDA #$00
     STA $2005
 
-    LDA #$00
-    STA $2005
-    STA $2005
+    ;LDA #$00
+    ;STA $2005
+    ;STA $2005
 
     INC $0000                       ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 
