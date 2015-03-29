@@ -134,7 +134,19 @@ ADD_SHORT .macro
     ADC \3                          ;add a by parameter 3
     STA \2                          ;store low 8 bit result back
     LDA \1                          ;load upper 8 bits
-    ADC #$00                        ;add a by #$00 + plus the previous carry (0 or 1)
+    ADC #$00                        ;add a by #$00 + the previous carry (0 or 1)
+    STA \1                          ;store upper 8 bits result back
+    .endm
+
+;macro to subtract two bytes (16 bit) together
+;(high_byte, low_byte, value)
+SUB_SHORT .macro
+    LDA \2                          ;load low 8 bits of 16 bit value (parameter 2)
+    SEC                             ;set the carry to 1 before subtracting with carry
+    SBC \3                          ;subtract a by parameter 3
+    STA \2                          ;store low 8 bit result back
+    LDA \1                          ;load upper 8 bits
+    SBC #$00                        ;subtract by #$00 + the previous carry (0 or 1)
     STA \1                          ;store upper 8 bits result back
     .endm
 
@@ -328,13 +340,13 @@ read_controller:
     STA $4016
 
     DEBUG_BRK
-    LDA #$FC
+    LDA #$01
     STA $0002
     LDA #$08
     STA $0001
 
-    ADD_SHORT $0001, $0002
-
+    SUB_SHORT $0001, $0002, #$40
+    
     LDA $0002
     LDA $0001
 
