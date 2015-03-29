@@ -27,50 +27,48 @@
 
     .org $e000                        ;place all program code at the third quarter of ROM (e000 - fffa, offset: 16kb)
 
-    palette:
-        ;.db $0F,$31,$32,$33,$0F,$35,$36,$37,$0F,$39,$3A,$3B,$0F,$3D,$3E,$0F
-        ;.db $0F,$1C,$15,$14,$0F,$02,$38,$3C,$0F,$1C,$15,$14,$0F,$02,$38,$3C
+PALETTE:
+    ;.db $0F,$31,$32,$33,$0F,$35,$36,$37,$0F,$39,$3A,$3B,$0F,$3D,$3E,$0F
+    ;.db $0F,$1C,$15,$14,$0F,$02,$38,$3C,$0F,$1C,$15,$14,$0F,$02,$38,$3C
 
-        ;bg palette
-        .db $22, $29, $1a, $0f,     $0f, $36, $17, $0f,     $0f, $30, $21, $0f,     $0f, $07, $17, $0f
-        ;sprite palette
-        .db $22, $16, $27, $18,     $0f, $1a, $30, $27,     $0f, $16, $30, $27,     $0f, $0f, $36, $17
+    ;bg palette
+    .db $22, $29, $1a, $0f,     $0f, $36, $17, $0f,     $0f, $30, $21, $0f,     $0f, $07, $17, $0f
+    ;sprite palette
+    .db $22, $16, $27, $18,     $0f, $1a, $30, $27,     $0f, $16, $30, $27,     $0f, $0f, $36, $17
 
-    sprites:
-        ;y, tile index, attribs (palette 4 to 7, priority, flip), x
-        .db $80, $32, %00000000, $80
-        .db $80, $33, %00000000, $88
-        .db $88, $34, %00000000, $80
-        .db $88, $35, %00000000, $88
-    num_sprites:
-        .db 4
-    sprite_data_len:
-        .db 16
+SPRITES:
+    ;y, tile index, attribs (palette 4 to 7, priority, flip), x
+    .db $80, $32, %00000000, $80
+    .db $80, $33, %00000000, $88
+    .db $88, $34, %00000000, $80
+    .db $88, $35, %00000000, $88
+NUM_SPRITES         = 4
+SPRITES_DATA_LEN    = 16
 
-    nametable:
-        ;row1 (all sky)
-        .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
-        .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+NAMETABLE:
+    ;row1 (all sky)
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
-        ;row2 (all sky)
-        .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
-        .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+    ;row2 (all sky)
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
-        ;row3 (some brick tops)
-        .db $24,$24,$24,$24,$45,$45,$24,$24,$45,$45,$45,$45,$45,$45,$24,$24
-        .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$53,$54,$24,$24
+    ;row3 (some brick tops)
+    .db $24,$24,$24,$24,$45,$45,$24,$24,$45,$45,$45,$45,$45,$45,$24,$24
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$53,$54,$24,$24
 
-        ;row4 (some brick bottoms)
-        .db $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24
-        .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24
+    ;row4 (some brick bottoms)
+    .db $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24
 
-    attributes:
-        .db %00000000, %00010000, %0010000, %00010000, %00000000, %00000000, %00000000, %00110000
+ATTRIBUTES:
+    .db %00000000, %00010000, %0010000, %00010000, %00000000, %00000000, %00000000, %00110000
 
     ;store game variables in zero page (2x faster access)
-	.rsset $0000
+    .rsset $0000
 
-vblank_counter		.rs 1
+vblank_counter      .rs 1
 
 ;define PPU constants (constants are basically #defines, so they don't take up memory)
 
@@ -78,49 +76,49 @@ vblank_counter		.rs 1
 ;neither PPU or CPU has direct access to each other's memory so the CPU writes to and reads from VRAM
 ;through the following PPU registers
 
-PPU_CTRL 		= $2000 			;bit flags controlling PPU operations
-									;enable NMI (7), PPU master/slave (6), sprite height (5), bg tile select (4)
-									;sprite tile select (3), inc mode (2), nametable select (1 and 0)
+PPU_CTRL        = $2000             ;bit flags controlling PPU operations
+                                    ;enable NMI (7), PPU master/slave (6), sprite height (5), bg tile select (4)
+                                    ;sprite tile select (3), inc mode (2), nametable select (1 and 0)
 
-PPU_MASK 		= $2001 			;bit flags controlling the rendering of sprites, backgrounds and colour effects
-									;colour emphasis (7-5, BGR), enable sprites (4), enable backgrounds (3)
-									;enable sprite left column (2), enable background left column (1), grayscale (0)
+PPU_MASK        = $2001             ;bit flags controlling the rendering of sprites, backgrounds and colour effects
+                                    ;colour emphasis (7-5, BGR), enable sprites (4), enable backgrounds (3)
+                                    ;enable sprite left column (2), enable background left column (1), grayscale (0)
 
-PPU_STATUS 		= $2002 			;bit flags for various functions in the PPU
-									;vblank (7), sprite 0 hit (6), sprite overflow (5)
+PPU_STATUS      = $2002             ;bit flags for various functions in the PPU
+                                    ;vblank (7), sprite 0 hit (6), sprite overflow (5)
 
-PPU_SCROLL 		= $2005 			;used to write the x and y scroll positions for backgrounds
-PPU_ADDR 		= $2006 			;a address on the PPU is stored here which PPU_DATA uses to write/read from
-PPU_DATA 		= $2007 			;register used to read/write from VRAM
+PPU_SCROLL      = $2005             ;used to write the x and y scroll positions for backgrounds
+PPU_ADDR        = $2006             ;a address on the PPU is stored here which PPU_DATA uses to write/read from
+PPU_DATA        = $2007             ;register used to read/write from VRAM
 
 ;-- OAM (object attribute memory) register constants --;
-OAM_ADDR 		= $2003 			;stores the address of where to place RAM OAM in internal PPU OAM (#$00 if using OAM_DMA) 
-OAM_DATA 		= $2004 			;used to write data through OAM_ADDR into internal PPU OAM
-									;it is only useful for partial updates, but OAM_DMA transfer is faster
-OAM_DMA 		= $4014 			;stores the address of OAM_RAM_ADDR and starts a transfer of 256 bytes of OAM
+OAM_ADDR        = $2003             ;stores the address of where to place RAM OAM in internal PPU OAM (#$00 if using OAM_DMA) 
+OAM_DATA        = $2004             ;used to write data through OAM_ADDR into internal PPU OAM
+                                    ;it is only useful for partial updates, but OAM_DMA transfer is faster
+OAM_DMA         = $4014             ;stores the address of OAM_RAM_ADDR and starts a transfer of 256 bytes of OAM
 
 ;-- OAM RAM address constant --
-OAM_RAM_ADDR 	= $0200 			;address in RAM that stores all sprite attribs (low byte has to be #$00)
+OAM_RAM_ADDR    = $0200             ;address in RAM that stores all sprite attribs (low byte has to be #$00)
 
 ;-- PPU VRAM memory address constants --;
 ;the following are all addresses that map to different parts of the PPU's VRAM
-VRAM_PT_0		= $0000 	;pattern table 0 	($0000 - $0FFF) 	4096 bytes
-VRAM_PT_1		= $1000 	;pattern table 1 	($1000 - $1FFF) 	4096 bytes
+VRAM_PT_0       = $0000     ;pattern table 0    ($0000 - $0FFF)     4096 bytes
+VRAM_PT_1       = $1000     ;pattern table 1    ($1000 - $1FFF)     4096 bytes
 
-VRAM_NT_0		= $2000 	;nametable 0 		($2000 - $23FF) 	1024 bytes
-VRAM_ATTRIB_0	= $23C0 	;attrib list 0 		($23C0 - $23FF) 	64 bytes
+VRAM_NT_0       = $2000     ;nametable 0        ($2000 - $23FF)     1024 bytes
+VRAM_ATTRIB_0   = $23C0     ;attrib list 0      ($23C0 - $23FF)     64 bytes
 
-VRAM_NT_1		= $2400 	;nametable 1 		($2400 - $27FF) 	1024 bytes
-VRAM_ATTRIB_1	= $27C0 	;attrib list 1 		($27C0 - $27FF) 	64 bytes
+VRAM_NT_1       = $2400     ;nametable 1        ($2400 - $27FF)     1024 bytes
+VRAM_ATTRIB_1   = $27C0     ;attrib list 1      ($27C0 - $27FF)     64 bytes
 
-VRAM_NT_2		= $2800 	;nametable 2 		($2800 - $2BFF) 	1024 bytes
-VRAM_ATTRIB_2	= $2BC0 	;attrib list 2 		($2BC0 - $2BFF) 	64 bytes
+VRAM_NT_2       = $2800     ;nametable 2        ($2800 - $2BFF)     1024 bytes
+VRAM_ATTRIB_2   = $2BC0     ;attrib list 2      ($2BC0 - $2BFF)     64 bytes
 
-VRAM_NT_3		= $2C00 	;nametable 3 		($2C00 - $2FFF) 	1024 bytes
-VRAM_ATTRIB_3	= $2FC0 	;attrib list 3 		($2FC0 - $2FFF) 	64 bytes
+VRAM_NT_3       = $2C00     ;nametable 3        ($2C00 - $2FFF)     1024 bytes
+VRAM_ATTRIB_3   = $2FC0     ;attrib list 3      ($2FC0 - $2FFF)     64 bytes
 
-VRAM_BG_PLT		= $3F00 	;background palette ($3F00 - $3FFF) 	256 bytes
-VRAM_SPRITE_PLT	= $3F10 	;sprite palette 	($3F10 - $3F1F) 	256 bytes
+VRAM_BG_PLT     = $3F00     ;background palette ($3F00 - $3FFF)     256 bytes
+VRAM_SPRITE_PLT = $3F10     ;sprite palette     ($3F10 - $3F1F)     256 bytes
 
 ;------------------------------------------------------------------------------------;
 
@@ -130,7 +128,7 @@ VRAM_SPRITE_PLT	= $3F10 	;sprite palette 	($3F10 - $3F1F) 	256 bytes
 ;wait for vertical blank to make sure the PPU is ready
 vblank_wait:
     LDA PPU_STATUS                  ;loads PPU_STATUS into register a
-    BPL vblank_wait               	;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
+    BPL vblank_wait                 ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
     RTS
 
 ;RESET is called when the NES starts up
@@ -144,8 +142,8 @@ RESET:
     INX                             ;add 1 to the x register and overflow it which results in 0
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
 
-    JSR vblank_wait 				;first vblank wait to make sure the PPU is warming up
-    
+    JSR vblank_wait                 ;first vblank wait to make sure the PPU is warming up
+
 ;------------------------------------------------------------------------------------;
 ;wait for the PPU to be ready and clear all mem from 0000 to 0800
 
@@ -169,7 +167,7 @@ clr_mem_loop:
     CPX #$00                        ;check if x has overflowed into 0
     BNE clr_mem_loop                ;continue clearing memory if x is not equal to 0
 
-    JSR vblank_wait 				;second vblank wait to make sure the PPU has properly warmed up
+    JSR vblank_wait                 ;second vblank wait to make sure the PPU has properly warmed up
 
 ;------------------------------------------------------------------------------------;
 
@@ -187,7 +185,7 @@ load_palettes:
 
     LDX #$00                        ;set x counter register to 0
     load_palettes_loop:
-        LDA palette, x              ;load palette byte (palette + x byte offset)
+        LDA PALETTE, x              ;load palette byte (palette + x byte offset)
         STA PPU_DATA                ;write byte to the PPU palette address
         INX                         ;add by 1 to move to next byte
 
@@ -200,14 +198,14 @@ load_palettes:
 load_background:
     LDA PPU_STATUS                  ;read PPU status to reset the high/low latch (may not be needed, but just in case)
 
-    LDA #HIGH(VRAM_NT_1) 			;load the PPU nametable 0 address high byte
-    STA PPU_ADDR 					;write high byte to PPU_ADDR
-    LDA #LOW(VRAM_NT_1) 			;load the PPU nametable 0 address low byte
-    STA PPU_ADDR 					;write low byte to PPU_ADDR
+    LDA #HIGH(VRAM_NT_1)            ;load the PPU nametable 0 address high byte
+    STA PPU_ADDR                    ;write high byte to PPU_ADDR
+    LDA #LOW(VRAM_NT_1)             ;load the PPU nametable 0 address low byte
+    STA PPU_ADDR                    ;write low byte to PPU_ADDR
 
     LDX #$00
     load_background_loop:
-        LDA nametable, x            ;load nametable byte (nametable + x byte offset)
+        LDA NAMETABLE, x            ;load nametable byte (nametable + x byte offset)
         STA PPU_DATA                ;write byte to the PPU nametable address
         INX                         ;add by 1 to move to the next byte
 
@@ -220,14 +218,14 @@ load_background:
 load_attributes:
     LDA PPU_STATUS                  ;read PPU status to reset the high/low latch (may not be needed, but just in case)
 
-    LDA #HIGH(VRAM_ATTRIB_1) 		;load the PPU attrib 0 address high byte
-    STA PPU_ADDR 					;write high byte to PPU_ADDR
-    LDA #LOW(VRAM_ATTRIB_1) 		;load the PPU attrib 0 address low byte
-    STA PPU_ADDR 					;write low byte to PPU_ADDR
+    LDA #HIGH(VRAM_ATTRIB_1)        ;load the PPU attrib 0 address high byte
+    STA PPU_ADDR                    ;write high byte to PPU_ADDR
+    LDA #LOW(VRAM_ATTRIB_1)         ;load the PPU attrib 0 address low byte
+    STA PPU_ADDR                    ;write low byte to PPU_ADDR
 
     LDX #$00
     load_attributes_loop:
-        LDA attributes, x           ;load attributes byte (attributes + x byte offset)
+        LDA ATTRIBUTES, x           ;load attributes byte (attributes + x byte offset)
         STA $2007                   ;write byte to the PPU attributes address
         INX                         ;add by 1 to move to the next byte
 
@@ -256,11 +254,11 @@ load_sprites:
     STA $0302
 
     load_sprites_loop:
-        LDA sprites, x              ;load sprite attrib into register a (sprite + x)
+        LDA SPRITES, x              ;load sprite attrib into register a (sprite + x)
         STA OAM_RAM_ADDR, x         ;store attrib in OAM on RAM(address + x)
         INX
 
-        CPX sprite_data_len         ;check if all attribs have been stored by comparing x to the data length of all sprites
+        CPX #SPRITES_DATA_LEN        ;check if all attribs have been stored by comparing x to the data length of all sprites
         BNE load_sprites_loop       ;continue loop if x register is not equal to 0, otherwise move down
 
         JMP game_loop
@@ -269,9 +267,9 @@ load_sprites:
 
 game_loop:
     ;keep looping until NMI is called and changes the vblank counter
-    LDA #vblank_counter             ;load the vblank counter
+    LDA vblank_counter             ;load the vblank counter
     vblank_wait_main:
-        CMP #vblank_counter         ;compare register a with the vblank counter
+        CMP vblank_counter         ;compare register a with the vblank counter
         BEQ vblank_wait_main        ;keep looping if they are equal, otherwise continue if the vblank counter has changed
 
     LDX #$00
@@ -291,7 +289,7 @@ game_loop:
       ADC #$04
       TAX
 
-      CPX sprite_data_len
+      CPX #SPRITES_DATA_LEN
       BNE loop
 
     JMP game_loop                   ;jump back to game_loop, infinite loop
