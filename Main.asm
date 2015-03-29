@@ -121,15 +121,27 @@ VRAM_ATTRIB_3   = $2FC0     ;attrib list 3      ($2FC0 - $2FFF)     64 bytes
 VRAM_BG_PLT     = $3F00     ;background palette ($3F00 - $3FFF)     256 bytes
 VRAM_SPRITE_PLT = $3F10     ;sprite palette     ($3F10 - $3F1F)     256 bytes
 
+;macro to apply a breakpoint if the emulator has it mapped
+DEBUG_BRK .macro
+    BIT $07FF                       ;read the end byte of RAM so an emulator can pick up on it
+    .endm
+
+;macro to add two bytes (16 bit) together
+;(high_byte, low_byte, value)
+ADD_SHORT .macro
+    LDA \2                          ;load low 8 bits of 16 bit value (parameter 2)
+    CLC                             ;clear carry before adding with carry
+    ADC \3                          ;add a by parameter 3
+    STA \2                          ;store low 8 bit result back
+    LDA \1                          ;load upper 8 bits
+    ADC #$00                        ;add a by #$00 + plus the previous carry (0 or 1)
+    STA \1                          ;store upper 8 bits result back
+    .endm
+
 ;------------------------------------------------------------------------------------;
 
     .bank 0                         ;uses the first bank, which is a 8kb ROM memory region
     .org $c000                      ;place all program code in the middle of PGR_ROM memory (c000 - e000, offset: 16kb)
-
-;sub routine used to apply a breakpoint if the emulator has it mapped
-brk:
-    BIT $07FF                       ;read the end byte of RAM so an emulator can pick up on it
-    RTS
 
 ;wait for vertical blank to make sure the PPU is ready
 vblank_wait:
@@ -210,7 +222,6 @@ load_background:
     STA PPU_ADDR                    ;write low byte to PPU_ADDR
 
     LDX #$00
-    JSR brk
     load_background_loop:
         LDA NAMETABLE, x            ;load nametable byte (nametable + x byte offset)
         STA PPU_DATA                ;write byte to the PPU nametable address
@@ -315,6 +326,17 @@ read_controller:
     STA $4016
     LDA #$00
     STA $4016
+
+    DEBUG_BRK
+    LDA #$FC
+    STA $0002
+    LDA #$08
+    STA $0001
+
+    ADD_SHORT $0001, $0002
+
+    LDA $0002
+    LDA $0001
 
     ;read the button press bit of a, b, start, select, up, down, left, right and store all bits in button_bits
     LDX #$08
