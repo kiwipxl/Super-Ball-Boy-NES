@@ -70,8 +70,9 @@
     ;store game variables in zero page (2x faster access)
 	.rsset $0000
 
-	;store PPU constants in the start of RAM
-	.rsset $0200
+vblank_counter		.rs 1
+
+;define PPU constants (constants are basically #defines, so they don't take up memory)
 
 ;-- PPU register address constants --;
 ;neither PPU or CPU has direct access to each other's memory so the CPU writes to and reads from VRAM
@@ -126,6 +127,12 @@ VRAM_SPRITE_PLT	= $3F10 	;sprite palette 	($3F10 - $3F1F) 	256 bytes
     .bank 0                         ;uses the first bank, which is a 8kb ROM memory region
     .org $c000                      ;place all program code in the middle of PGR_ROM memory (c000 - e000, offset: 24kb)
 
+;wait for vertical blank to make sure the PPU is ready
+vblank_wait:
+    LDA PPU_STATUS                  ;loads PPU_STATUS into register a
+    BPL vblank_wait               	;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
+    RTS
+
 ;RESET is called when the NES starts up
 RESET:
     SEI                             ;disables external interrupt requests
@@ -137,14 +144,11 @@ RESET:
     INX                             ;add 1 to the x register and overflow it which results in 0
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
 
+    JSR vblank_wait 				;first vblank wait to make sure the PPU is warming up
+    
 ;------------------------------------------------------------------------------------;
 ;wait for the PPU to be ready and clear all mem from 0000 to 0800
 
-;first wait for vertical blank to make sure the PPU is ready
-vblank_wait_1:
-    LDA PPU_STATUS                  ;loads PPU_STATUS into register a
-    BPL vblank_wait_1               ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
-    
 ;while waiting to make sure the PPU has properly stabalised, we will put the 
 ;zero page, stack memory and RAM into a known state by filling it with #$00
 clr_mem_loop:
@@ -165,10 +169,7 @@ clr_mem_loop:
     CPX #$00                        ;check if x has overflowed into 0
     BNE clr_mem_loop                ;continue clearing memory if x is not equal to 0
 
-;second and last wait for vertical blank to make sure the PPU is ready
-vblank_wait_2:
-    LDA PPU_STATUS                  ;loads PPU_STATUS into register a
-    BPL vblank_wait_2               ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
+    JSR vblank_wait 				;second vblank wait to make sure the PPU has properly warmed up
 
 ;------------------------------------------------------------------------------------;
 
@@ -268,9 +269,9 @@ load_sprites:
 
 game_loop:
     ;keep looping until NMI is called and changes the vblank counter
-    LDA $0000                       ;load the vblank counter
+    LDA #vblank_counter             ;load the vblank counter
     vblank_wait_main:
-        CMP $0000                   ;compare register a with the vblank counter
+        CMP #vblank_counter         ;compare register a with the vblank counter
         BEQ vblank_wait_main        ;keep looping if they are equal, otherwise continue if the vblank counter has changed
 
     LDX #$00
@@ -304,11 +305,11 @@ NMI:
     ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
 
     LDA #$00
-    STA OAM_ADDR                      ;sets the low byte of OAM_ADDR to #$00 (the start of internal OAM memory on PPU)
+    STA OAM_ADDR                   ;sets the low byte of OAM_ADDR to #$00 (the start of internal OAM memory on PPU)
 
     ;stores the #$02 high byte + #$00 sprite attribs memory address in OAM_DMA and then begins the transfer
     LDA #HIGH(OAM_RAM_ADDR)
-    STA OAM_DMA                       ;stores OAM_RAM_ADDR to high byte of OAM_DMA
+    STA OAM_DMA                    ;stores OAM_RAM_ADDR to high byte of OAM_DMA
     ;CPU is now suspended and transfer begins
 
     INC $0302
@@ -321,7 +322,7 @@ NMI:
     ;STA $2005
     ;STA $2005
 
-    INC $0000                       ;increases the vblank counter by 1 so the game loop can check when NMI has been called
+    INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 
 latch_controller:
     ;write $0100 to $4016 to tell the controllers to latch the current button positions (???)
