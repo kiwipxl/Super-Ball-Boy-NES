@@ -70,9 +70,7 @@
     ;store game variables in zero page (2x faster access)
 	.rsset $0000
 
-;-- constants --
-
-;-- PPU register address constants --
+;-- PPU register address constants --;
 ;neither PPU or CPU has direct access to each other's memory so the CPU writes to and reads from VRAM
 ;through the following PPU registers
 
@@ -82,25 +80,34 @@ PPU_STATUS 		= $2002
 OAM_ADDR 		= $2003
 OAM_DATA 		= $2004
 PPU_SCROLL 		= $2005
-PPU_ADDR 		= $2006 				  ;a address on the PPU is stored here which PPU_DATA uses to write/read from
-PPU_DATA 		= $2007 				  ;register used to read/write from VRAM
+PPU_ADDR 		= $2006 			;a address on the PPU is stored here which PPU_DATA uses to write/read from
+PPU_DATA 		= $2007 			;register used to read/write from VRAM
 OAM_DMA 		= $4014
 
 ;-- PPU VRAM memory address constants --;
 ;the following are all addresses that map to different parts of the PPU's VRAM
-VRAM_PT_0		= $0000 	;pattern table 0 	($0000 - $0FFF)
-VRAM_PT_1		= $1000 	;pattern table 1 	($1000 - $1FFF)
-VRAM_NT_0		= $2000 	;nametable 0 		($2400 - $23FF)
-VRAM_NT_1		= $2400 	;nametable 1 		($2400 - $27FF)
-VRAM_NT_2		= $2800 	;nametable 2 		($2800 - $2BFF)
-VRAM_NT_3		= $2C00 	;nametable 3 		($2C00 - $2FFF)
-VRAM_BG_PLT		= $3F00 	;background palette ($3F00 - $3FFF)
-VRAM_SPRITE_PLT	= $3F10 	;sprite palette 	($3F10 - $3F1F)
+VRAM_PT_0		= $0000 	;pattern table 0 	($0000 - $0FFF) 	4096 bytes
+VRAM_PT_1		= $1000 	;pattern table 1 	($1000 - $1FFF) 	4096 bytes
+
+VRAM_NT_0		= $2000 	;nametable 0 		($2000 - $23FF) 	1024 bytes
+VRAM_ATTRIB_0	= $23C0 	;attrib list 0 		($23C0 - $23FF) 	64 bytes
+
+VRAM_NT_1		= $2400 	;nametable 1 		($2400 - $27FF) 	1024 bytes
+VRAM_ATTRIB_1	= $27C0 	;attrib list 1 		($27C0 - $27FF) 	64 bytes
+
+VRAM_NT_2		= $2800 	;nametable 2 		($2800 - $2BFF) 	1024 bytes
+VRAM_ATTRIB_2	= $2BC0 	;attrib list 2 		($2BC0 - $2BFF) 	64 bytes
+
+VRAM_NT_3		= $2C00 	;nametable 3 		($2C00 - $2FFF) 	1024 bytes
+VRAM_ATTRIB_3	= $2FC0 	;attrib list 3 		($2FC0 - $2FFF) 	64 bytes
+
+VRAM_BG_PLT		= $3F00 	;background palette ($3F00 - $3FFF) 	256 bytes
+VRAM_SPRITE_PLT	= $3F10 	;sprite palette 	($3F10 - $3F1F) 	256 bytes
 
 ;------------------------------------------------------------------------------------;
 
-    .bank 0                           ;uses the first bank, which is a 8kb ROM memory region
-    .org $c000                        ;place all program code in the middle of PGR_ROM memory (c000 - e000, offset: 24kb)
+    .bank 0                         ;uses the first bank, which is a 8kb ROM memory region
+    .org $c000                      ;place all program code in the middle of PGR_ROM memory (c000 - e000, offset: 24kb)
 
 ;RESET is called when the NES starts up
 RESET:
