@@ -315,13 +315,13 @@ read_controller:
     STA $4016
     LDA #$00
     STA $4016
-    STA button_bits
 
+    ;read the button press bit of a, b, start, select, up, down, left, right and store all bits in button_bits
     LDX #$08
     read_loop:
         LDA $4016                   ;load input status byte into register a
-        LSR a
-        ROL button_bits
+        LSR a                       ;shift right by 1 and store what was bit 0 into the carry flag
+        ROL button_bits             ;rotate left by 1 and store the previous carry flag in bit 0
         DEX                         ;decreases x by 1 and sets the zero flag if x is 0
         BNE read_loop               ;if the zero flag is not set, keep looping, otherwise end the function
         RTS
