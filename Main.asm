@@ -70,14 +70,25 @@
     ;store game variables in zero page (2x faster access)
 	.rsset $0000
 
+	;store PPU constants in the start of RAM
+	.rsset $0200
+
 ;-- PPU register address constants --;
 ;neither PPU or CPU has direct access to each other's memory so the CPU writes to and reads from VRAM
 ;through the following PPU registers
 
-PPU_CTRL 		= $2000
-PPU_MASK 		= $2001
-PPU_STATUS 		= $2002
-PPU_SCROLL 		= $2005
+PPU_CTRL 		= $2000 			;bit flags controlling PPU operations
+									;enable NMI (7), PPU master/slave (6), sprite height (5), bg tile select (4)
+									;sprite tile select (3), inc mode (2), nametable select (1 and 0)
+
+PPU_MASK 		= $2001 			;bit flags controlling the rendering of sprites, backgrounds and colour effects
+									;colour emphasis (7-5, BGR), enable sprites (4), enable backgrounds (3)
+									;enable sprite left column (2), enable background left column (1), grayscale (0)
+
+PPU_STATUS 		= $2002 			;bit flags for various functions in the PPU
+									;vblank (7), sprite 0 hit (6), sprite overflow (5)
+
+PPU_SCROLL 		= $2005 			;used to write the x and y scroll positions for backgrounds
 PPU_ADDR 		= $2006 			;a address on the PPU is stored here which PPU_DATA uses to write/read from
 PPU_DATA 		= $2007 			;register used to read/write from VRAM
 
@@ -131,7 +142,7 @@ RESET:
 
 ;first wait for vertical blank to make sure the PPU is ready
 vblank_wait_1:
-    LDA $2002                       ;loads PPU_STATUS into register a
+    LDA PPU_STATUS                  ;loads PPU_STATUS into register a
     BPL vblank_wait_1               ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
     
 ;while waiting to make sure the PPU has properly stabalised, we will put the 
@@ -140,6 +151,7 @@ clr_mem_loop:
     LDA #$00
     STA $0000, x                    ;set the zero page to 0
     STA $0100, x                    ;set the stack memory to 0
+    STA $0200, x                    ;set RAM to 0
     STA $0300, x                    ;set RAM to 0
     STA $0400, x                    ;set RAM to 0
     STA $0500, x                    ;set RAM to 0
@@ -148,43 +160,44 @@ clr_mem_loop:
 
     LDA #$FF
     STA OAM_RAM_ADDR, x             ;set OAM (object attribute memory) in RAM to #$FF so that sprites are off-screen
+
     INX                             ;increase x by 1
     CPX #$00                        ;check if x has overflowed into 0
     BNE clr_mem_loop                ;continue clearing memory if x is not equal to 0
 
 ;second and last wait for vertical blank to make sure the PPU is ready
 vblank_wait_2:
-    LDA $2002                       ;loads PPU_STATUS into register a
+    LDA PPU_STATUS                  ;loads PPU_STATUS into register a
     BPL vblank_wait_2               ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
 
 ;------------------------------------------------------------------------------------;
 
-;writes bg and sprite palette data to the PPU
+;> writes bg and sprite palette data to the PPU
+;write the PPU bg palette address VRAM_BG_PLT to the PPU register PPU_ADDR
+;so whenever we write data to PPU_DATA, it will map to VRAM_BG_PLT + write offset in the PPU VRAM
+;although we start at the BG palette, we also continue writing into the sprite palette
 load_palettes:
-    ;write the PPU bg palette address $3F00 to the PPU register
-    ;so whenever we write data to $2006, it will map to $3F00 in the PPU VRAM
+    LDA PPU_STATUS                  ;read PPU status to reset the high/low latch (may not be needed, but just in case)
 
-    LDA $2002                       ;read PPU status to reset the high/low latch (may not be needed, but just in case)
-
-    LDA #$3F
-    STA PPU_ADDR                       ;write the high byte of $3F00 address
-    LDA #$00
-    STA PPU_ADDR                       ;write the low byte of $3F00 address
+    LDA #HIGH(VRAM_BG_PLT)
+    STA PPU_ADDR                    ;write the high byte of $3F00 address
+    LDA #LOW(VRAM_BG_PLT)
+    STA PPU_ADDR                    ;write the low byte of $3F00 address
 
     LDX #$00                        ;set x counter register to 0
     load_palettes_loop:
         LDA palette, x              ;load palette byte (palette + x byte offset)
-        STA $2007                   ;write byte to the PPU palette address
+        STA PPU_DATA                ;write byte to the PPU palette address
         INX                         ;add by 1 to move to next byte
 
         CPX #$20                    ;check if x is equal to 32
         BNE load_palettes_loop      ;keep looping if x is not equal to 32, otherwise continue
 
+;> writes nametable 0 into PPU VRAM
+;write the PPU nametable address VRAM_NT_0 to the PPU register PPU_ADDR
+;so whenever we write data to PPU_DATA, it will map to the VRAM_NT_0 + write offset address in the PPU VRAM
 load_background:
-    ;write the PPU nametable address VRAM_NT_0 to the PPU register
-    ;so whenever we write data to PPU_ADDR, it will map to the VRAM_NT_0 address in the PPU VRAM
-
-    LDA $2002                       ;read PPU status to reset the high/low latch (may not be needed, but just in case)
+    LDA PPU_STATUS                  ;read PPU status to reset the high/low latch (may not be needed, but just in case)
 
     LDA #HIGH(VRAM_NT_1) 			;load the PPU nametable 0 address high byte
     STA PPU_ADDR 					;write high byte to PPU_ADDR
@@ -194,17 +207,17 @@ load_background:
     LDX #$00
     load_background_loop:
         LDA nametable, x            ;load nametable byte (nametable + x byte offset)
-        STA $2007                   ;write byte to the PPU nametable address
+        STA PPU_DATA                ;write byte to the PPU nametable address
         INX                         ;add by 1 to move to the next byte
 
         CPX #$FF                    ;check if x is equal to 128
         BNE load_background_loop    ;keep looping if x is not equal to 128, otherwise continue
 
+;> writes attributes 0 into PPU VRAM
+;write the PPU attributes address VRAM_ATTRIB_0 to the PPU register PPU_ADDR
+;so whenever we write data to PPU_DATA, it will map to VRAM_ATTRIB_0 + write offset in the PPU VRAM
 load_attributes:
-    ;write the PPU attributes address VRAM_ATTRIB_0 to the PPU register
-    ;so whenever we write data to PPU_ADDR, it will map to VRAM_ATTRIB_0 in the PPU VRAM
-
-    LDA $2002                       ;read PPU status to reset the high/low latch (may not be needed, but just in case)
+    LDA PPU_STATUS                  ;read PPU status to reset the high/low latch (may not be needed, but just in case)
 
     LDA #HIGH(VRAM_ATTRIB_1) 		;load the PPU attrib 0 address high byte
     STA PPU_ADDR 					;write high byte to PPU_ADDR
@@ -226,11 +239,11 @@ load_attributes:
 init_PPU:
     ;setup PPU_CTRL bits
     LDA #%10010000                  ;enable NMI calling and set sprite pattern table to $0000 (0)
-    STA $2000
+    STA PPU_CTRL
 
     ;setup PPU_MASK bits
     LDA #%00011110                  ;enable sprite rendering
-    STA $2001
+    STA PPU_MASK
 
 ;loads all sprite attribs into OAM_RAM_ADDR
 load_sprites:
