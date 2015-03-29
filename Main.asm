@@ -23,9 +23,9 @@
     .dw NMI                           ;address for NMI (non maskable interrupt). when an NMI happens (once per frame if enabled) the 
                                       ;processor will jump to the label NMI and return to the point where it was interrupted
     .dw RESET                         ;when the processor first turns on or is reset, it will jump to the RESET label
-    .dw 0                             ;external inerrupts are not used
+    .dw IQR                           ;external inerrupts are not used
 
-    .org $e000                        ;place all program code at the third quarter of ROM (e000 - fffa, offset: 16kb)
+    .org $e000                        ;place all program code at the third quarter of ROM (e000 - fffa, offset: 24kb)
 
 PALETTE:
     ;.db $0F,$31,$32,$33,$0F,$35,$36,$37,$0F,$39,$3A,$3B,$0F,$3D,$3E,$0F
@@ -68,7 +68,8 @@ ATTRIBUTES:
     ;store game variables in zero page (2x faster access)
     .rsset $0000
 
-vblank_counter      .rs 1
+vblank_counter      .rs     1
+button_bits         .rs     1
 
 ;define PPU constants (constants are basically #defines, so they don't take up memory)
 
@@ -123,12 +124,17 @@ VRAM_SPRITE_PLT = $3F10     ;sprite palette     ($3F10 - $3F1F)     256 bytes
 ;------------------------------------------------------------------------------------;
 
     .bank 0                         ;uses the first bank, which is a 8kb ROM memory region
-    .org $c000                      ;place all program code in the middle of PGR_ROM memory (c000 - e000, offset: 24kb)
+    .org $c000                      ;place all program code in the middle of PGR_ROM memory (c000 - e000, offset: 16kb)
+
+;sub routine used to apply a breakpoint if the emulator has it mapped
+brk:
+    BIT $07FF                       ;read the end byte of RAM so an emulator can pick up on it
+    RTS
 
 ;wait for vertical blank to make sure the PPU is ready
 vblank_wait:
-    LDA PPU_STATUS                  ;loads PPU_STATUS into register a
-    BPL vblank_wait                 ;if a is greater than 0 then continue looping until it is equal to 0 (not sure if correct)
+    LDA PPU_STATUS                  ;loads PPU_STATUS and sets the negative flag if bit 7 is 1 (vblank)
+    BPL vblank_wait                 ;continue waiting until the negative flag is not set which means bit 7 is positive (equal to 1)
     RTS
 
 ;RESET is called when the NES starts up
@@ -204,6 +210,7 @@ load_background:
     STA PPU_ADDR                    ;write low byte to PPU_ADDR
 
     LDX #$00
+    JSR brk
     load_background_loop:
         LDA NAMETABLE, x            ;load nametable byte (nametable + x byte offset)
         STA PPU_DATA                ;write byte to the PPU nametable address
@@ -258,7 +265,7 @@ load_sprites:
         STA OAM_RAM_ADDR, x         ;store attrib in OAM on RAM(address + x)
         INX
 
-        CPX #SPRITES_DATA_LEN        ;check if all attribs have been stored by comparing x to the data length of all sprites
+        CPX #SPRITES_DATA_LEN       ;check if all attribs have been stored by comparing x to the data length of all sprites
         BNE load_sprites_loop       ;continue loop if x register is not equal to 0, otherwise move down
 
         JMP game_loop
@@ -270,7 +277,13 @@ game_loop:
     LDA vblank_counter             ;load the vblank counter
     vblank_wait_main:
         CMP vblank_counter         ;compare register a with the vblank counter
-        BEQ vblank_wait_main        ;keep looping if they are equal, otherwise continue if the vblank counter has changed
+        BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
+
+    LDA button_bits
+    AND #%00000010
+    BEQ a_not_pressed
+    INC $0300
+    a_not_pressed:
 
     LDX #$00
     loop:
@@ -295,6 +308,23 @@ game_loop:
     JMP game_loop                   ;jump back to game_loop, infinite loop
 
 ;------------------------------------------------------------------------------------;
+
+read_controller:
+    ;write $0100 to $4016 to tell the controllers to latch the current button positions (???)
+    LDA #$01
+    STA $4016
+    LDA #$00
+    STA $4016
+    STA button_bits
+
+    LDX #$08
+    read_loop:
+        LDA $4016                   ;load input status byte into register a
+        LSR a
+        ROL button_bits
+        DEX                         ;decreases x by 1 and sets the zero flag if x is 0
+        BNE read_loop               ;if the zero flag is not set, keep looping, otherwise end the function
+        RTS
 
 ;NMI interrupts the cpu and is called once per video frame
 ;PPU is starting vblank time and is available for graphics updates
@@ -322,64 +352,10 @@ NMI:
 
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 
-latch_controller:
-    ;write $0100 to $4016 to tell the controllers to latch the current button positions (???)
-    LDA #$01
-    STA $4016
-    LDA #$00
-    STA $4016
-
-check_a_press:
-    LDA $4016                       ;load input status byte into register a
-    AND #$00000001                  ;check if bit 0 is equal to 1
-    BEQ check_b_press               ;branches if register a equals 0, therefore no button was pressed
-    ;-- a was pressed --
-
-check_b_press:
-    LDA $4016                       ;load input status byte into register a
-    AND #$00000001                  ;check if bit 0 is equal to 1
-    BEQ check_select_press          ;branches if register a equals 0, therefore no button was pressed
-    ;-- b was pressed --
-
-check_select_press:
-    LDA $4016                       ;load input status byte into register a
-    AND #$00000001                  ;check if bit 0 is equal to 1
-    BEQ check_start_press           ;branches if register a equals 0, therefore no button was pressed
-    ;-- select was pressed --
-
-check_start_press:
-    LDA $4016                       ;load input status byte into register a
-    AND #$00000001                  ;check if bit 0 is equal to 1
-    BEQ check_up_press              ;branches if register a equals 0, therefore no button was pressed
-    ;-- start was pressed --
-
-check_up_press:
-    LDA $4016                       ;load input status byte into register a
-    AND #$00000001                  ;check if bit 0 is equal to 1
-    BEQ check_down_press            ;branches if register a equals 0, therefore no button was pressed
-    ;-- up was pressed --
-    DEC $301
-
-check_down_press:
-    LDA $4016                       ;load input status byte into register a
-    AND #$00000001                  ;check if bit 0 is equal to 1
-    BEQ check_left_press            ;branches if register a equals 0, therefore no button was pressed
-    ;-- down was pressed --
-    INC $301
-
-check_left_press:
-    LDA $4016                       ;load input status byte into register a
-    AND #$00000001                  ;check if bit 0 is equal to 1
-    BEQ check_right_press           ;branches if register a equals 0, therefore no button was pressed
-    ;-- left was pressed --
-    DEC $300
-
-check_right_press:
-    LDA $4016                       ;load input status byte into register a
-    AND #$00000001                  ;check if bit 0 is equal to 1
-    BEQ input_end                   ;branches if register a equals 0, therefore no button was pressed
-    ;-- right was pressed --
-    INC $300
+    JSR read_controller
 
 input_end:
     RTI                             ;returns from the interrupt
+
+IQR:
+    RTI
