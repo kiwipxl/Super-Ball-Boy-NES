@@ -23,7 +23,7 @@
     .dw NMI                           ;address for NMI (non maskable interrupt). when an NMI happens (once per frame if enabled) the 
                                       ;processor will jump to the label NMI and return to the point where it was interrupted
     .dw RESET                         ;when the processor first turns on or is reset, it will jump to the RESET label
-    .dw IQR                           ;external inerrupts are not used
+    .dw IQR                           ;external interrupts are not used
 
     .org $e000                        ;place all program code at the third quarter of ROM (e000 - fffa, offset: 24kb)
 
@@ -61,15 +61,40 @@ NAMETABLE:
     ;row4 (some brick bottoms)
     .db $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24
     .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24
-
+	
+	;row4 (some brick bottoms)
+    .db $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24
+	
+	;row4 (some brick bottoms)
+    .db $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24
+	
+	;row4 (some brick bottoms)
+    .db $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24
+	
+	;row4 (some brick bottoms)
+    .db $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24
+	
+	;row1 (all sky)
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+	
+	 ;row3 (some brick tops)
+    .db $24,$24,$24,$24,$45,$45,$24,$24,$45,$45,$45,$45,$45,$45,$24,$24
+    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$53,$54,$24,$24
+	
 ATTRIBUTES:
-    .db %00000000, %00010000, %0010000, %00010000, %00000000, %00000000, %00000000, %00110000
+    .db %00000000, %00010000, %0010000, %00010000, %00000000, %00000000, %00000000, %00110000, %00000000, %00000000, %00000000, %00000000, %00000000, %00000000, %00000000, %00000000
 
     ;store game variables in zero page (2x faster access)
     .rsset $0000
 
 vblank_counter      .rs     1
 button_bits         .rs     1
+bg_pointer 			.rs 	2
 
 ;define PPU constants (constants are basically #defines, so they don't take up memory)
 
@@ -232,16 +257,29 @@ load_background:
     STA PPU_ADDR                    ;write high byte to PPU_ADDR
     LDA #LOW(VRAM_NT_1)             ;load the PPU nametable 0 address low byte
     STA PPU_ADDR                    ;write low byte to PPU_ADDR
-
-    LDX #$00
-    load_background_loop:
-        LDA NAMETABLE, x            ;load nametable byte (nametable + x byte offset)
-        STA PPU_DATA                ;write byte to the PPU nametable address
-        INX                         ;add by 1 to move to the next byte
-
-        CPX #$FF                    ;check if x is equal to 128
-        BNE load_background_loop    ;keep looping if x is not equal to 128, otherwise continue
-
+	
+	LDA #LOW(NAMETABLE) 			;load the low byte of the nametable address
+	STA bg_pointer 				 	;store the low byte address in the low byte of the background pointer
+	LDA #HIGH(NAMETABLE) 			;load the high byte of the nametable address
+	STA bg_pointer + 1 				;store the high byte address in the high byte of background pointer
+	
+	LDY #$00
+	LDX #$00
+	bg_loop:
+		bg_loop_nested:
+			LDA [bg_pointer], y 		;get the value pointed to by bg_pointer_lo + bg_pointer_hi + y counter offset
+			STA PPU_DATA                ;write byte to the PPU nametable address
+			INY                       	;add by 1 to move to the next byte
+			
+			CPY #$00                    ;check if y is equal to 0 (it has overflowed)
+			BNE bg_loop_nested    		;keep looping if y not equal to 0, otherwise continue
+			
+			INC bg_pointer + 1 			;increase the high byte of bg_pointer by 1 (#$FF)
+			INX 						;increase x by 1
+			
+			CPX #$04 					;check if x has looped 4 times (1kb, #$04FF)
+			BNE bg_loop 				;go to the start of the loop if x is not equal to 0, otherwise continue
+			
 ;> writes attributes 0 into PPU VRAM
 ;write the PPU attributes address VRAM_ATTRIB_0 to the PPU register PPU_ADDR
 ;so whenever we write data to PPU_DATA, it will map to VRAM_ATTRIB_0 + write offset in the PPU VRAM
@@ -277,12 +315,7 @@ init_PPU:
 ;loads all sprite attribs into OAM_RAM_ADDR
 load_sprites:
     LDX #$00                        ;start x register counter at 0
-
-    LDA #$00
-    STA $0300
-    STA $0301
-    STA $0302
-
+	
     load_sprites_loop:
         LDA SPRITES, x              ;load sprite attrib into register a (sprite + x)
         STA OAM_RAM_ADDR, x         ;store attrib in OAM on RAM(address + x)
@@ -305,29 +338,21 @@ game_loop:
     LDA button_bits
     AND #%00000010
     BEQ a_not_pressed
-    INC $0300
+	LDA OAM_RAM_ADDR + 3, x
+	CLC
+	ADC #$01
+	STA OAM_RAM_ADDR + 3, x
     a_not_pressed:
-
-    LDX #$00
-    loop:
-      LDA OAM_RAM_ADDR, x
-      CLC
-      ADC $0301
-      STA OAM_RAM_ADDR, x
-
-      LDA OAM_RAM_ADDR + 3, x
-      CLC
-      ADC $0300
-      STA OAM_RAM_ADDR + 3, x
-
-      TXA
-      CLC
-      ADC #$04
-      TAX
-
-      CPX #SPRITES_DATA_LEN
-      BNE loop
-
+	
+	LDA button_bits
+    AND #%00000001
+    BEQ b_not_pressed
+	LDA OAM_RAM_ADDR, x
+	CLC
+	ADC #$01
+	STA OAM_RAM_ADDR, x
+    b_not_pressed:
+	
     JMP game_loop                   ;jump back to game_loop, infinite loop
 
 ;------------------------------------------------------------------------------------;
@@ -338,8 +363,7 @@ read_controller:
     STA $4016
     LDA #$00
     STA $4016
-
-    DEBUG_BRK
+	
     LDA #$01
     STA $0002
     LDA #$08
@@ -373,7 +397,17 @@ NMI:
     LDA #HIGH(OAM_RAM_ADDR)
     STA OAM_DMA                    ;stores OAM_RAM_ADDR to high byte of OAM_DMA
     ;CPU is now suspended and transfer begins
-
+	
+	LDA OAM_RAM_ADDR + 3
+	CLC
+	ADC #$08
+	STA OAM_RAM_ADDR + 7
+	
+	LDA OAM_RAM_ADDR
+	CLC
+	ADC #$08
+	STA OAM_RAM_ADDR + 11
+	
     INC $0302
     LDA $0302
     STA $2005
