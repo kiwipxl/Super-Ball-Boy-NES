@@ -7,18 +7,18 @@
 
     .bank 3                           ;uses the fourth bank, which is a 8kb ROM memory region
     .org $8000                        ;places graphics tiles at the beginning of ROM (8000 - a000, offset: 0kb)
-    .incbin "assets/mario.chr"        ;includes 8kb graphics file from SMB1
+    .incbin "assets/tileset1.chr"     ;includes 8kb graphics file from SMB1
 
 ;------------------------------------------------------------------------------------;
 
     .bank 2                           ;uses the third bank, which is a 8kb ROM memory region
     .org $a000                        ;places graphics tiles in the first quarter of ROM (a000 - e000, offset: 8kb)
-    .incbin "assets/mario.chr"        ;includes 8kb graphics file from SMB1
+    .incbin "assets/tileset1.chr"     ;includes 8kb graphics file from SMB1
 
 ;------------------------------------------------------------------------------------;
 
     .bank 1                           ;uses the second bank, which is a 8kb ROM memory region
-
+	
     .org $fffa                        ;places the address of NMI, reset and BRK handlers at the very end of the ROM
     .dw NMI                           ;address for NMI (non maskable interrupt). when an NMI happens (once per frame if enabled) the 
                                       ;processor will jump to the label NMI and return to the point where it was interrupted
@@ -27,14 +27,12 @@
 
     .org $e000                        ;place all program code at the third quarter of ROM (e000 - fffa, offset: 24kb)
 
-PALETTE:
-    ;.db $0F,$31,$32,$33,$0F,$35,$36,$37,$0F,$39,$3A,$3B,$0F,$3D,$3E,$0F
-    ;.db $0F,$1C,$15,$14,$0F,$02,$38,$3C,$0F,$1C,$15,$14,$0F,$02,$38,$3C
+NT_LEVEL_1:
+	.incbin "assets/level1.nam"
 
-    ;bg palette
-    .db $22, $29, $1a, $0f,     $0f, $36, $17, $0f,     $0f, $30, $21, $0f,     $0f, $07, $17, $0f
-    ;sprite palette
-    .db $22, $16, $27, $18,     $0f, $1a, $30, $27,     $0f, $16, $30, $27,     $0f, $0f, $36, $17
+PALETTE:
+	.incbin "assets/level-palette.pal"
+    .incbin "assets/sprite-palette.pal"
 
 SPRITES:
     ;y, tile index, attribs (palette 4 to 7, priority, flip), x
@@ -44,50 +42,6 @@ SPRITES:
     .db $88, $35, %00000000, $88
 NUM_SPRITES         = 4
 SPRITES_DATA_LEN    = 16
-
-NAMETABLE:
-    ;row1 (all sky)
-    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
-    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
-
-    ;row2 (all sky)
-    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
-    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
-
-    ;row3 (some brick tops)
-    .db $24,$24,$24,$24,$45,$45,$24,$24,$45,$45,$45,$45,$45,$45,$24,$24
-    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$53,$54,$24,$24
-
-    ;row4 (some brick bottoms)
-    .db $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24
-    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24
-	
-	;row4 (some brick bottoms)
-    .db $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24
-    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24
-	
-	;row4 (some brick bottoms)
-    .db $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24
-    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24
-	
-	;row4 (some brick bottoms)
-    .db $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24
-    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24
-	
-	;row4 (some brick bottoms)
-    .db $24,$24,$24,$24,$47,$47,$24,$24,$47,$47,$47,$47,$47,$47,$24,$24
-    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$55,$56,$24,$24
-	
-	;row1 (all sky)
-    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
-    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
-	
-	 ;row3 (some brick tops)
-    .db $24,$24,$24,$24,$45,$45,$24,$24,$45,$45,$45,$45,$45,$45,$24,$24
-    .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$53,$54,$24,$24
-	
-ATTRIBUTES:
-    .db %00000000, %00010000, %0010000, %00010000, %00000000, %00000000, %00000000, %00110000, %00000000, %00000000, %00000000, %00000000, %00000000, %00000000, %00000000, %00000000
 
     ;store game variables in zero page (2x faster access)
     .rsset $0000
@@ -273,11 +227,11 @@ load_background:
 			
 			CPY #$00                    ;check if y is equal to 0 (it has overflowed)
 			BNE bg_loop_nested    		;keep looping if y not equal to 0, otherwise continue
-			
-			INC bg_pointer + 1 			;increase the high byte of bg_pointer by 1 (#$FF)
+
+            INC bg_pointer + 1          ;increase the high byte of bg_pointer by 1 ((#$FF + 1) low bytes)
 			INX 						;increase x by 1
 			
-			CPX #$04 					;check if x has looped 4 times (1kb, #$04FF)
+			CPX #$04 					;check if x has looped and overflowed 4 times (1kb, #$04FF)
 			BNE bg_loop 				;go to the start of the loop if x is not equal to 0, otherwise continue
 			
 ;> writes attributes 0 into PPU VRAM
@@ -293,8 +247,8 @@ load_attributes:
 
     LDX #$00
     load_attributes_loop:
-        LDA ATTRIBUTES, x           ;load attributes byte (attributes + x byte offset)
-        STA $2007                   ;write byte to the PPU attributes address
+        LDA NAMETABLE + 960, x      ;load attributes byte (attributes + x byte offset)
+        STA PPU_DATA                ;write byte to the PPU attributes address
         INX                         ;add by 1 to move to the next byte
 
         CPX #$40                    ;check if x is equal to 8
@@ -305,7 +259,7 @@ load_attributes:
 ;initialises PPU settings
 init_PPU:
     ;setup PPU_CTRL bits
-    LDA #%10010000                  ;enable NMI calling and set sprite pattern table to $0000 (0)
+    LDA #%10000001                  ;enable NMI calling and set sprite pattern table to $0000 (0)
     STA PPU_CTRL
 
     ;setup PPU_MASK bits
@@ -408,15 +362,15 @@ NMI:
 	ADC #$08
 	STA OAM_RAM_ADDR + 11
 	
-    INC $0302
-    LDA $0302
-    STA $2005
-    LDA #$00
-    STA $2005
-
+    ;INC $0302
+    ;LDA $0302
+    ;STA $2005
     ;LDA #$00
     ;STA $2005
-    ;STA $2005
+
+    LDA #$00
+    STA $2005
+    STA $2005
 
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 
