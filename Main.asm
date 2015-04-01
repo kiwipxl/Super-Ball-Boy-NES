@@ -33,6 +33,9 @@ NT_LEVEL_1:
 NT_LEVEL_2:
     .incbin "assets/level2.nam"
 
+NT_LEVEL_3:
+    .incbin "assets/level1.nam"
+
 PALETTE:
 	.incbin "assets/level-palette.pal"
     .incbin "assets/sprite-palette.pal"
@@ -136,9 +139,24 @@ SUB_SHORT .macro
 ;(pointing_to_address, high_byte_store, low_byte_store)
 SET_POINTER .macro
     LDA #HIGH(\1)                   ;gets the high byte of pointing_to_address
-    STA \3                          ;store in low_byte_store (little endian)
+    STA \2                          ;store in high_byte_store
     LDA #LOW(\1)                    ;gets the low byte of pointing_to_address
-    STA \2                          ;store in high_byte_store (little endian)
+    STA \3                          ;store in low_byte_store
+
+    .endm
+
+;macro to load a nametable + attributes into specified PPU addressess
+;(nametable_address (including attributes), PPU_nametable_address, PPU_attribs_address)
+LOAD_FULL_NAMETABLE .macro
+    BIT PPU_STATUS                  ;read PPU_STATUS to reset high/low latch so low byte can be stored then high byte (little endian)
+    SET_POINTER \2, PPU_ADDR, PPU_ADDR
+    SET_POINTER \1, nt_pointer + 1, nt_pointer
+    JSR load_nametable
+
+    BIT PPU_STATUS                  ;read PPU_STATUS to reset high/low latch so low byte can be stored then high byte (little endian)
+    SET_POINTER \3, PPU_ADDR, PPU_ADDR
+    SUB_SHORT nt_pointer + 1, nt_pointer, #$40
+    JSR load_attributes
 
     .endm
 
@@ -149,7 +167,7 @@ SET_POINTER .macro
 
 ;wait for vertical blank to make sure the PPU is ready
 vblank_wait:
-    LDA PPU_STATUS                  ;loads PPU_STATUS and sets the negative flag if bit 7 is 1 (vblank)
+    BIT PPU_STATUS                  ;reads PPU_STATUS and sets the negative flag if bit 7 is 1 (vblank)
     BPL vblank_wait                 ;continue waiting until the negative flag is not set which means bit 7 is positive (equal to 1)
     RTS
 
@@ -198,7 +216,7 @@ clr_mem_loop:
 ;so whenever we write data to PPU_DATA, it will map to VRAM_BG_PLT + write offset in the PPU VRAM
 ;although we start at the BG palette, we also continue writing into the sprite palette
 load_palettes:
-    LDA PPU_STATUS                  ;read PPU status to reset the high/low latch (may not be needed, but just in case)
+    BIT PPU_STATUS                  ;read PPU_STATUS to reset high/low latch so low byte can be stored then high byte (little endian)
     SET_POINTER VRAM_BG_PLT, PPU_ADDR, PPU_ADDR
 
     LDX #$00                        ;set x counter register to 0
@@ -211,10 +229,12 @@ load_palettes:
         BNE load_palettes_loop      ;keep looping if x is not equal to 32, otherwise continue
 
 load_level_1:
-    LDA PPU_STATUS                  ;read PPU status to reset the high/low latch so high byte can be stored then low byte
-    SET_POINTER VRAM_NT_1, PPU_ADDR, PPU_ADDR
-    SET_POINTER NT_LEVEL_1, nt_pointer, nt_pointer + 1
-    
+    LOAD_FULL_NAMETABLE NT_LEVEL_1, VRAM_NT_0, VRAM_ATTRIB_0
+    LOAD_FULL_NAMETABLE NT_LEVEL_2, VRAM_NT_1, VRAM_ATTRIB_1
+    LOAD_FULL_NAMETABLE NT_LEVEL_3, VRAM_NT_2, VRAM_ATTRIB_2
+
+    JMP init_PPU
+
 ;> writes nametable 0 into PPU VRAM
 ;write the PPU nametable address VRAM_NT_0 to the PPU register PPU_ADDR
 ;so whenever we write data to PPU_DATA, it will map to the VRAM_NT_0 + write offset address in the PPU VRAM
@@ -235,33 +255,28 @@ load_nametable:
 			
 			CPX #$04 					;check if x has looped and overflowed 4 times (1kb, #$04FF)
 			BNE nt_loop 				;go to the start of the loop if x is not equal to 0, otherwise continue
-			
+    RTS
+
 ;> writes attributes 0 into PPU VRAM
 ;write the PPU attributes address VRAM_ATTRIB_0 to the PPU register PPU_ADDR
 ;so whenever we write data to PPU_DATA, it will map to VRAM_ATTRIB_0 + write offset in the PPU VRAM
 load_attributes:
-    LDA PPU_STATUS                  ;read PPU status to reset the high/low latch (may not be needed, but just in case)
-
-    LDA #HIGH(VRAM_ATTRIB_1)        ;load the PPU attrib 0 address high byte
-    STA PPU_ADDR                    ;write high byte to PPU_ADDR
-    LDA #LOW(VRAM_ATTRIB_1)         ;load the PPU attrib 0 address low byte
-    STA PPU_ADDR                    ;write low byte to PPU_ADDR
-
-    LDX #$00
+    LDY #$00
     load_attributes_loop:
-        LDA NT_LEVEL_1 + 960, x      ;load attributes byte (attributes + x byte offset)
+        LDA [nt_pointer], y         ;load attributes byte (attributes + x byte offset)
         STA PPU_DATA                ;write byte to the PPU attributes address
-        INX                         ;add by 1 to move to the next byte
+        INY                         ;add by 1 to move to the next byte
 
-        CPX #$40                    ;check if x is equal to 8
+        CPY #$40                    ;check if x is equal to 8
         BNE load_attributes_loop    ;keep looping if x is not equal to 8, otherwise continue
+    RTS
 
 ;------------------------------------------------------------------------------------;
 
 ;initialises PPU settings
 init_PPU:
     ;setup PPU_CTRL bits
-    LDA #%10000001                  ;enable NMI calling and set sprite pattern table to $0000 (0)
+    LDA #%10000000                  ;enable NMI calling and set sprite pattern table to $0000 (0)
     STA PPU_CTRL
 
     ;setup PPU_MASK bits
@@ -363,16 +378,19 @@ NMI:
 	CLC
 	ADC #$08
 	STA OAM_RAM_ADDR + 11
-	
-    ;INC $0302
-    ;LDA $0302
-    ;STA $2005
+
+    BIT PPU_STATUS
+    INC $0302
+    LDA $0302
+    STA $2005
+
+    INC $0304
+    LDA $0304
+    STA $2005
+
     ;LDA #$00
     ;STA $2005
-
-    LDA #$00
-    STA $2005
-    STA $2005
+    ;STA $2005
 
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 
