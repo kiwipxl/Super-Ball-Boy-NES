@@ -27,8 +27,11 @@
 
     .org $e000                        ;place all program code at the third quarter of ROM (e000 - fffa, offset: 24kb)
 
-NT_LEVEL_1:
+NT_LEVEL_1: 
 	.incbin "assets/level1.nam"
+
+NT_LEVEL_2:
+    .incbin "assets/level2.nam"
 
 PALETTE:
 	.incbin "assets/level-palette.pal"
@@ -48,7 +51,7 @@ SPRITES_DATA_LEN    = 16
 
 vblank_counter      .rs     1
 button_bits         .rs     1
-bg_pointer 			.rs 	2
+nt_pointer 			.rs 	2
 
 ;define PPU constants (constants are basically #defines, so they don't take up memory)
 
@@ -129,6 +132,16 @@ SUB_SHORT .macro
     STA \1                          ;store upper 8 bits result back
     .endm
 
+;macro to set a high byte + low byte address into two bytes or 16 bit PPU register
+;(pointing_to_address, high_byte_store, low_byte_store)
+SET_POINTER .macro
+    LDA #HIGH(\1)                   ;gets the high byte of pointing_to_address
+    STA \3                          ;store in low_byte_store (little endian)
+    LDA #LOW(\1)                    ;gets the low byte of pointing_to_address
+    STA \2                          ;store in high_byte_store (little endian)
+
+    .endm
+
 ;------------------------------------------------------------------------------------;
 
     .bank 0                         ;uses the first bank, which is a 8kb ROM memory region
@@ -186,11 +199,7 @@ clr_mem_loop:
 ;although we start at the BG palette, we also continue writing into the sprite palette
 load_palettes:
     LDA PPU_STATUS                  ;read PPU status to reset the high/low latch (may not be needed, but just in case)
-
-    LDA #HIGH(VRAM_BG_PLT)
-    STA PPU_ADDR                    ;write the high byte of $3F00 address
-    LDA #LOW(VRAM_BG_PLT)
-    STA PPU_ADDR                    ;write the low byte of $3F00 address
+    SET_POINTER VRAM_BG_PLT, PPU_ADDR, PPU_ADDR
 
     LDX #$00                        ;set x counter register to 0
     load_palettes_loop:
@@ -201,38 +210,31 @@ load_palettes:
         CPX #$20                    ;check if x is equal to 32
         BNE load_palettes_loop      ;keep looping if x is not equal to 32, otherwise continue
 
+load_level_1:
+    LDA PPU_STATUS                  ;read PPU status to reset the high/low latch so high byte can be stored then low byte
+    SET_POINTER VRAM_NT_1, PPU_ADDR, PPU_ADDR
+    SET_POINTER NT_LEVEL_1, nt_pointer, nt_pointer + 1
+    
 ;> writes nametable 0 into PPU VRAM
 ;write the PPU nametable address VRAM_NT_0 to the PPU register PPU_ADDR
 ;so whenever we write data to PPU_DATA, it will map to the VRAM_NT_0 + write offset address in the PPU VRAM
-load_background:
-    LDA PPU_STATUS                  ;read PPU status to reset the high/low latch (may not be needed, but just in case)
-
-    LDA #HIGH(VRAM_NT_1)            ;load the PPU nametable 0 address high byte
-    STA PPU_ADDR                    ;write high byte to PPU_ADDR
-    LDA #LOW(VRAM_NT_1)             ;load the PPU nametable 0 address low byte
-    STA PPU_ADDR                    ;write low byte to PPU_ADDR
-	
-	LDA #LOW(NAMETABLE) 			;load the low byte of the nametable address
-	STA bg_pointer 				 	;store the low byte address in the low byte of the background pointer
-	LDA #HIGH(NAMETABLE) 			;load the high byte of the nametable address
-	STA bg_pointer + 1 				;store the high byte address in the high byte of background pointer
-	
+load_nametable:
 	LDY #$00
 	LDX #$00
-	bg_loop:
-		bg_loop_nested:
-			LDA [bg_pointer], y 		;get the value pointed to by bg_pointer_lo + bg_pointer_hi + y counter offset
+	nt_loop:
+		nt_loop_nested:
+			LDA [nt_pointer], y 		;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
 			STA PPU_DATA                ;write byte to the PPU nametable address
 			INY                       	;add by 1 to move to the next byte
 			
 			CPY #$00                    ;check if y is equal to 0 (it has overflowed)
-			BNE bg_loop_nested    		;keep looping if y not equal to 0, otherwise continue
+			BNE nt_loop_nested    		;keep looping if y not equal to 0, otherwise continue
 
-            INC bg_pointer + 1          ;increase the high byte of bg_pointer by 1 ((#$FF + 1) low bytes)
+            INC nt_pointer + 1          ;increase the high byte of nt_pointer by 1 ((#$FF + 1) low bytes)
 			INX 						;increase x by 1
 			
 			CPX #$04 					;check if x has looped and overflowed 4 times (1kb, #$04FF)
-			BNE bg_loop 				;go to the start of the loop if x is not equal to 0, otherwise continue
+			BNE nt_loop 				;go to the start of the loop if x is not equal to 0, otherwise continue
 			
 ;> writes attributes 0 into PPU VRAM
 ;write the PPU attributes address VRAM_ATTRIB_0 to the PPU register PPU_ADDR
@@ -247,7 +249,7 @@ load_attributes:
 
     LDX #$00
     load_attributes_loop:
-        LDA NAMETABLE + 960, x      ;load attributes byte (attributes + x byte offset)
+        LDA NT_LEVEL_1 + 960, x      ;load attributes byte (attributes + x byte offset)
         STA PPU_DATA                ;write byte to the PPU attributes address
         INX                         ;add by 1 to move to the next byte
 
