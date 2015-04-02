@@ -27,14 +27,12 @@
 
     .org $e000                        ;place all program code at the third quarter of ROM (e000 - fffa, offset: 24kb)
 
-NT_LEVEL_1: 
-	.incbin "assets/level1.nam"
-
-NT_LEVEL_2:
-    .incbin "assets/level2.nam"
-
-NT_LEVEL_3:
-    .incbin "assets/level1.nam"
+LEVEL_1_MAP_0:
+    .incbin "assets/level-1/map0.nam"
+LEVEL_1_MAP_1:
+    .incbin "assets/level-1/map1.nam"
+LEVEL_1_MAP_2:
+    .incbin "assets/level-1/map2.nam"
 
 PALETTE:
 	.incbin "assets/level-palette.pal"
@@ -42,10 +40,8 @@ PALETTE:
 
 SPRITES:
     ;y, tile index, attribs (palette 4 to 7, priority, flip), x
-    .db $80, $32, %00000000, $80
-    .db $80, $33, %00000000, $88
-    .db $88, $34, %00000000, $80
-    .db $88, $35, %00000000, $88
+    .db $80, $07, %00000000, $80
+
 NUM_SPRITES         = 4
 SPRITES_DATA_LEN    = 16
 
@@ -55,6 +51,11 @@ SPRITES_DATA_LEN    = 16
 vblank_counter      .rs     1
 button_bits         .rs     1
 nt_pointer 			.rs 	2
+pos_x               .rs     2
+divisor             .rs     1
+dividend            .rs     1
+remainder           .rs     1
+result              .rs     1
 
 ;define PPU constants (constants are basically #defines, so they don't take up memory)
 
@@ -135,6 +136,36 @@ SUB_SHORT .macro
     STA \1                          ;store upper 8 bits result back
     .endm
 
+;temp macro to divide two bytes (16 bit) by continiously subtracting or adding
+;(high_byte, low_byte, value)
+DIV_SHORT .macro
+    LDA \1
+    CMP #$00
+    BEQ end_loop
+    CMP #$FF
+    BNE no_reset
+    LDA #$00
+    STA \1
+    no_reset:
+
+    CMP #$7F
+    BMI sub_div_loop
+
+    add_div_loop:
+        ADD_SHORT \1, \2, \3
+        CMP \3
+        BPL add_div_loop
+        JMP end_loop
+
+    sub_div_loop:
+        SUB_SHORT \1, \2, \3
+        CMP \3
+        BPL sub_div_loop
+
+    end_loop:
+
+    .endm
+
 ;macro to set a high byte + low byte address into two bytes or 16 bit PPU register
 ;(pointing_to_address, high_byte_store, low_byte_store)
 SET_POINTER .macro
@@ -146,17 +177,12 @@ SET_POINTER .macro
     .endm
 
 ;macro to load a nametable + attributes into specified PPU addressess
-;(nametable_address (including attributes), PPU_nametable_address, PPU_attribs_address)
-LOAD_FULL_NAMETABLE .macro
+;(nametable_address (including attributes), PPU_nametable_address)
+LOAD_MAP .macro
     BIT PPU_STATUS                  ;read PPU_STATUS to reset high/low latch so low byte can be stored then high byte (little endian)
     SET_POINTER \2, PPU_ADDR, PPU_ADDR
     SET_POINTER \1, nt_pointer + 1, nt_pointer
     JSR load_nametable
-
-    BIT PPU_STATUS                  ;read PPU_STATUS to reset high/low latch so low byte can be stored then high byte (little endian)
-    SET_POINTER \3, PPU_ADDR, PPU_ADDR
-    SUB_SHORT nt_pointer + 1, nt_pointer, #$40
-    JSR load_attributes
 
     .endm
 
@@ -229,9 +255,8 @@ load_palettes:
         BNE load_palettes_loop      ;keep looping if x is not equal to 32, otherwise continue
 
 load_level_1:
-    LOAD_FULL_NAMETABLE NT_LEVEL_1, VRAM_NT_0, VRAM_ATTRIB_0
-    LOAD_FULL_NAMETABLE NT_LEVEL_2, VRAM_NT_1, VRAM_ATTRIB_1
-    LOAD_FULL_NAMETABLE NT_LEVEL_3, VRAM_NT_2, VRAM_ATTRIB_2
+    LOAD_MAP LEVEL_1_MAP_0, VRAM_NT_0
+    LOAD_MAP LEVEL_1_MAP_1, VRAM_NT_1
 
     JMP init_PPU
 
@@ -257,20 +282,6 @@ load_nametable:
 			BNE nt_loop 				;go to the start of the loop if x is not equal to 0, otherwise continue
     RTS
 
-;> writes attributes 0 into PPU VRAM
-;write the PPU attributes address VRAM_ATTRIB_0 to the PPU register PPU_ADDR
-;so whenever we write data to PPU_DATA, it will map to VRAM_ATTRIB_0 + write offset in the PPU VRAM
-load_attributes:
-    LDY #$00
-    load_attributes_loop:
-        LDA [nt_pointer], y         ;load attributes byte (attributes + x byte offset)
-        STA PPU_DATA                ;write byte to the PPU attributes address
-        INY                         ;add by 1 to move to the next byte
-
-        CPY #$40                    ;check if x is equal to 8
-        BNE load_attributes_loop    ;keep looping if x is not equal to 8, otherwise continue
-    RTS
-
 ;------------------------------------------------------------------------------------;
 
 ;initialises PPU settings
@@ -282,6 +293,10 @@ init_PPU:
     ;setup PPU_MASK bits
     LDA #%00011110                  ;enable sprite rendering
     STA PPU_MASK
+
+    LDA #$00
+    STA pos_x
+    STA pos_x + 1
 
 ;loads all sprite attribs into OAM_RAM_ADDR
 load_sprites:
@@ -309,21 +324,32 @@ game_loop:
     LDA button_bits
     AND #%00000010
     BEQ a_not_pressed
-	LDA OAM_RAM_ADDR + 3, x
-	CLC
-	ADC #$01
-	STA OAM_RAM_ADDR + 3, x
+
+    SUB_SHORT pos_x, pos_x + 1, #$50
+
     a_not_pressed:
 	
 	LDA button_bits
     AND #%00000001
     BEQ b_not_pressed
-	LDA OAM_RAM_ADDR, x
-	CLC
-	ADC #$01
-	STA OAM_RAM_ADDR, x
+
+    ADD_SHORT pos_x, pos_x + 1, #$50
+
     b_not_pressed:
-	
+
+    LDA button_bits
+    AND #%11111111
+    BNE any_key_pressed
+
+    DIV_SHORT pos_x, pos_x + 1, #$50
+
+    any_key_pressed:
+
+    LDA OAM_RAM_ADDR + 3
+    CLC
+    ADC pos_x
+    STA OAM_RAM_ADDR + 3
+
     JMP game_loop                   ;jump back to game_loop, infinite loop
 
 ;------------------------------------------------------------------------------------;
@@ -368,29 +394,19 @@ NMI:
     LDA #HIGH(OAM_RAM_ADDR)
     STA OAM_DMA                    ;stores OAM_RAM_ADDR to high byte of OAM_DMA
     ;CPU is now suspended and transfer begins
-	
-	LDA OAM_RAM_ADDR + 3
-	CLC
-	ADC #$08
-	STA OAM_RAM_ADDR + 7
-	
-	LDA OAM_RAM_ADDR
-	CLC
-	ADC #$08
-	STA OAM_RAM_ADDR + 11
 
-    BIT PPU_STATUS
-    INC $0302
-    LDA $0302
-    STA $2005
-
-    INC $0304
-    LDA $0304
-    STA $2005
-
-    ;LDA #$00
+    ;BIT PPU_STATUS
+    ;INC $0302
+    ;LDA $0302
     ;STA $2005
+
+    ;INC $0304
+    ;LDA $0304
     ;STA $2005
+
+    LDA #$00
+    STA $2005
+    STA $2005
 
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 
