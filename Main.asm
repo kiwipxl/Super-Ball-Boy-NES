@@ -166,6 +166,28 @@ DIV_SHORT .macro
 
     .endm
 
+;macro to clamp an unsigned byte min and max values
+;(byte, min, max)
+;example - (my_val, #$04, #$FB)
+CLAMP .macro
+    LDA \1
+    CMP \2
+    BMI second_compare
+    LDA \2
+    STA \1
+    JMP end_compares
+
+    second_compare:
+    LDA \1
+    CMP \3
+    BPL end_compares
+    LDA \3
+    STA \1
+
+    end_compares:
+
+    .endm
+
 ;macro to set a high byte + low byte address into two bytes or 16 bit PPU register
 ;(pointing_to_address, high_byte_store, low_byte_store)
 SET_POINTER .macro
@@ -344,6 +366,8 @@ game_loop:
     DIV_SHORT pos_x, pos_x + 1, #$50
 
     any_key_pressed:
+
+    CLAMP pos_x, #$04, #$FB
 
     LDA OAM_RAM_ADDR + 3
     CLC
