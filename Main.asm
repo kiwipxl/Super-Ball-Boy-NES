@@ -48,14 +48,17 @@ SPRITES_DATA_LEN    = 16
     ;store game variables in zero page (2x faster access)
     .rsset $0000
 
+base_p              .rs     2
+param_1             .rs     1
+param_2             .rs     1
+param_3             .rs     1
+rt_val              .rs     1
+
 vblank_counter      .rs     1
 button_bits         .rs     1
 nt_pointer 			.rs 	2
 pos_x               .rs     2
-divisor             .rs     1
-dividend            .rs     1
-remainder           .rs     1
-result              .rs     1
+gravity             .rs     2
 
 ;define PPU constants (constants are basically #defines, so they don't take up memory)
 
@@ -169,24 +172,43 @@ DIV_SHORT .macro
 ;macro to clamp an unsigned byte min and max values
 ;(byte, min, max)
 ;example - (my_val, #$04, #$FB)
-CLAMP .macro
-    LDA \1
-    CMP \2
+clamp:
+    ;LDA $0101, x
+    PLA
+    STA base_p
+    PLA
+    STA base_p + 1
+
+    PLA
+    STA param_1
+    STA rt_val
+    PLA
+    STA param_2
+    PLA
+    STA param_3
+
+    LDA param_1
+    CMP param_2
     BMI second_compare
-    LDA \2
-    STA \1
+    LDA param_2
+    STA rt_val
     JMP end_compares
 
     second_compare:
-    LDA \1
-    CMP \3
+    LDA param_1
+    CMP param_3
     BPL end_compares
-    LDA \3
-    STA \1
+    LDA param_3
+    STA rt_val
 
     end_compares:
 
-    .endm
+    LDA base_p + 1
+    PHA
+    LDA base_p
+    PHA
+
+    RTS
 
 ;macro to set a high byte + low byte address into two bytes or 16 bit PPU register
 ;(pointing_to_address, high_byte_store, low_byte_store)
@@ -225,8 +247,10 @@ RESET:
     CLD                             ;the NES does not use decimal mode, so disable it
     LDX #$40
     STX $4017                       ;disables APU frame counter IRQ by writing 64 to the APU register (todo: better understanding)
+
     LDX #$FF
-    TXS                             ;set the stack pointer to point to 256 bytes in RAM where the stack memory is located
+    TXS                             ;set the stack pointer to point to the end of the stack #$FF (e.g. $01FF)
+
     INX                             ;add 1 to the x register and overflow it which results in 0
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
 
@@ -319,6 +343,7 @@ init_PPU:
     LDA #$00
     STA pos_x
     STA pos_x + 1
+    STA gravity
 
 ;loads all sprite attribs into OAM_RAM_ADDR
 load_sprites:
@@ -356,7 +381,11 @@ game_loop:
     BEQ b_not_pressed
 
     ADD_SHORT pos_x, pos_x + 1, #$50
-
+    LDA #$FB
+    STA gravity
+    LDA #$00
+    STA gravity + 1
+    
     b_not_pressed:
 
     LDA button_bits
@@ -367,12 +396,39 @@ game_loop:
 
     any_key_pressed:
 
-    CLAMP pos_x, #$04, #$FB
+    LDA #$FB
+    PHA
+    LDA #$04
+    PHA
+    LDA pos_x
+    PHA
+
+    JSR clamp
+    LDA rt_val
+    STA pos_x
+
+    ADD_SHORT gravity, gravity + 1, #$70
+
+    LDA #$FB
+    PHA
+    LDA #$08
+    PHA
+    LDA gravity
+    PHA
+
+    JSR clamp
+    LDA rt_val
+    STA gravity
 
     LDA OAM_RAM_ADDR + 3
     CLC
     ADC pos_x
     STA OAM_RAM_ADDR + 3
+
+    LDA OAM_RAM_ADDR
+    CLC
+    ADC gravity
+    STA OAM_RAM_ADDR
 
     JMP game_loop                   ;jump back to game_loop, infinite loop
 
