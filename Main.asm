@@ -141,33 +141,43 @@ SUB_SHORT .macro
 
 ;temp macro to divide two bytes (16 bit) by continiously subtracting or adding
 ;(high_byte, low_byte, value)
-DIV_SHORT .macro
-    LDA \1
+div_short:
+    TSX
+    LDA $0103, x
     CMP #$00
     BEQ end_loop
     CMP #$FF
     BNE no_reset
     LDA #$00
-    STA \1
+    STA $0103, x
     no_reset:
 
     CMP #$7F
     BMI sub_div_loop
 
     add_div_loop:
-        ADD_SHORT \1, \2, \3
-        CMP \3
+        LDA $0105, x
+        PHA
+        LDA $0104, x
+        PHA
+        LDA $0103, x
+        PHA
+        ;JSR add_short
+
+        CMP $0105, x
         BPL add_div_loop
         JMP end_loop
 
     sub_div_loop:
-        SUB_SHORT \1, \2, \3
-        CMP \3
+        SUB_SHORT $0103, x, $0104, x, $0105, x
+        CMP $0105, x
         BPL sub_div_loop
 
     end_loop:
 
-    .endm
+    LDA $0103, x
+
+    RTS
 
 ;function that clamps an unsigned byte to min and max values
 ;(byte, min, max)
@@ -189,6 +199,33 @@ clamp:
     end_compares:
 
     RTS
+
+;macro that pushes 1 parameter on the stack in reverse (because the stack moves down rather than up)
+;(par1)
+PUSH_PAR_1 .macro
+    LDA \1
+    PHA
+    .endm
+
+;macro that pushes 2 parameters on the stack in reverse (because the stack moves down rather than up)
+;(par1, par2)
+PUSH_PAR_2 .macro
+    LDA \2
+    PHA
+    LDA \1
+    PHA
+    .endm
+
+;macro that pushes 3 parameters on the stack in reverse (because the stack moves down rather than up)
+;(par1, par2, par3)
+PUSH_PAR_3 .macro
+    LDA \3
+    PHA
+    LDA \2
+    PHA
+    LDA \1
+    PHA
+    .endm
 
 ;macro to set a high byte + low byte address into two bytes or 16 bit PPU register
 ;(pointing_to_address, high_byte_store, low_byte_store)
@@ -388,23 +425,25 @@ game_loop:
     AND #%11111111
     BNE any_key_pressed
 
-    DIV_SHORT pos_x, pos_x + 1, #$50
+    ;LDA pos_x
+    ;PHA
+    ;LDA pos_x + 1
+    ;PHA
+    ;LDA #$50
+    ;JSR div_short
+    ;STA pos_x
+    ;PLA
+    ;PLA
+    ;PLA
+
     ;DIV_SHORT gravity, gravity + 1, #$50
 
     any_key_pressed:
 
-    LDA #$FB
-    PHA
-    LDA #$04
-    PHA
-    LDA pos_x
-    PHA
-
+    PUSH_PAR_3 pos_x, #$04, #$FB
     JSR clamp
     STA pos_x
-    PLA
-    PLA
-    PLA
+    POP_STACK_3
 
     ;ADD_SHORT gravity, gravity + 1, #$70
 
@@ -415,11 +454,10 @@ game_loop:
     LDA gravity
     PHA
 
+    PUSH_PAR_3 gravity, #$08, #$FB
     JSR clamp
     STA gravity
-    PLA
-    PLA
-    PLA
+    POP_STACK_3
 
     LDA OAM_RAM_ADDR + 3
     CLC
