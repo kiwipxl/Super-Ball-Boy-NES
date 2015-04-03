@@ -227,6 +227,24 @@ PUSH_PAR_3 .macro
     PHA
     .endm
 
+;macro that pops 1 value from the stack
+POP_1 .macro
+    PLA
+    .endm
+
+;macro that pops 2 values from the stack
+POP_2 .macro
+    PLA
+    PLA
+    .endm
+
+;macro that pops 3 values from the stack
+POP_3 .macro
+    PLA
+    PLA
+    PLA
+    .endm
+
 ;macro to set a high byte + low byte address into two bytes or 16 bit PPU register
 ;(pointing_to_address, high_byte_store, low_byte_store)
 SET_POINTER .macro
@@ -424,17 +442,11 @@ game_loop:
     LDA button_bits
     AND #%11111111
     BNE any_key_pressed
-
-    ;LDA pos_x
-    ;PHA
-    ;LDA pos_x + 1
-    ;PHA
-    ;LDA #$50
-    ;JSR div_short
-    ;STA pos_x
-    ;PLA
-    ;PLA
-    ;PLA
+    
+    PUSH_PAR_3 pos_x, pos_x + 1, #$50
+    JSR div_short
+    STA pos_x
+    POP_3
 
     ;DIV_SHORT gravity, gravity + 1, #$50
 
@@ -443,21 +455,14 @@ game_loop:
     PUSH_PAR_3 pos_x, #$04, #$FB
     JSR clamp
     STA pos_x
-    POP_STACK_3
+    POP_3
 
     ;ADD_SHORT gravity, gravity + 1, #$70
-
-    LDA #$FB
-    PHA
-    LDA #$08
-    PHA
-    LDA gravity
-    PHA
 
     PUSH_PAR_3 gravity, #$08, #$FB
     JSR clamp
     STA gravity
-    POP_STACK_3
+    POP_3
 
     LDA OAM_RAM_ADDR + 3
     CLC
