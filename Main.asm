@@ -116,6 +116,39 @@ DEBUG_BRK .macro
     BIT $07FF                       ;read the end byte of RAM so an emulator can pick up on it
     .endm
 
+;macro to store 1 parameter from the stack into the param_1 variable
+;used at the start of functions to load stack parameters into param variables
+STORE_PAR_1 .macro
+    TSX
+    LDA $0103, x
+    STA param_1
+
+    .endm
+
+;macro to store 2 parameters from the stack into the param_1 and param_2 variables
+;used at the start of functions to load stack parameters into param variables
+STORE_PAR_2 .macro
+    TSX
+    LDA $0103, x
+    STA param_1
+    LDA $0104, x
+    STA param_2
+
+    .endm
+
+;macro to store 3 parameters from the stack into the param_1, param_2 and param_3 variables
+;used at the start of functions to load stack parameters into param variables
+STORE_PAR_3 .macro
+    TSX
+    LDA $0103, x
+    STA param_1
+    LDA $0104, x
+    STA param_2
+    LDA $0105, x
+    STA param_3
+
+    .endm
+
 ;macro that pushes 1 parameter on the stack in reverse (because the stack moves down rather than up)
 ;(par1)
 PUSH_PAR_1 .macro
@@ -232,8 +265,6 @@ sub_short:
 ;temp macro to divide two bytes (16 bit) by continiously subtracting or adding
 ;(high_byte, low_byte, value)
 div_short:
-    TSX
-    
     STORE_PAR_3
 
     LDA param_1
