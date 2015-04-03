@@ -52,7 +52,8 @@ base_p              .rs     2
 param_1             .rs     1
 param_2             .rs     1
 param_3             .rs     1
-rt_val              .rs     1
+rt_val_1            .rs     1
+rt_val_2            .rs     1
 
 vblank_counter      .rs     1
 button_bits         .rs     1
@@ -117,27 +118,35 @@ DEBUG_BRK .macro
 
 ;macro to add two bytes (16 bit) together
 ;(high_byte, low_byte, value)
-ADD_SHORT .macro
-    LDA \2                          ;load low 8 bits of 16 bit value (parameter 2)
+add_short:
+    TSX
+    
+    LDA $0104, x                    ;load low 8 bits of 16 bit value (parameter 2)
     CLC                             ;clear carry before adding with carry
-    ADC \3                          ;add a by parameter 3
-    STA \2                          ;store low 8 bit result back
-    LDA \1                          ;load upper 8 bits
+    ADC $0105, x                    ;add a by parameter 3
+    STA rt_val_2                    ;store low 8 bit result back
+
+    LDA $0103, x                    ;load upper 8 bits
     ADC #$00                        ;add a by #$00 + the previous carry (0 or 1)
-    STA \1                          ;store upper 8 bits result back
-    .endm
+    STA rt_val_1                    ;store upper 8 bits result back
+
+    RTS
 
 ;macro to subtract two bytes (16 bit) together
 ;(high_byte, low_byte, value)
-SUB_SHORT .macro
-    LDA \2                          ;load low 8 bits of 16 bit value (parameter 2)
+sub_short:
+    TSX
+
+    LDA $0104, x                    ;load low 8 bits of 16 bit value (parameter 2)
     SEC                             ;set the carry to 1 before subtracting with carry
-    SBC \3                          ;subtract a by parameter 3
-    STA \2                          ;store low 8 bit result back
-    LDA \1                          ;load upper 8 bits
+    SBC $0105, x                    ;subtract a by parameter 3
+    STA rt_val_2                    ;store low 8 bit result back
+
+    LDA $0103, x                    ;load parameter 1
     SBC #$00                        ;subtract by #$00 + the previous carry (0 or 1)
-    STA \1                          ;store upper 8 bits result back
-    .endm
+    STA rt_val_1                    ;store upper 8 bits result back
+
+    RTS
 
 ;temp macro to divide two bytes (16 bit) by continiously subtracting or adding
 ;(high_byte, low_byte, value)
@@ -169,7 +178,7 @@ div_short:
         JMP end_loop
 
     sub_div_loop:
-        SUB_SHORT $0103, x, $0104, x, $0105, x
+        ;SUB_SHORT $0103, x, $0104, x, $0105, x
         CMP $0105, x
         BPL sub_div_loop
 
@@ -407,7 +416,13 @@ game_loop:
     AND #%00000010
     BEQ right_not_pressed
 
-    SUB_SHORT pos_x, pos_x + 1, #$50
+    PUSH_PAR_3 pos_x, pos_x + 1, #$50
+    JSR sub_short
+    LDA rt_val_1
+    STA pos_x
+    LDA rt_val_2
+    STA pos_x + 1
+    POP_3
 
     right_not_pressed:
 	
@@ -415,7 +430,14 @@ game_loop:
     AND #%00000001
     BEQ left_not_pressed
 
-    ADD_SHORT pos_x, pos_x + 1, #$50
+    PUSH_PAR_3 pos_x, pos_x + 1, #$50
+    JSR add_short
+    LDA rt_val_1
+    STA pos_x
+    LDA rt_val_2
+    STA pos_x + 1
+    POP_3
+
     ;LDA #$FB
     ;STA gravity
     ;LDA #$00
@@ -427,7 +449,13 @@ game_loop:
     AND #%00000100
     BEQ down_not_pressed
 
-    ADD_SHORT gravity, gravity + 1, #$50
+    PUSH_PAR_3 gravity, gravity + 1, #$50
+    JSR add_short
+    LDA rt_val_1
+    STA gravity
+    LDA rt_val_2
+    STA gravity + 1
+    POP_3
 
     down_not_pressed:
 
@@ -435,18 +463,24 @@ game_loop:
     AND #%00001000
     BEQ up_not_pressed
 
-    SUB_SHORT gravity, gravity + 1, #$50
+    PUSH_PAR_3 gravity, gravity + 1, #$50
+    JSR sub_short
+    LDA rt_val_1
+    STA gravity
+    LDA rt_val_2
+    STA gravity + 1
+    POP_3
 
     up_not_pressed:
 
     LDA button_bits
     AND #%11111111
     BNE any_key_pressed
-    
-    PUSH_PAR_3 pos_x, pos_x + 1, #$50
-    JSR div_short
-    STA pos_x
-    POP_3
+
+    ;PUSH_PAR_3 pos_x, pos_x + 1, #$50
+    ;JSR div_short
+    ;STA pos_x
+    ;POP_3
 
     ;DIV_SHORT gravity, gravity + 1, #$50
 
@@ -484,16 +518,6 @@ read_controller:
     STA $4016
     LDA #$00
     STA $4016
-	
-    LDA #$01
-    STA $0002
-    LDA #$08
-    STA $0001
-
-    SUB_SHORT $0001, $0002, #$40
-    
-    LDA $0002
-    LDA $0001
 
     ;read the button press bit of a, b, start, select, up, down, left, right and store all bits in button_bits
     LDX #$08
