@@ -169,44 +169,24 @@ DIV_SHORT .macro
 
     .endm
 
-;macro to clamp an unsigned byte min and max values
+;function that clamps an unsigned byte to min and max values
 ;(byte, min, max)
 ;example - (my_val, #$04, #$FB)
 clamp:
-    ;LDA $0101, x
-    PLA
-    STA base_p
-    PLA
-    STA base_p + 1
-
-    PLA
-    STA param_1
-    STA rt_val
-    PLA
-    STA param_2
-    PLA
-    STA param_3
-
-    LDA param_1
-    CMP param_2
+    TSX
+    LDA $0103, x
+    CMP $0104, x
     BMI second_compare
-    LDA param_2
-    STA rt_val
+    LDA $0104, x
     JMP end_compares
 
     second_compare:
-    LDA param_1
-    CMP param_3
+    LDA $0103, x
+    CMP $0105, x
     BPL end_compares
-    LDA param_3
-    STA rt_val
+    LDA $0105, x
 
     end_compares:
-
-    LDA base_p + 1
-    PHA
-    LDA base_p
-    PHA
 
     RTS
 
@@ -370,29 +350,46 @@ game_loop:
 
     LDA button_bits
     AND #%00000010
-    BEQ a_not_pressed
+    BEQ right_not_pressed
 
     SUB_SHORT pos_x, pos_x + 1, #$50
 
-    a_not_pressed:
+    right_not_pressed:
 	
 	LDA button_bits
     AND #%00000001
-    BEQ b_not_pressed
+    BEQ left_not_pressed
 
     ADD_SHORT pos_x, pos_x + 1, #$50
-    LDA #$FB
-    STA gravity
-    LDA #$00
-    STA gravity + 1
+    ;LDA #$FB
+    ;STA gravity
+    ;LDA #$00
+    ;STA gravity + 1
     
-    b_not_pressed:
+    left_not_pressed:
+
+    LDA button_bits
+    AND #%00000100
+    BEQ down_not_pressed
+
+    ADD_SHORT gravity, gravity + 1, #$50
+
+    down_not_pressed:
+
+    LDA button_bits
+    AND #%00001000
+    BEQ up_not_pressed
+
+    SUB_SHORT gravity, gravity + 1, #$50
+
+    up_not_pressed:
 
     LDA button_bits
     AND #%11111111
     BNE any_key_pressed
 
     DIV_SHORT pos_x, pos_x + 1, #$50
+    ;DIV_SHORT gravity, gravity + 1, #$50
 
     any_key_pressed:
 
@@ -404,10 +401,12 @@ game_loop:
     PHA
 
     JSR clamp
-    LDA rt_val
     STA pos_x
+    PLA
+    PLA
+    PLA
 
-    ADD_SHORT gravity, gravity + 1, #$70
+    ;ADD_SHORT gravity, gravity + 1, #$70
 
     LDA #$FB
     PHA
@@ -417,8 +416,10 @@ game_loop:
     PHA
 
     JSR clamp
-    LDA rt_val
     STA gravity
+    PLA
+    PLA
+    PLA
 
     LDA OAM_RAM_ADDR + 3
     CLC
