@@ -161,6 +161,22 @@ POP_3 .macro
     PLA
     .endm
 
+;macro that that stores the first return value into one address/variable
+;(address_1)
+SET_RT_VAL_1 .macro
+    LDA rt_val_1
+    STA \1
+    .endm
+
+;macro that stores the first and second return values into two different addresses/variables
+;(address_1, address_2)
+SET_RT_VAL_2 .macro
+    LDA rt_val_1
+    STA \1
+    LDA rt_val_2
+    STA \2
+    .endm
+
 ;macro to set a high byte + low byte address into two bytes or 16 bit PPU register
 ;(pointing_to_address, high_byte_store, low_byte_store)
 SET_POINTER .macro
@@ -217,13 +233,8 @@ sub_short:
 ;(high_byte, low_byte, value)
 div_short:
     TSX
-
-    LDA $0103, x
-    STA param_1
-    LDA $0104, x
-    STA param_2
-    LDA $0105, x
-    STA param_3
+    
+    STORE_PAR_3
 
     LDA param_1
     CMP #$00
@@ -240,10 +251,7 @@ div_short:
     add_div_loop:
         PUSH_PAR_3 param_1, param_2, param_3
         JSR add_short
-        LDA rt_val_1
-        STA param_1
-        LDA rt_val_2
-        STA param_2
+        SET_RT_VAL_2 param_1, param_2
         POP_3
 
         LDA rt_val_1
@@ -254,10 +262,7 @@ div_short:
     sub_div_loop:
         PUSH_PAR_3 param_1, param_2, param_3
         JSR sub_short
-        LDA rt_val_1
-        STA param_1
-        LDA rt_val_2
-        STA param_2
+        SET_RT_VAL_2 param_1, param_2
         POP_3
 
         LDA rt_val_1
@@ -438,10 +443,7 @@ game_loop:
 
     PUSH_PAR_3 pos_x, pos_x + 1, #$50
     JSR sub_short
-    LDA rt_val_1
-    STA pos_x
-    LDA rt_val_2
-    STA pos_x + 1
+    SET_RT_VAL_2 pos_x, pos_x + 1
     POP_3
 
     right_not_pressed:
@@ -452,10 +454,7 @@ game_loop:
 
     PUSH_PAR_3 pos_x, pos_x + 1, #$50
     JSR add_short
-    LDA rt_val_1
-    STA pos_x
-    LDA rt_val_2
-    STA pos_x + 1
+    SET_RT_VAL_2 pos_x, pos_x + 1
     POP_3
 
     ;LDA #$FB
@@ -471,10 +470,7 @@ game_loop:
 
     PUSH_PAR_3 gravity, gravity + 1, #$50
     JSR add_short
-    LDA rt_val_1
-    STA gravity
-    LDA rt_val_2
-    STA gravity + 1
+    SET_RT_VAL_2 gravity, gravity + 1
     POP_3
 
     down_not_pressed:
@@ -485,10 +481,7 @@ game_loop:
 
     PUSH_PAR_3 gravity, gravity + 1, #$50
     JSR sub_short
-    LDA rt_val_1
-    STA gravity
-    LDA rt_val_2
-    STA gravity + 1
+    SET_RT_VAL_2 gravity, gravity + 1
     POP_3
 
     up_not_pressed:
@@ -499,20 +492,14 @@ game_loop:
 
     PUSH_PAR_3 pos_x, pos_x + 1, #$50
     JSR div_short
-    LDA rt_val_1
-    STA pos_x
-    LDA rt_val_2
-    STA pos_x + 1
+    SET_RT_VAL_2 pos_x, pos_x + 1
     POP_3
 
     PUSH_PAR_3 gravity, gravity + 1, #$50
     JSR div_short
-    LDA rt_val_1
-    STA gravity
-    LDA rt_val_2
-    STA gravity + 1
+    SET_RT_VAL_2 gravity, gravity + 1
     POP_3
-    
+
     any_key_pressed:
 
     PUSH_PAR_3 pos_x, #$04, #$FB
