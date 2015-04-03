@@ -116,99 +116,6 @@ DEBUG_BRK .macro
     BIT $07FF                       ;read the end byte of RAM so an emulator can pick up on it
     .endm
 
-;macro to add two bytes (16 bit) together
-;(high_byte, low_byte, value)
-add_short:
-    TSX
-    
-    LDA $0104, x                    ;load low 8 bits of 16 bit value (parameter 2)
-    CLC                             ;clear carry before adding with carry
-    ADC $0105, x                    ;add a by parameter 3
-    STA rt_val_2                    ;store low 8 bit result back
-
-    LDA $0103, x                    ;load upper 8 bits
-    ADC #$00                        ;add a by #$00 + the previous carry (0 or 1)
-    STA rt_val_1                    ;store upper 8 bits result back
-
-    RTS
-
-;macro to subtract two bytes (16 bit) together
-;(high_byte, low_byte, value)
-sub_short:
-    TSX
-
-    LDA $0104, x                    ;load low 8 bits of 16 bit value (parameter 2)
-    SEC                             ;set the carry to 1 before subtracting with carry
-    SBC $0105, x                    ;subtract a by parameter 3
-    STA rt_val_2                    ;store low 8 bit result back
-
-    LDA $0103, x                    ;load parameter 1
-    SBC #$00                        ;subtract by #$00 + the previous carry (0 or 1)
-    STA rt_val_1                    ;store upper 8 bits result back
-
-    RTS
-
-;temp macro to divide two bytes (16 bit) by continiously subtracting or adding
-;(high_byte, low_byte, value)
-div_short:
-    TSX
-    LDA $0103, x
-    CMP #$00
-    BEQ end_loop
-    CMP #$FF
-    BNE no_reset
-    LDA #$00
-    STA $0103, x
-    no_reset:
-
-    CMP #$7F
-    BMI sub_div_loop
-
-    add_div_loop:
-        LDA $0105, x
-        PHA
-        LDA $0104, x
-        PHA
-        LDA $0103, x
-        PHA
-        ;JSR add_short
-
-        CMP $0105, x
-        BPL add_div_loop
-        JMP end_loop
-
-    sub_div_loop:
-        ;SUB_SHORT $0103, x, $0104, x, $0105, x
-        CMP $0105, x
-        BPL sub_div_loop
-
-    end_loop:
-
-    LDA $0103, x
-
-    RTS
-
-;function that clamps an unsigned byte to min and max values
-;(byte, min, max)
-;example - (my_val, #$04, #$FB)
-clamp:
-    TSX
-    LDA $0103, x
-    CMP $0104, x
-    BMI second_compare
-    LDA $0104, x
-    JMP end_compares
-
-    second_compare:
-    LDA $0103, x
-    CMP $0105, x
-    BPL end_compares
-    LDA $0105, x
-
-    end_compares:
-
-    RTS
-
 ;macro that pushes 1 parameter on the stack in reverse (because the stack moves down rather than up)
 ;(par1)
 PUSH_PAR_1 .macro
@@ -273,6 +180,119 @@ LOAD_MAP .macro
     JSR load_nametable
 
     .endm
+
+;macro to add two bytes (16 bit) together
+;(high_byte, low_byte, value)
+add_short:
+    TSX
+
+    LDA $0104, x                    ;load low 8 bits of 16 bit value (parameter 2)
+    CLC                             ;clear carry before adding with carry
+    ADC $0105, x                    ;add a by parameter 3
+    STA rt_val_2                    ;store low 8 bit result back
+
+    LDA $0103, x                    ;load upper 8 bits
+    ADC #$00                        ;add a by #$00 + the previous carry (0 or 1)
+    STA rt_val_1                    ;store upper 8 bits result back
+
+    RTS
+
+;macro to subtract two bytes (16 bit) together
+;(high_byte, low_byte, value)
+sub_short:
+    TSX
+
+    LDA $0104, x                    ;load low 8 bits of 16 bit value (parameter 2)
+    SEC                             ;set the carry to 1 before subtracting with carry
+    SBC $0105, x                    ;subtract a by parameter 3
+    STA rt_val_2                    ;store low 8 bit result back
+
+    LDA $0103, x                    ;load parameter 1
+    SBC #$00                        ;subtract by #$00 + the previous carry (0 or 1)
+    STA rt_val_1                    ;store upper 8 bits result back
+
+    RTS
+
+;temp macro to divide two bytes (16 bit) by continiously subtracting or adding
+;(high_byte, low_byte, value)
+div_short:
+    TSX
+
+    LDA $0103, x
+    STA param_1
+    LDA $0104, x
+    STA param_2
+    LDA $0105, x
+    STA param_3
+
+    LDA param_1
+    CMP #$00
+    BEQ end_loop
+    CMP #$FF
+    BNE no_reset
+    LDA #$00
+    STA param_1
+    no_reset:
+
+    CMP #$7F
+    BMI sub_div_loop
+
+    add_div_loop:
+        PUSH_PAR_3 param_1, param_2, param_3
+        JSR add_short
+        LDA rt_val_1
+        STA param_1
+        LDA rt_val_2
+        STA param_2
+        POP_3
+
+        LDA rt_val_1
+        CMP param_3
+        BPL add_div_loop
+        JMP end_loop
+
+    sub_div_loop:
+        PUSH_PAR_3 param_1, param_2, param_3
+        JSR sub_short
+        LDA rt_val_1
+        STA param_1
+        LDA rt_val_2
+        STA param_2
+        POP_3
+
+        LDA rt_val_1
+        CMP $0105, x
+        BPL sub_div_loop
+
+    end_loop:
+
+    LDA param_1
+    STA rt_val_1
+    LDA param_2
+    STA rt_val_2
+
+    RTS
+
+;function that clamps an unsigned byte to min and max values
+;(byte, min, max)
+;example - (my_val, #$04, #$FB)
+clamp:
+    TSX
+    LDA $0103, x
+    CMP $0104, x
+    BMI second_compare
+    LDA $0104, x
+    JMP end_compares
+
+    second_compare:
+    LDA $0103, x
+    CMP $0105, x
+    BPL end_compares
+    LDA $0105, x
+
+    end_compares:
+
+    RTS
 
 ;------------------------------------------------------------------------------------;
 
@@ -477,13 +497,22 @@ game_loop:
     AND #%11111111
     BNE any_key_pressed
 
-    ;PUSH_PAR_3 pos_x, pos_x + 1, #$50
-    ;JSR div_short
-    ;STA pos_x
-    ;POP_3
+    PUSH_PAR_3 pos_x, pos_x + 1, #$50
+    JSR div_short
+    LDA rt_val_1
+    STA pos_x
+    LDA rt_val_2
+    STA pos_x + 1
+    POP_3
 
-    ;DIV_SHORT gravity, gravity + 1, #$50
-
+    PUSH_PAR_3 gravity, gravity + 1, #$50
+    JSR div_short
+    LDA rt_val_1
+    STA gravity
+    LDA rt_val_2
+    STA gravity + 1
+    POP_3
+    
     any_key_pressed:
 
     PUSH_PAR_3 pos_x, #$04, #$FB
