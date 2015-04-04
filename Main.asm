@@ -268,37 +268,48 @@ div_short:
     STORE_PAR_3
 
     LDA param_1
-    CMP #$00
-    BEQ end_loop
-    CMP #$FF
-    BNE no_reset
-    LDA #$00
-    STA param_1
-    no_reset:
+    LDY param_3
 
+    ;for some reason #$ff is not not calling add_div_loop in the second compare below so this is needed
+    CMP #$FF
+    BEQ add_div_loop
     CMP #$7F
     BMI sub_div_loop
 
     add_div_loop:
+        ;checks if an overflow will occur
+        LDA param_1
+        BNE can_add
+        LDA param_2
+        CMP param_3
+        BPL end_loop ;may need to be bpi
+        can_add:
+
         PUSH_PAR_3 param_1, param_2, param_3
         JSR add_short
         SET_RT_VAL_2 param_1, param_2
         POP_3
 
-        LDA rt_val_1
-        CMP param_3
-        BPL add_div_loop
+        DEY
+        BNE add_div_loop
         JMP end_loop
 
     sub_div_loop:
+        ;checks if an overflow will occur
+        LDA param_1
+        BNE can_subtract
+        LDA param_2
+        CMP param_3
+        BMI end_loop
+        can_subtract:
+
         PUSH_PAR_3 param_1, param_2, param_3
         JSR sub_short
         SET_RT_VAL_2 param_1, param_2
         POP_3
 
-        LDA rt_val_1
-        CMP $0105, x
-        BPL sub_div_loop
+        DEY
+        BNE sub_div_loop
 
     end_loop:
 
@@ -472,7 +483,7 @@ game_loop:
     AND #%00000010
     BEQ right_not_pressed
 
-    PUSH_PAR_3 pos_x, pos_x + 1, #$50
+    PUSH_PAR_3 pos_x, pos_x + 1, #$80
     JSR sub_short
     SET_RT_VAL_2 pos_x, pos_x + 1
     POP_3
@@ -483,63 +494,46 @@ game_loop:
     AND #%00000001
     BEQ left_not_pressed
 
-    PUSH_PAR_3 pos_x, pos_x + 1, #$50
+    PUSH_PAR_3 pos_x, pos_x + 1, #$80
     JSR add_short
     SET_RT_VAL_2 pos_x, pos_x + 1
     POP_3
 
-    ;LDA #$FB
-    ;STA gravity
-    ;LDA #$00
-    ;STA gravity + 1
-    
     left_not_pressed:
 
     LDA button_bits
     AND #%00000100
     BEQ down_not_pressed
-
-    PUSH_PAR_3 gravity, gravity + 1, #$50
-    JSR add_short
-    SET_RT_VAL_2 gravity, gravity + 1
-    POP_3
-
     down_not_pressed:
 
     LDA button_bits
     AND #%00001000
     BEQ up_not_pressed
 
-    PUSH_PAR_3 gravity, gravity + 1, #$50
-    JSR sub_short
-    SET_RT_VAL_2 gravity, gravity + 1
-    POP_3
+    LDA #$FC
+    STA gravity
+    LDA #$00
+    STA gravity + 1
 
     up_not_pressed:
 
-    LDA button_bits
-    AND #%11111111
-    BNE any_key_pressed
-
-    PUSH_PAR_3 pos_x, pos_x + 1, #$50
+    PUSH_PAR_3 pos_x, pos_x + 1, #$08
     JSR div_short
     SET_RT_VAL_2 pos_x, pos_x + 1
     POP_3
 
-    PUSH_PAR_3 gravity, gravity + 1, #$50
-    JSR div_short
+    PUSH_PAR_3 gravity, gravity + 1, #$40
+    JSR add_short
     SET_RT_VAL_2 gravity, gravity + 1
     POP_3
 
-    any_key_pressed:
-
+    ;clamp pos_x
     PUSH_PAR_3 pos_x, #$04, #$FB
     JSR clamp
     STA pos_x
     POP_3
 
-    ;ADD_SHORT gravity, gravity + 1, #$70
-
+    ;clamp gravity
     PUSH_PAR_3 gravity, #$08, #$FB
     JSR clamp
     STA gravity
