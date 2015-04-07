@@ -48,18 +48,24 @@ SPRITES_DATA_LEN    = 16
     ;store game variables in zero page (2x faster access)
     .rsset $0000
 
-base_p              .rs     2
 param_1             .rs     1
 param_2             .rs     1
 param_3             .rs     1
 rt_val_1            .rs     1
 rt_val_2            .rs     1
+temp                .rs     2
+dividend            .rs     2
+divisor             .rs     1
+current             .rs     2
+answer              .rs     1
 
 vblank_counter      .rs     1
 button_bits         .rs     1
 nt_pointer 			.rs 	2
 pos_x               .rs     2
 gravity             .rs     2
+coord_x             .rs     1
+coord_y             .rs     1
 
 ;define PPU constants (constants are basically #defines, so they don't take up memory)
 
@@ -262,60 +268,115 @@ sub_short:
 
     RTS
 
-;temp macro to divide two bytes (16 bit) by continiously subtracting or adding
+div_byte:
+    STORE_PAR_2
+
+    DEBUG_BRK
+    LDA #$01
+    STA current ;current
+    LDA #$00
+    STA answer ;answer
+
+    LDA param_2
+    BEQ end_div
+    CMP param_1
+    ;if (divisor == dividend)
+    BNE div_equ
+    LDA #$01
+    STA answer
+    JMP end_div
+    div_equ:
+    ;if (divisor > dividend)
+    BPL end_div
+
+    ;while (divisor <= dividend)
+    div_shift_loop:
+        LDA param_2
+        CMP param_1
+        BPL end_div_shift_loop
+        ROL param_2
+        ROL current
+        JMP div_shift_loop
+    end_div_shift_loop:
+
+    ;while (current != 0)
+    div_cur_loop:
+        LDA current
+        BEQ end_div_cur_loop
+        ;if (dividend >= divisor)
+            LDA param_1
+            CMP param_2
+            BEQ skip_g_than_cmp
+            BMI div_endif
+            skip_g_than_cmp:
+            LDA param_1
+            SEC
+            SBC param_2
+            STA param_1
+            LDA answer
+            ORA current
+            STA answer
+        div_endif:
+        LSR current
+        LSR param_2
+        JMP div_cur_loop
+    end_div_cur_loop:
+
+    end_div:
+    DEBUG_BRK
+    LDA param_1
+    STA rt_val_1
+    LDA answer
+    STA rt_val_2
+
+    RTS
+
+;temp macro to divide two bytes (16 bit) by continuously subtracting or adding
 ;(high_byte, low_byte, value)
 div_short:
     STORE_PAR_3
 
-    LDA param_1
-    LDY param_3
-
-    ;for some reason #$ff is not not calling add_div_loop in the second compare below so this is needed
-    CMP #$FF
-    BEQ add_div_loop
-    CMP #$7F
-    BMI sub_div_loop
-
-    add_div_loop:
-        ;checks if an overflow will occur
-        LDA param_1
-        BNE can_add
-        LDA param_2
-        CMP param_3
-        BPL end_loop ;may need to be bpi
-        can_add:
-
-        PUSH_PAR_3 param_1, param_2, param_3
-        JSR add_short
-        SET_RT_VAL_2 param_1, param_2
-        POP_3
-
-        DEY
-        BNE add_div_loop
-        JMP end_loop
-
-    sub_div_loop:
-        ;checks if an overflow will occur
-        LDA param_1
-        BNE can_subtract
-        LDA param_2
-        CMP param_3
-        BMI end_loop
-        can_subtract:
-
-        PUSH_PAR_3 param_1, param_2, param_3
-        JSR sub_short
-        SET_RT_VAL_2 param_1, param_2
-        POP_3
-
-        DEY
-        BNE sub_div_loop
-
-    end_loop:
-
-    LDA param_1
-    STA rt_val_1
+    DEBUG_BRK
     LDA param_2
+    PUSH_PAR_2 param_2, param_3
+    JSR div_byte
+    LDA rt_val_2
+    STA temp
+    POP_2
+
+    STORE_PAR_3
+
+    DEBUG_BRK
+    LDA param_1
+    PUSH_PAR_2 param_1, param_3
+    JSR div_byte
+    LDA rt_val_2
+    STA temp + 1
+    POP_2
+
+    ;todo: high byte is rounded off so have to calculate remaining values here
+    ;4 / 2 = 2 so no remaining values needed. 6 / 4 = 1.5 so 256 / 2 is needed
+    ;param_1 is the modulus result and just needs to be multiplied by (256 / modulus result)
+    ;for example, 256 / 4 is 64. 6 % 4 = 2
+    ;64 * 2 = 128
+    ;todo: divbyte modulus returns 7 for 7/7, 1 for 8/7, ect. needs to be fixed
+    DEBUG_BRK
+    LDA rt_val_1
+    INC rt_val_1
+    PUSH_PAR_2 #$7F, rt_val_1
+    JSR div_byte
+    DEBUG_BRK
+    LDA temp
+    CLC
+    ADC rt_val_2
+    STA temp
+    POP_2
+
+    DEBUG_BRK
+    LDY #$08
+    LDA temp + 1
+    STA rt_val_1
+    LDA temp
     STA rt_val_2
 
     RTS
@@ -364,6 +425,19 @@ RESET:
 
     INX                             ;add 1 to the x register and overflow it which results in 0
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
+
+    LDA #$07
+    STA $0022
+    LDA #$12
+    STA $0023
+    LDA #$07
+    STA $0024
+    PUSH_PAR_3 $0022, $0023, $0024
+    JSR div_short
+    DEBUG_BRK
+    LDA rt_val_1
+    LDA rt_val_2
+    POP_3
 
     JSR vblank_wait                 ;first vblank wait to make sure the PPU is warming up
 
@@ -478,6 +552,37 @@ game_loop:
     vblank_wait_main:
         CMP vblank_counter         ;compare register a with the vblank counter
         BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
+
+    DEBUG_BRK
+    PUSH_PAR_3 OAM_RAM_ADDR + 3, OAM_RAM_ADDR + 3, #$08
+    JSR div_short
+    SET_RT_VAL_1 coord_x
+    POP_3
+
+    PUSH_PAR_3 OAM_RAM_ADDR, OAM_RAM_ADDR, #$08
+    JSR div_short
+    SET_RT_VAL_1 coord_y
+    POP_3
+
+    SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
+    LDY coord_y
+    mul:
+        CPY #$00
+        BEQ end_mul
+        INC nt_pointer + 1
+        DEY
+        JMP mul
+    end_mul:
+
+    LDA nt_pointer
+    CLC
+    ADC coord_x
+    STA nt_pointer
+
+    LDA nt_pointer + 1
+    LDA nt_pointer
+    LDA coord_x
+    LDA coord_y
 
     LDA button_bits
     AND #%00000010
