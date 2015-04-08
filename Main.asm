@@ -54,6 +54,7 @@ param_3             .rs     1
 rt_val_1            .rs     1
 rt_val_2            .rs     1
 temp                .rs     2
+temp_2 				.rs 	2
 dividend            .rs     2
 divisor             .rs     1
 current             .rs     2
@@ -251,7 +252,7 @@ add_short:
     STA rt_val_1                    ;store upper 8 bits result back
 
     RTS
-
+	
 ;macro to subtract two bytes (16 bit) together
 ;(high_byte, low_byte, value)
 sub_short:
@@ -267,11 +268,30 @@ sub_short:
     STA rt_val_1                    ;store upper 8 bits result back
 
     RTS
-
+	
+mul_byte:
+    STORE_PAR_2
+	
+	DEBUG_BRK
+	LDY $0103, x
+	mul_add_loop:
+		DEY
+		BEQ mul_end_add_loop
+		LDA param_2
+		CLC
+		ADC $0104, x
+		STA param_2
+		JMP mul_add_loop
+	mul_end_add_loop:
+	
+	LDA param_2
+	STA rt_val_1
+	
+    RTS
+	
 div_byte:
     STORE_PAR_2
-
-    DEBUG_BRK
+	
     LDA #$01
     STA current ;current
     LDA #$00
@@ -325,6 +345,10 @@ div_byte:
     end_div:
     DEBUG_BRK
     LDA param_1
+	CMP param_3
+	BNE remainder_divisor_not_equ
+	LDA #$00
+	remainder_divisor_not_equ:
     STA rt_val_1
     LDA answer
     STA rt_val_2
@@ -342,6 +366,9 @@ div_short:
     JSR div_byte
     LDA rt_val_2
     STA temp
+    CLC
+    ADC rt_val_1
+    STA temp
     POP_2
 
     STORE_PAR_3
@@ -353,25 +380,61 @@ div_short:
     LDA rt_val_2
     STA temp + 1
     POP_2
-
+	
+	;DEBUG_BRK
+	;LDY #$04
+	;TSX
+    ;LDA $0105, x
+    ;STA param_3
+	
+	;LDA param_3
+	;SEC
+	;SBC rt_val_1
+	DEBUG_BRK
+	LDY #$04
+	LDA rt_val_1
+	STA temp_2
+	LDA temp_2
+	;LDA param_2
+	
     ;todo: high byte is rounded off so have to calculate remaining values here
-    ;4 / 2 = 2 so no remaining values needed. 6 / 4 = 1.5 so 256 / 2 is needed
-    ;param_1 is the modulus result and just needs to be multiplied by (256 / modulus result)
-    ;for example, 256 / 4 is 64. 6 % 4 = 2
-    ;64 * 2 = 128
-    ;todo: divbyte modulus returns 7 for 7/7, 1 for 8/7, ect. needs to be fixed
-    DEBUG_BRK
-    LDA rt_val_1
-    INC rt_val_1
-    PUSH_PAR_2 #$7F, rt_val_1
+	;divisor = 4
+	;256 / divisor = 64
+	;4 / 4 = 0 remainder
+	;remainder * 64 = 0
+	;5 / 4 = 1 remainder
+	;remainder * 64 = 64
+	;6 / 4 = 2 remainder
+	;remainder * 64 = 128
+	;formula = remainder * (256 / divisor)
+	;needs to be 188
+	DEBUG_BRK
+	PUSH_PAR_2 #$7F, param_3
     JSR div_byte
-    DEBUG_BRK
+	DEBUG_BRK
+
+    ;may have to subtract remainder
+    LDA rt_val_2
+	STA param_1
+	;double
+	CLC
+	ADC param_1
+	STA param_1
+    POP_2
+	DEBUG_BRK
+	LDA param_1
+	LDA temp_2
+
+	;store 256 / divisor (param_3) in param_1
+    PUSH_PAR_2 temp_2, param_1
+    JSR mul_byte
+	DEBUG_BRK
     LDA temp
     CLC
-    ADC rt_val_2
+    ADC rt_val_1
     STA temp
     POP_2
-
+	
     DEBUG_BRK
     LDY #$08
     LDA temp + 1
@@ -426,11 +489,11 @@ RESET:
     INX                             ;add 1 to the x register and overflow it which results in 0
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
 
-    LDA #$07
+    LDA #$14
     STA $0022
-    LDA #$12
+    LDA #$5f
     STA $0023
-    LDA #$07
+    LDA #$03
     STA $0024
     PUSH_PAR_3 $0022, $0023, $0024
     JSR div_short
