@@ -118,10 +118,16 @@ VRAM_ATTRIB_3   = $2FC0     ;attrib list 3      ($2FC0 - $2FFF)     64 bytes
 VRAM_BG_PLT     = $3F00     ;background palette ($3F00 - $3FFF)     256 bytes
 VRAM_SPRITE_PLT = $3F10     ;sprite palette     ($3F10 - $3F1F)     256 bytes
 
+;------------------------------------------------------------------------------------;
+;debug macros
+
 ;macro to apply a breakpoint if the emulator has it mapped
 DEBUG_BRK .macro
     BIT $07FF                       ;read the end byte of RAM so an emulator can pick up on it
     .endm
+
+;------------------------------------------------------------------------------------;
+;stack and function macros
 
 ;macro to store 1 parameter from the stack into the param_1 variable
 ;used at the start of functions to load stack parameters into param variables
@@ -217,6 +223,9 @@ SET_RT_VAL_2 .macro
     STA \2
     .endm
 
+;------------------------------------------------------------------------------------;
+;pointer and map macros
+
 ;macro to set a high byte + low byte address into two bytes or 16 bit PPU register
 ;(pointing_to_address, high_byte_store, low_byte_store)
 SET_POINTER .macro
@@ -237,7 +246,64 @@ LOAD_MAP .macro
 
     .endm
 
-;macro to add two bytes (16 bit) together
+;------------------------------------------------------------------------------------;
+;if branching macros
+
+;macro to check whether 1 value is equal to the other, if false, then jmp to the specified label
+;(val_1, val_2, else_label)
+IF_EQU .macro
+    ;successful if val_1 = val_2
+    LDA \1
+    CMP \2
+    BNE \3  ;branches if val_1 != val_2
+
+    .endm
+
+;macro to check whether 1 value is not equal to the other, if false, then jmp to the specified label
+;(val_1, val_2, else_label)
+IF_NOT_EQU .macro
+    ;successful if val_1 != val_2
+    LDA \1
+    CMP \2
+    BEQ \3  ;branches if val_1 = val_2
+
+    .endm
+
+;macro to check whether 1 signed value is greater than the other, if false, then jmp to the specified label
+;(val_1, val_2, else_label)
+IF_SIGNED_GT .macro
+    ;successful if val_1 > val_2
+    LDA \1
+    CMP \2
+    BEQ \3  ;branches if val_1 = val_2
+    BMI \3  ;branches if val_1 < val_2
+
+    .endm
+
+;macro to check whether 1 signed value is greater than the other, if false, then jmp to the specified label
+;(val_1, val_2, else_label)
+IF_SIGNED_GT_OR_EQU .macro
+    ;successful if val_1 >= val_2
+    LDA \1
+    CMP \2
+    BMI \3  ;branches if val_1 < val_2
+
+    .endm
+
+;macro to check whether 1 signed value is greater than the other, if false, then jmp to the specified label
+;(val_1, val_2, else_label)
+IF_UNSIGNED_GT .macro
+    ;successful if val_1 > val_2
+    LDA \1
+    CMP \2
+    BEQ \3  ;branches if val_1 = val_2
+    BMI \3  ;branches if val_1 < val_2
+
+    .endm
+
+;------------------------------------------------------------------------------------;
+
+;function to add two bytes (16 bit) together
 ;(high_byte, low_byte, value)
 add_short:
     TSX
@@ -252,8 +318,8 @@ add_short:
     STA rt_val_1                    ;store upper 8 bits result back
 
     RTS
-	
-;macro to subtract two bytes (16 bit) together
+
+;function to subtract two bytes (16 bit) together
 ;(high_byte, low_byte, value)
 sub_short:
     TSX
@@ -271,8 +337,7 @@ sub_short:
 	
 mul_byte:
     STORE_PAR_2
-	
-	DEBUG_BRK
+
 	LDY $0103, x
 	mul_add_loop:
 		DEY
@@ -343,12 +408,10 @@ div_byte:
     end_div_cur_loop:
 
     end_div:
-    DEBUG_BRK
-    LDA param_1
-	CMP param_3
-	BNE remainder_divisor_not_equ
-	LDA #$00
-	remainder_divisor_not_equ:
+    IF_NOT_EQU param_1, param_3, rdnequ
+    LDA #$00
+    rdnequ:
+
     STA rt_val_1
     LDA answer
     STA rt_val_2
@@ -360,7 +423,6 @@ div_byte:
 div_short:
     STORE_PAR_3
 
-    DEBUG_BRK
     LDA param_2
     PUSH_PAR_2 param_2, param_3
     JSR div_byte
@@ -373,30 +435,18 @@ div_short:
 
     STORE_PAR_3
 
-    DEBUG_BRK
     LDA param_1
     PUSH_PAR_2 param_1, param_3
     JSR div_byte
     LDA rt_val_2
     STA temp + 1
     POP_2
-	
-	;DEBUG_BRK
-	;LDY #$04
-	;TSX
-    ;LDA $0105, x
-    ;STA param_3
-	
-	;LDA param_3
-	;SEC
-	;SBC rt_val_1
-	DEBUG_BRK
+
 	LDY #$04
 	LDA rt_val_1
 	STA temp_2
 	LDA temp_2
-	;LDA param_2
-	
+
     ;todo: high byte is rounded off so have to calculate remaining values here
 	;divisor = 4
 	;256 / divisor = 64
@@ -408,10 +458,8 @@ div_short:
 	;remainder * 64 = 128
 	;formula = remainder * (256 / divisor)
 	;needs to be 188
-	DEBUG_BRK
 	PUSH_PAR_2 #$7F, param_3
     JSR div_byte
-	DEBUG_BRK
 
     ;may have to subtract remainder
     LDA rt_val_2
@@ -421,14 +469,12 @@ div_short:
 	ADC param_1
 	STA param_1
     POP_2
-	DEBUG_BRK
 	LDA param_1
 	LDA temp_2
 
 	;store 256 / divisor (param_3) in param_1
     PUSH_PAR_2 temp_2, param_1
     JSR mul_byte
-	DEBUG_BRK
     LDA temp
     CLC
     ADC rt_val_1
@@ -488,6 +534,14 @@ RESET:
 
     INX                             ;add 1 to the x register and overflow it which results in 0
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
+
+    DEBUG_BRK
+    IF_UNSIGNED_GT #$90, #$02, else
+    LDY #$01
+    JMP endif
+    else:
+    LDY #$00
+    endif:
 
     LDA #$14
     STA $0022
