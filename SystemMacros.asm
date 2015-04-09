@@ -120,65 +120,67 @@ SET_POINTER .macro
 ;if branching macros
 
 ;macro to check whether 1 value is equal to the other, if true, then jmp to the specified label
-;(val_1, val_2, success_label)
+;(val_1, val_2, else_label)
 IF_EQU .macro
     ;successful if val_1 = val_2
-    LDA \1
-    CMP \2
-    BEQ \3
-
-    .endm
-
-;macro to check whether 1 value is not equal to the other, if true, then jmp to the specified label
-;(val_1, val_2, success_label)
-IF_NOT_EQU .macro
-    ;successful if val_1 != val_2
     LDA \1
     CMP \2
     BNE \3
 
     .endm
 
+;macro to check whether 1 value is not equal to the other, if true, then jmp to the specified label
+;(val_1, val_2, else_label)
+IF_NOT_EQU .macro
+    ;successful if val_1 != val_2
+    LDA \1
+    CMP \2
+    BEQ \3
+
+    .endm
+
 ;macro to check whether 1 signed value is greater than the other, if true, then jmp to the specified label
-;(val_1, val_2, success_label)
+;(val_1, val_2, else_label)
 IF_SIGNED_GT .macro
     ;successful if val_1 > val_2
     LDA \1
     CMP \2
-    BEQ .notgt\@        ;false if val_1 = val_2
-    BPL \3              ;true if val_1 >= val_2
-    .notgt\@:
+    BNE \3              ;fail if val_1 = val_2
+    BMI \3              ;fail if val_1 <= val_2
 
     .endm
 
 ;macro to check whether 1 signed value is greater than or equal the other, if true, then jmp to the specified label
-;(val_1, val_2, success_label)
+;(val_1, val_2, else_label)
 IF_SIGNED_GT_OR_EQU .macro
     ;successful if val_1 >= val_2
     LDA \1
     CMP \2
-    BPL \3              ;true if val_1 >= val_2
+    BEQ .success\@      ;success if val_1 = val_2
+    BMI \3              ;fail if val_1 <= val_2
+    .success\@:
 
     .endm
 
 ;macro to check whether 1 unsigned value is greater than the other, if true, then jmp to the specified label
-;(val_1, val_2, success_label)
+;(val_1, val_2, else_label)
 IF_UNSIGNED_GT .macro
     ;successful if val_1 > val_2
     LDA \1
     CMP \2              ;sets carry flag if val_1 >= val_2
-    BEQ .notgt\@        ;false if val_1 = val_2
-    BCS \3              ;true if carry flag set
-    .notgt\@:
+    BNE \3              ;fail if val_1 = val_2
+    BCC \3              ;fail if no carry flag set
 
     .endm
 
 ;macro to check whether 1 signed value is greater than or equal the other, if true, then jmp to the specified label
-;(val_1, val_2, success_label)
+;(val_1, val_2, else_label)
 IF_UNSIGNED_GT_OR_EQU .macro
     ;successful if val_1 >= val_2
     LDA \1
     CMP \2              ;sets carry flag if val_1 >= val_2
-    BCS \3              ;true if carry flag set
+    BEQ .success\@      ;success if val_1 = val_2
+    BCC \3              ;fail if no carry flag set
+    .success\@:
 
     .endm

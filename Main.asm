@@ -191,7 +191,7 @@ div_byte:
     end_div_cur_loop:
 
     end_div:
-    IF_NOT_EQU param_1, param_3, rdnequ
+    IF_EQU param_1, param_3, rdnequ
     LDA #$00
     rdnequ:
 
@@ -319,11 +319,11 @@ RESET:
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
 
     DEBUG_BRK
-    IF_UNSIGNED_GT_OR_EQU #$ae, #$af, success
-    LDY #$00
-    JMP endif
-    success:
+    IF_SIGNED_GT_OR_EQU #$02, #$ff, else
     LDY #$01
+    JMP endif
+    else:
+    LDY #$00
     endif:
 
     LDA #$14
