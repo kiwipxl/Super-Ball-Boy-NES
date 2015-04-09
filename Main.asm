@@ -145,17 +145,17 @@ div_byte:
     LDA #$00
     STA answer ;answer
 
-    LDA param_2
-    BEQ end_div
-    CMP param_1
-    ;if (divisor == dividend)
-    BNE div_equ
-    LDA #$01
-    STA answer
-    JMP end_div
-    div_equ:
-    ;if (divisor > dividend)
-    BPL end_div
+    IF_UNSIGNED_GT param_1, param_2, divddlthan
+        LDA #$00
+        STA answer
+        JMP end_div
+    divddlthan:
+
+    IF_EQU param_1, param_2, divddequ
+        LDA #$01
+        STA answer
+        JMP end_div
+    divddequ:
 
     ;while (divisor <= dividend)
     div_shift_loop:
@@ -319,7 +319,7 @@ RESET:
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
 
     DEBUG_BRK
-    IF_SIGNED_GT_OR_EQU #$02, #$ff, else
+    IF_SIGNED_LT #$68, #$70, else
     LDY #$01
     JMP endif
     else:
