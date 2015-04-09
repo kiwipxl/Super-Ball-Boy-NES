@@ -137,10 +137,6 @@ mul_byte:
 div_byte:
     STORE_PAR_2 $0103
 
-    DEBUG_BRK
-    LDA param_1
-    LDA param_2
-
     ;current ($0102, x)
     LDA #$01
     PHA
@@ -149,9 +145,6 @@ div_byte:
     PHA
 
     TSX
-
-    LDA $0101, x
-    LDA $0102, x
 
     ;if (divisor > dividend)
     IF_UNSIGNED_GT param_2, param_1, divddlthan
@@ -197,88 +190,115 @@ div_byte:
 
     end_div:
 
-    DEBUG_BRK
-
-    IF_EQU param_1, param_3, rdnequ
-    LDA #$00
-    rdnequ:
-
-    STA rt_val_1
+    ;store answer in rt_val_1
     LDA $0101, x
+    STA rt_val_1
+
+    ;check if the remainder (param_1) is equal to the divisor, if they are, the remainder will be 0
+    IF_EQU param_1, param_3, rdnequ
+        LDA #$00
+    rdnequ:
+    ;store remainder (param_1) in rt_val_2
     STA rt_val_2
 
-    POP_2
+    POP_2                               ;pop current and answer local variables
 
     RTS
 
-;temp macro to divide two bytes (16 bit) by continuously subtracting or adding
-;(high_byte, low_byte, value)
+;function to divide a 16 bit number by a specified divisor
+
+;proc
+; - divide high byte by divisor and store remainder
+; - divide low byte by divisor
+; - add low byte by (256 / divisor) * high byte remainder
+
+;input -  (high_byte, low_byte, divisor)
+;output - (high_byte_result, low_byte_result)
+
 div_short:
-    ;result     ($0102, x)
+    ;temp remainder         ($0103, x)
     LDA #$00
     PHA
-    ;result + 1 ($0101, x)
+    ;lbresult (low byte)    ($0102, x)
+    LDA #$00
+    PHA
+    ;hbresult (high byte)   ($0101, x)
     LDA #$00
     PHA
 
-    STORE_PAR_3 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
+    ;----------------------------------------
 
-    ;divide low byte by value
+    STORE_PAR_3 $0106                   ;get params from stack and store them in param variables ($0103 + 3 local variables)
+
+    ;divide low byte by divisor (param_3)
     CALL_2 div_byte, param_2, param_3
     TSX
 
-    LDA rt_val_2
+    ;store division result in lbresult
+    LDA rt_val_1
     STA $0102, x
+    ;add division result by the division remainder and store in lbresult
     CLC
-    ADC rt_val_1
+    ADC rt_val_2
     STA $0102, x
 
-    STORE_PAR_3 $0105
+    ;----------------------------------------
 
-    ;divide high byte by value
+    STORE_PAR_3 $0106                   ;get params from stack and store them in param variables ($0103 + 3 local variables)
+
+    ;divide high byte by divisor (param_3)
     CALL_2 div_byte, param_1, param_3
     TSX
 
-    LDA rt_val_2
+    ;store division result in hbresult
+    LDA rt_val_1
     STA $0101, x
 
-	LDY #$04
-	LDA rt_val_1
-	STA temp_2
-	LDA temp_2
+    ;store division remainder in temp remainder local variable
+	LDA rt_val_2
+	STA $0103, x
 
-	PUSH_PAR_2 #$7F, param_3
-    JSR div_byte
-    POP_2
+    ;----------------------------------------
 
-    ;may have to subtract remainder
-    LDA rt_val_2
-	STA param_1
-	;double
-	CLC
-	ADC param_1
-	STA param_1
-	LDA param_1
-	LDA temp_2
-
-	;store 256 / divisor (param_3) in param_1
-    PUSH_PAR_2 temp_2, param_1
-    JSR mul_byte
-    POP_2
+    ;divide 128 by divisor (param_3)
+    CALL_2 div_byte, #$7F, param_3
     TSX
+
+    ;store the result in the divisor (param_3)
+    LDA rt_val_1
+	STA param_3
+    ;double the divisor (because we divide by 128 above, not 256)
+	CLC
+	ADC param_3
+	STA param_3
+
+    ;store division remainder from stack into param_2
+    LDA $0103, x
+    STA param_2
+
+    ;----------------------------------------
+
+    ;formula to get high byte remainding values = (256 / divisor) * remainder
+    ;multiply the division remainder of the high byte (stored in param_2) by 256 / divisor (stored in param_3)
+    CALL_2 mul_byte, param_2, param_3
+    TSX
+
+    ;add lbresult by the multiplication result
     LDA $0102, x
     CLC
     ADC rt_val_1
     STA $0102, x
 
-    DEBUG_BRK
-    LDY #$08
+    ;----------------------------------------
+
+    ;store hbresult into rt_val_1
     LDA $0101, x
     STA rt_val_1
+    ;store lbresult into rt_val_2
     LDA $0102, x
     STA rt_val_2
 
-    POP_2
+    POP_3                            ;pop the 3 local variables from the stack
 
     RTS
 
