@@ -70,6 +70,7 @@ div_byte:
     LDA #$00
     PHA
 
+    DEBUG_BRK
     STORE_PAR_2 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
 
     ;check if divisor is > dividend
@@ -93,11 +94,12 @@ div_byte:
         ;check if dividend is >= divisor
         IF_UNSIGNED_LT_OR_EQU param_2, param_1, end_div_shift_loop
             ROL param_2                 ;<< roll divisor left
+            BCS divisor_overflow        ;if divisor overflows, jmp to label
             ROL $0102, x                ;<< roll current left
             JMP div_shift_loop
+    divisor_overflow:
+        ROR param_2                     ;ror back to the previous value before overflow
     end_div_shift_loop:
-    LSR param_2                         ;>> logical shift divisor right
-    LSR $0102, x                        ;>> logical shift current right
 
     div_cur_loop:
         ;if current is equal to 0, then end loop
@@ -119,6 +121,7 @@ div_byte:
     end_div:
 
     ;store answer in rt_val_1
+    DEBUG_BRK
     LDA $0101, x
     STA rt_val_1
 
@@ -165,11 +168,7 @@ div_short:
     ;store division result in lbresult
     LDA rt_val_1
     STA $0102, x
-    ;add division result by the division remainder and store in lbresult
-    CLC
-    ADC rt_val_2
-    STA $0102, x
-
+    
     ;----------------------------------------
 
     STORE_PAR_3 $0106                   ;get params from stack and store them in param variables ($0103 + 3 local variables)
@@ -188,19 +187,15 @@ div_short:
 
     ;----------------------------------------
 
-    ;divide 128 by divisor (param_3)
-    CALL_2 div_byte, #$7F, param_3
+    ;divide 256 by divisor (param_3)
+    CALL_2 div_byte, #$FF, param_3
     TSX
 
     ;store the result in the divisor (param_3)
     LDA rt_val_1
 	STA param_3
-    ;double the divisor (because we divide by 128 above, not 256)
-	CLC
-	ADC param_3
-	STA param_3
 
-    ;store division remainder from stack into param_2
+    ;store division remainder calculated from high byteinto param_2
     LDA $0103, x
     STA param_2
 

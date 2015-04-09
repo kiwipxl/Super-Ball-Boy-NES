@@ -111,13 +111,7 @@ RESET:
     LDY #$00
     endif:
 
-    LDA #$14
-    STA $0022
-    LDA #$5f
-    STA $0023
-    LDA #$03
-    STA $0024
-    PUSH_PAR_3 $0022, $0023, $0024
+    PUSH_PAR_3 #$01, #$ff, #$81
     JSR div_short
     DEBUG_BRK
     LDA rt_val_1
@@ -238,45 +232,20 @@ game_loop:
         CMP vblank_counter         ;compare register a with the vblank counter
         BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
 
-    DEBUG_BRK
-    PUSH_PAR_3 OAM_RAM_ADDR + 3, OAM_RAM_ADDR + 3, #$08
-    JSR div_short
+    CALL_3 div_short, OAM_RAM_ADDR + 3, OAM_RAM_ADDR + 3, #$08
     SET_RT_VAL_1 coord_x
-    POP_3
 
-    PUSH_PAR_3 OAM_RAM_ADDR, OAM_RAM_ADDR, #$08
-    JSR div_short
+    CALL_3 div_short, OAM_RAM_ADDR, OAM_RAM_ADDR, #$08
     SET_RT_VAL_1 coord_y
-    POP_3
 
     SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
-    LDY coord_y
-    mul:
-        CPY #$00
-        BEQ end_mul
-        INC nt_pointer + 1
-        DEY
-        JMP mul
-    end_mul:
-
-    LDA nt_pointer
-    CLC
-    ADC coord_x
-    STA nt_pointer
-
-    LDA nt_pointer + 1
-    LDA nt_pointer
-    LDA coord_x
-    LDA coord_y
 
     LDA button_bits
     AND #%00000010
     BEQ right_not_pressed
 
-    PUSH_PAR_3 pos_x, pos_x + 1, #$80
-    JSR sub_short
+    CALL_3 sub_short, pos_x, pos_x + 1, #$80
     SET_RT_VAL_2 pos_x, pos_x + 1
-    POP_3
 
     right_not_pressed:
 	
@@ -284,10 +253,8 @@ game_loop:
     AND #%00000001
     BEQ left_not_pressed
 
-    PUSH_PAR_3 pos_x, pos_x + 1, #$80
-    JSR add_short
+    CALL_3 add_short, pos_x, pos_x + 1, #$80
     SET_RT_VAL_2 pos_x, pos_x + 1
-    POP_3
 
     left_not_pressed:
 
@@ -307,36 +274,24 @@ game_loop:
 
     up_not_pressed:
 
-    PUSH_PAR_3 pos_x, pos_x + 1, #$08
-    JSR div_short
+    CALL_3 div_short, pos_x, pos_x + 1, #$08
     SET_RT_VAL_2 pos_x, pos_x + 1
-    POP_3
 
-    PUSH_PAR_3 gravity, gravity + 1, #$40
-    JSR add_short
+    CALL_3 add_short, gravity, gravity + 1, #$40
     SET_RT_VAL_2 gravity, gravity + 1
-    POP_3
 
     ;clamp pos_x
-    PUSH_PAR_3 pos_x, #$04, #$FB
-    JSR clamp
+    CALL_3 clamp, pos_x, #$04, #$FB
     STA pos_x
-    POP_3
 
     ;clamp gravity
-    PUSH_PAR_3 gravity, #$08, #$FB
-    JSR clamp
+    CALL_3 clamp, gravity, #$08, #$FB
     STA gravity
-    POP_3
 
-    LDA OAM_RAM_ADDR + 3
-    CLC
-    ADC pos_x
+    ADD OAM_RAM_ADDR + 3, pos_x
     STA OAM_RAM_ADDR + 3
 
-    LDA OAM_RAM_ADDR
-    CLC
-    ADC gravity
+    ADD OAM_RAM_ADDR, gravity
     STA OAM_RAM_ADDR
 
     JMP game_loop                   ;jump back to game_loop, infinite loop
