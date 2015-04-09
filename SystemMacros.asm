@@ -228,3 +228,24 @@ IF_UNSIGNED_LT_OR_EQU .macro
     .success\@:
 
     .endm
+
+;------------------------------------------------------------------------------------;
+;math macros
+
+;macro to add val_1 by val_2 (val_1 + val_2) and store the result register a
+;(val_1, val_2)
+ADD .macro
+    LDA \1
+    CLC
+    ADC \2
+
+    .endm
+
+;macro to subtract val_1 by val_2 (val_1 - val_2) and store the result register a
+;(val_1, val_2)
+SUB .macro
+    LDA \1
+    SEC
+    SBC \2
+
+    .endm

@@ -145,13 +145,15 @@ div_byte:
     LDA #$00
     STA answer ;answer
 
-    IF_UNSIGNED_GT param_1, param_2, divddlthan
+    ;if (divisor > dividend)
+    IF_UNSIGNED_GT param_2, param_1, divddlthan
         LDA #$00
         STA answer
         JMP end_div
     divddlthan:
 
-    IF_EQU param_1, param_2, divddequ
+    ;if (divisor > dividend)
+    IF_EQU param_2, param_1, divddequ
         LDA #$01
         STA answer
         JMP end_div
@@ -159,27 +161,22 @@ div_byte:
 
     ;while (divisor <= dividend)
     div_shift_loop:
-        LDA param_2
-        CMP param_1
-        BPL end_div_shift_loop
-        ROL param_2
-        ROL current
-        JMP div_shift_loop
+        IF_UNSIGNED_LT_OR_EQU param_2, param_1, end_div_shift_loop
+            ROL param_2
+            ROL current
+            JMP div_shift_loop
     end_div_shift_loop:
+    LSR param_2
+    LSR current
 
     ;while (current != 0)
     div_cur_loop:
+        ;if current is equal to 0, then end loop
         LDA current
         BEQ end_div_cur_loop
         ;if (dividend >= divisor)
-            LDA param_1
-            CMP param_2
-            BEQ skip_g_than_cmp
-            BMI div_endif
-            skip_g_than_cmp:
-            LDA param_1
-            SEC
-            SBC param_2
+        IF_UNSIGNED_GT_OR_EQU param_1, param_2, div_endif
+            SUB param_1, param_2
             STA param_1
             LDA answer
             ORA current
@@ -191,6 +188,7 @@ div_byte:
     end_div_cur_loop:
 
     end_div:
+
     IF_EQU param_1, param_3, rdnequ
     LDA #$00
     rdnequ:
