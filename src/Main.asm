@@ -104,7 +104,7 @@ RESET:
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
 
     DEBUG_BRK
-    IF_SIGNED_LT #$68, #$70, else
+    IF_UNSIGNED_GT_OR_EQU #$81, #$01, else
     LDY #$01
     JMP endif
     else:

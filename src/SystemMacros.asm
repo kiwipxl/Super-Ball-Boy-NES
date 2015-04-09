@@ -192,7 +192,7 @@ IF_UNSIGNED_GT .macro
     ;successful if val_1 > val_2
     LDA \1
     CMP \2              ;sets carry flag if val_1 >= val_2
-    BNE \3              ;fail if val_1 = val_2
+    BEQ \3              ;fail if val_1 = val_2
     BCC \3              ;fail if no carry flag set
 
     .endm

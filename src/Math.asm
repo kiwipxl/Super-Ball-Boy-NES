@@ -75,17 +75,20 @@ div_byte:
 
     ;check if divisor is > dividend
     IF_UNSIGNED_GT param_2, param_1, divddlthan
-        ;set the answer to 0 and jmp to the end of the function
+        ;set the answer and remainder to 0 then jmp to the end of the function
         LDA #$00
         STA $0101, x
+        STA param_1
         JMP end_div
     divddlthan:
 
     ;check if divisor is = dividend
     IF_EQU param_2, param_1, divddequ
-        ;set the answer to 1 and jmp to the end of the function
+        ;set the answer to 1 and remainder to 0 then jmp to the end of the function
         LDA #$01
         STA $0101, x
+        LDA #$00
+        STA param_1
         JMP end_div
     divddequ:
 
@@ -168,7 +171,7 @@ div_short:
     ;store division result in lbresult
     LDA rt_val_1
     STA $0102, x
-    
+
     ;----------------------------------------
 
     STORE_PAR_3 $0106                   ;get params from stack and store them in param variables ($0103 + 3 local variables)
