@@ -1,6 +1,6 @@
-C:\assemblers\ASM\NESASM\NESASM3 main.asm
+C:\assemblers\ASM\NESASM\NESASM3 src\main.asm
 
-rem C:\Users\rstewart\Desktop\NESASM\NESASM3 main.asm
+rem C:\Users\rstewart\Desktop\NESASM\NESASM3 src\main.asm
 
 move main.nes output\main.nes
 

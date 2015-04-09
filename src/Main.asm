@@ -48,10 +48,10 @@ SPRITES_DATA_LEN    = 16
     ;store game variables in zero page (2x faster access)
     .rsset $0000
 
-    .include "SystemConstants.asm"
-    .include "SystemMacros.asm"
-    .include "Math.asm"
-
+    .include "src/SystemConstants.asm"
+    .include "src/SystemMacros.asm"
+    .include "src/Math.asm"
+    
 param_1             .rs     1
 param_2             .rs     1
 param_3             .rs     1
