@@ -52,9 +52,12 @@ mul_byte:
 ;function to divide an 8 bit number by a specified divisor
 
 ;proc
-; - divide high byte by divisor and store remainder
-; - divide low byte by divisor
-; - add low byte by (256 / divisor) * high byte remainder
+; - if divisor is > dividend then return 0
+; - if divisor is = dividend then return 1
+; - keep looping and bit shifting divisor and current left by 1 until divisor is > dividend
+; - keep looping while current != 0
+; - if dividend >= divisor then subtract dividend by divisor and or answer by current
+; - bit shift current and divisor right by 1
 
 ;input -  (dividend, divisor)
 ;output - (byte_result)
@@ -63,7 +66,7 @@ div_byte:
     ;current ($0102, x)
     LDA #$01
     PHA
-    ;answer  ($0101, x)
+    ;result ($0101, x)
     LDA #$00
     PHA
 
@@ -85,31 +88,31 @@ div_byte:
         JMP end_div
     divddequ:
 
-    ;while (divisor <= dividend)
+    ;keep looping and bitshifting left until divisor > dividend
     div_shift_loop:
+        ;check if dividend is >= divisor
         IF_UNSIGNED_LT_OR_EQU param_2, param_1, end_div_shift_loop
-            ROL param_2
-            ROL $0102, x
+            ROL param_2                 ;<< roll divisor left
+            ROL $0102, x                ;<< roll current left
             JMP div_shift_loop
     end_div_shift_loop:
-    LSR param_2
-    LSR $0102, x
+    LSR param_2                         ;>> logical shift divisor right
+    LSR $0102, x                        ;>> logical shift current right
 
-    ;while (current != 0)
     div_cur_loop:
         ;if current is equal to 0, then end loop
         LDA $0102, x
         BEQ end_div_cur_loop
-        ;if (dividend >= divisor)
+        ;check if dividend is >= divisor
         IF_UNSIGNED_GT_OR_EQU param_1, param_2, div_endif
-            SUB param_1, param_2
-            STA param_1
-            LDA $0101, x
-            ORA $0102, x
-            STA $0101, x
+            SUB param_1, param_2        ;subtract dividend by divisor
+            STA param_1                 ;store in dividend
+            LDA $0101, x                ;load result
+            ORA $0102, x                ;or result with current
+            STA $0101, x                ;store in result
         div_endif:
-        LSR $0102, x
-        LSR param_2
+        LSR $0102, x                    ;logical shift current right
+        LSR param_2                     ;logical shift divisor right
         JMP div_cur_loop
     end_div_cur_loop:
 

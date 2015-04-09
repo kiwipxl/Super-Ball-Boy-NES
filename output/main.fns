@@ -1,4 +1,4 @@
-; main.asm
+; src\main.asm
 div_cur_loop                     = $ECC1
 nt_loop                          = $C0CD
 load_palettes                    = $C078
