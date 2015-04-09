@@ -249,55 +249,67 @@ LOAD_MAP .macro
 ;------------------------------------------------------------------------------------;
 ;if branching macros
 
-;macro to check whether 1 value is equal to the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;macro to check whether 1 value is equal to the other, if true, then jmp to the specified label
+;(val_1, val_2, success_label)
 IF_EQU .macro
     ;successful if val_1 = val_2
     LDA \1
     CMP \2
-    BNE \3  ;branches if val_1 != val_2
+    BEQ \3
 
     .endm
 
-;macro to check whether 1 value is not equal to the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;macro to check whether 1 value is not equal to the other, if true, then jmp to the specified label
+;(val_1, val_2, success_label)
 IF_NOT_EQU .macro
     ;successful if val_1 != val_2
     LDA \1
     CMP \2
-    BEQ \3  ;branches if val_1 = val_2
+    BNE \3
 
     .endm
 
-;macro to check whether 1 signed value is greater than the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;macro to check whether 1 signed value is greater than the other, if true, then jmp to the specified label
+;(val_1, val_2, success_label)
 IF_SIGNED_GT .macro
     ;successful if val_1 > val_2
     LDA \1
     CMP \2
-    BEQ \3  ;branches if val_1 = val_2
-    BMI \3  ;branches if val_1 < val_2
+    BEQ .notgt\@        ;false if val_1 = val_2
+    BPL \3              ;true if val_1 >= val_2
+    .notgt\@:
 
     .endm
 
-;macro to check whether 1 signed value is greater than the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;macro to check whether 1 signed value is greater than or equal the other, if true, then jmp to the specified label
+;(val_1, val_2, success_label)
 IF_SIGNED_GT_OR_EQU .macro
     ;successful if val_1 >= val_2
     LDA \1
     CMP \2
-    BMI \3  ;branches if val_1 < val_2
+    BPL \3              ;true if val_1 >= val_2
 
     .endm
 
-;macro to check whether 1 signed value is greater than the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;macro to check whether 1 unsigned value is greater than the other, if true, then jmp to the specified label
+;(val_1, val_2, success_label)
 IF_UNSIGNED_GT .macro
     ;successful if val_1 > val_2
     LDA \1
     CMP \2
-    BEQ \3  ;branches if val_1 = val_2
-    BMI \3  ;branches if val_1 < val_2
+    BEQ .notgt\@        ;false if val_1 = val_2
+    BCS \3              ;true if val_1 >= val_2 (carry flag set)
+    .notgt\@:
+
+    .endm
+
+;macro to check whether 1 signed value is greater than or equal the other, if true, then jmp to the specified label
+;(val_1, val_2, success_label)
+IF_UNSIGNED_GT_OR_EQU .macro
+    ;successful if val_1 >= val_2
+    LDA \1
+    CMP \2
+    BCS \3              ;true if val_1 >= val_2 (carry flag set)
 
     .endm
 
@@ -536,11 +548,11 @@ RESET:
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
 
     DEBUG_BRK
-    IF_UNSIGNED_GT #$90, #$02, else
-    LDY #$01
-    JMP endif
-    else:
+    IF_UNSIGNED_GT_OR_EQU #$ae, #$af, success
     LDY #$00
+    JMP endif
+    success:
+    LDY #$01
     endif:
 
     LDA #$14
