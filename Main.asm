@@ -53,12 +53,9 @@ param_2             .rs     1
 param_3             .rs     1
 rt_val_1            .rs     1
 rt_val_2            .rs     1
-temp                .rs     2
 temp_2 				.rs 	2
 dividend            .rs     2
 divisor             .rs     1
-current             .rs     2
-answer              .rs     1
 
 vblank_counter      .rs     1
 button_bits         .rs     1
@@ -119,7 +116,7 @@ sub_short:
     RTS
 	
 mul_byte:
-    STORE_PAR_2
+    STORE_PAR_2 $0103
 
 	LDY $0103, x
 	mul_add_loop:
@@ -138,24 +135,35 @@ mul_byte:
     RTS
 	
 div_byte:
-    STORE_PAR_2
-	
+    STORE_PAR_2 $0103
+
+    DEBUG_BRK
+    LDA param_1
+    LDA param_2
+
+    ;current ($0102, x)
     LDA #$01
-    STA current ;current
+    PHA
+    ;answer  ($0101, x)
     LDA #$00
-    STA answer ;answer
+    PHA
+
+    TSX
+
+    LDA $0101, x
+    LDA $0102, x
 
     ;if (divisor > dividend)
     IF_UNSIGNED_GT param_2, param_1, divddlthan
         LDA #$00
-        STA answer
+        STA $0101, x
         JMP end_div
     divddlthan:
 
     ;if (divisor > dividend)
     IF_EQU param_2, param_1, divddequ
         LDA #$01
-        STA answer
+        STA $0101, x
         JMP end_div
     divddequ:
 
@@ -163,84 +171,85 @@ div_byte:
     div_shift_loop:
         IF_UNSIGNED_LT_OR_EQU param_2, param_1, end_div_shift_loop
             ROL param_2
-            ROL current
+            ROL $0102, x
             JMP div_shift_loop
     end_div_shift_loop:
     LSR param_2
-    LSR current
+    LSR $0102, x
 
     ;while (current != 0)
     div_cur_loop:
         ;if current is equal to 0, then end loop
-        LDA current
+        LDA $0102, x
         BEQ end_div_cur_loop
         ;if (dividend >= divisor)
         IF_UNSIGNED_GT_OR_EQU param_1, param_2, div_endif
             SUB param_1, param_2
             STA param_1
-            LDA answer
-            ORA current
-            STA answer
+            LDA $0101, x
+            ORA $0102, x
+            STA $0101, x
         div_endif:
-        LSR current
+        LSR $0102, x
         LSR param_2
         JMP div_cur_loop
     end_div_cur_loop:
 
     end_div:
 
+    DEBUG_BRK
+
     IF_EQU param_1, param_3, rdnequ
     LDA #$00
     rdnequ:
 
     STA rt_val_1
-    LDA answer
+    LDA $0101, x
     STA rt_val_2
+
+    POP_2
 
     RTS
 
 ;temp macro to divide two bytes (16 bit) by continuously subtracting or adding
 ;(high_byte, low_byte, value)
 div_short:
-    STORE_PAR_3
+    ;result     ($0102, x)
+    LDA #$00
+    PHA
+    ;result + 1 ($0101, x)
+    LDA #$00
+    PHA
 
-    LDA param_2
-    PUSH_PAR_2 param_2, param_3
-    JSR div_byte
+    STORE_PAR_3 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
+
+    ;divide low byte by value
+    CALL_2 div_byte, param_2, param_3
+    TSX
+
     LDA rt_val_2
-    STA temp
+    STA $0102, x
     CLC
     ADC rt_val_1
-    STA temp
-    POP_2
+    STA $0102, x
 
-    STORE_PAR_3
+    STORE_PAR_3 $0105
 
-    LDA param_1
-    PUSH_PAR_2 param_1, param_3
-    JSR div_byte
+    ;divide high byte by value
+    CALL_2 div_byte, param_1, param_3
+    TSX
+
     LDA rt_val_2
-    STA temp + 1
-    POP_2
+    STA $0101, x
 
 	LDY #$04
 	LDA rt_val_1
 	STA temp_2
 	LDA temp_2
 
-    ;todo: high byte is rounded off so have to calculate remaining values here
-	;divisor = 4
-	;256 / divisor = 64
-	;4 / 4 = 0 remainder
-	;remainder * 64 = 0
-	;5 / 4 = 1 remainder
-	;remainder * 64 = 64
-	;6 / 4 = 2 remainder
-	;remainder * 64 = 128
-	;formula = remainder * (256 / divisor)
-	;needs to be 188
 	PUSH_PAR_2 #$7F, param_3
     JSR div_byte
+    POP_2
 
     ;may have to subtract remainder
     LDA rt_val_2
@@ -249,25 +258,27 @@ div_short:
 	CLC
 	ADC param_1
 	STA param_1
-    POP_2
 	LDA param_1
 	LDA temp_2
 
 	;store 256 / divisor (param_3) in param_1
     PUSH_PAR_2 temp_2, param_1
     JSR mul_byte
-    LDA temp
+    POP_2
+    TSX
+    LDA $0102, x
     CLC
     ADC rt_val_1
-    STA temp
-    POP_2
-	
+    STA $0102, x
+
     DEBUG_BRK
     LDY #$08
-    LDA temp + 1
+    LDA $0101, x
     STA rt_val_1
-    LDA temp
+    LDA $0102, x
     STA rt_val_2
+
+    POP_2
 
     RTS
 

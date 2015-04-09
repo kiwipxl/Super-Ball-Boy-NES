@@ -13,7 +13,7 @@ DEBUG_BRK .macro
 ;used at the start of functions to load stack parameters into param variables
 STORE_PAR_1 .macro
     TSX
-    LDA $0103, x
+    LDA \1, x
     STA param_1
 
     .endm
@@ -22,9 +22,9 @@ STORE_PAR_1 .macro
 ;used at the start of functions to load stack parameters into param variables
 STORE_PAR_2 .macro
     TSX
-    LDA $0103, x
+    LDA \1, x
     STA param_1
-    LDA $0104, x
+    LDA \1 + 1, x
     STA param_2
 
     .endm
@@ -33,11 +33,11 @@ STORE_PAR_2 .macro
 ;used at the start of functions to load stack parameters into param variables
 STORE_PAR_3 .macro
     TSX
-    LDA $0103, x
+    LDA \1, x
     STA param_1
-    LDA $0104, x
+    LDA \1 + 1, x
     STA param_2
-    LDA $0105, x
+    LDA \1 + 2, x
     STA param_3
 
     .endm
@@ -101,6 +101,30 @@ SET_RT_VAL_2 .macro
     STA \1
     LDA rt_val_2
     STA \2
+    .endm
+
+;macro to push 1 parameter, call the specified function and then pop the parameter
+CALL_1 .macro
+    PUSH_PAR_1 \2
+    JSR \1
+    POP_1
+
+    .endm
+
+;macro to push 2 parameters, call the specified function and then pop the parameters
+CALL_2 .macro
+    PUSH_PAR_2 \2, \3
+    JSR \1
+    POP_2
+
+    .endm
+
+;macro to push 3 parameters, call the specified function and then pop the parameters
+CALL_3 .macro
+    PUSH_PAR_3 \2, \3, \4
+    JSR \1
+    POP_3
+
     .endm
 
 ;------------------------------------------------------------------------------------;
