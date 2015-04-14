@@ -29,24 +29,24 @@ sub_short:
     STA rt_val_1                    ;store upper 8 bits result back
 
     RTS
-	
+    
 mul_byte:
     STORE_PAR_2 $0103
 
-	LDY $0103, x
-	mul_add_loop:
-		DEY
-		BEQ mul_end_add_loop
-		LDA param_2
-		CLC
-		ADC $0104, x
-		STA param_2
-		JMP mul_add_loop
-	mul_end_add_loop:
-	
-	LDA param_2
-	STA rt_val_1
-	
+    LDY $0103, x
+    mul_add_loop:
+        DEY
+        BEQ mul_end_add_loop
+        LDA param_2
+        CLC
+        ADC $0104, x
+        STA param_2
+        JMP mul_add_loop
+    mul_end_add_loop:
+    
+    LDA param_2
+    STA rt_val_1
+    
     RTS
 
 ;function to divide an 8 bit number by a specified divisor
@@ -70,27 +70,18 @@ div_byte:
     LDA #$00
     PHA
 
-    DEBUG_BRK
-    STORE_PAR_2 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
-
-    ;check if divisor is > dividend
-    IF_UNSIGNED_GT param_2, param_1, divddlthan
-        ;set the answer and remainder to 0 then jmp to the end of the function
-        LDA #$00
-        STA $0101, x
-        STA param_1
-        JMP end_div
-    divddlthan:
-
+    STORE_PAR_2 $0103                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
+    
     ;check if divisor is = dividend
     IF_EQU param_2, param_1, divddequ
-        ;set the answer to 1 and remainder to 0 then jmp to the end of the function
         LDA #$01
         STA $0101, x
         LDA #$00
         STA param_1
         JMP end_div
     divddequ:
+
+    STORE_PAR_2 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
 
     ;keep looping and bitshifting left until divisor > dividend
     div_shift_loop:
@@ -124,7 +115,6 @@ div_byte:
     end_div:
 
     ;store answer in rt_val_1
-    DEBUG_BRK
     LDA $0101, x
     STA rt_val_1
 
@@ -132,10 +122,10 @@ div_byte:
     IF_EQU param_1, param_3, rdnequ
         LDA #$00
     rdnequ:
-    ;store remainder (param_1) in rt_val_2
+    ;store remainder (param_1 or #$00) in rt_val_2
     STA rt_val_2
 
-    POP_2                               ;pop current and answer local variables
+    POP_2                               ;pop current and result local variables
 
     RTS
 
@@ -144,15 +134,16 @@ div_byte:
 ;proc
 ; - divide high byte by divisor and store remainder
 ; - divide low byte by divisor
-; - add low byte by (256 / divisor) * high byte remainder
+; - add low byte by (256 / divisor) * high byte remainder (while adding by 1 for high byte remainder overflows)
+
+;temps
+; - temp + 0 = temp remainder
+; - temp + 1 = used to add by high byte remainder and if it overflows the high byte, add 1
 
 ;input -  (high_byte, low_byte, divisor)
 ;output - (high_byte_result, low_byte_result)
 
 div_short:
-    ;temp remainder         ($0103, x)
-    LDA #$00
-    PHA
     ;lbresult (low byte)    ($0102, x)
     LDA #$00
     PHA
@@ -162,58 +153,67 @@ div_short:
 
     ;----------------------------------------
 
-    STORE_PAR_3 $0106                   ;get params from stack and store them in param variables ($0103 + 3 local variables)
+    STORE_PAR_3 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
+
+    ;divide high byte by divisor (param_3)
+    CALL_2 div_byte, param_1, param_3
+    TSX
+
+    DEBUG_BRK
+    ;store division result in hbresult
+    LDA rt_val_1
+    STA $0101, x
+
+    ;store division remainder in temp remainder local variable
+    LDA rt_val_2
+    STA temp
+
+    ;----------------------------------------
+
+    STORE_PAR_3 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
 
     ;divide low byte by divisor (param_3)
     CALL_2 div_byte, param_2, param_3
     TSX
 
+    DEBUG_BRK
     ;store division result in lbresult
     LDA rt_val_1
     STA $0102, x
 
     ;----------------------------------------
 
-    STORE_PAR_3 $0106                   ;get params from stack and store them in param variables ($0103 + 3 local variables)
-
-    ;divide high byte by divisor (param_3)
-    CALL_2 div_byte, param_1, param_3
-    TSX
-
-    ;store division result in hbresult
-    LDA rt_val_1
-    STA $0101, x
-
-    ;store division remainder in temp remainder local variable
-	LDA rt_val_2
-	STA $0103, x
-
-    ;----------------------------------------
+    ;formula to get high byte remainding values = (256 / divisor) * remainder
+    ;multiply the division remainder of the high byte (temp + 0) by 256 / divisor (rt_val_1)
 
     ;divide 256 by divisor (param_3)
     CALL_2 div_byte, #$FF, param_3
-    TSX
 
-    ;store the result in the divisor (param_3)
-    LDA rt_val_1
-	STA param_3
+    STORE_PAR_3 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
 
-    ;store division remainder calculated from high byteinto param_2
-    LDA $0103, x
-    STA param_2
+    DEBUG_BRK
+    LDY temp
+    BEQ mul_divadd_loop_end
+    LDA #$00
+    STA temp + 1
+    mul_divadd_loop:
+        LDA $0102, x
+        CLC
+        ADC rt_val_1
+        STA $0102, x
 
-    ;----------------------------------------
-
-    ;formula to get high byte remainding values = (256 / divisor) * remainder
-    ;multiply the division remainder of the high byte (stored in param_2) by 256 / divisor (stored in param_3)
-    CALL_2 mul_byte, param_2, param_3
-    TSX
-
-    ;add lbresult by the multiplication result
-    LDA $0102, x
-    CLC
-    ADC rt_val_1
-    STA $0102, x
+        ADD temp + 1, rt_val_2
+        STA temp + 1
+        IF_UNSIGNED_GT_OR_EQU temp + 1, param_3, endif_nparover
+            INC $0102, x
+            SUB temp + 1, param_3
+            STA temp + 1
+        endif_nparover:
+        
+        DEY
+        BEQ mul_divadd_loop_end
+        JMP mul_divadd_loop
+    mul_divadd_loop_end:
 
     ;----------------------------------------
 
@@ -224,7 +224,7 @@ div_short:
     LDA $0102, x
     STA rt_val_2
 
-    POP_3                            ;pop the 3 local variables from the stack
+    POP_2                            ;pop the 2 local variables from the stack
 
     RTS
 

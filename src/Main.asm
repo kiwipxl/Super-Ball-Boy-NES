@@ -40,7 +40,7 @@ PALETTE:
 
 SPRITES:
     ;y, tile index, attribs (palette 4 to 7, priority, flip), x
-    .db $80, $07, %00000000, $80
+    .db $2a, $07, %00000000, $80
 
 NUM_SPRITES         = 4
 SPRITES_DATA_LEN    = 16
@@ -51,12 +51,20 @@ SPRITES_DATA_LEN    = 16
     .include "src/SystemConstants.asm"
     .include "src/SystemMacros.asm"
     .include "src/Math.asm"
-    
+
+;local params used to store inputs from functions - note that these params may be modified when a function with a input is called
 param_1             .rs     1
 param_2             .rs     1
 param_3             .rs     1
+param_4             .rs     1
+param_5             .rs     1
+
+;return values used for functions that have an output / multiple outputs
 rt_val_1            .rs     1
 rt_val_2            .rs     1
+
+;temporary value that can be modified at any time
+temp                .rs     4
 
 vblank_counter      .rs     1
 button_bits         .rs     1
@@ -111,7 +119,7 @@ RESET:
     LDY #$00
     endif:
 
-    PUSH_PAR_3 #$01, #$ff, #$81
+    PUSH_PAR_3 #$80, #$7f, #$22
     JSR div_short
     DEBUG_BRK
     LDA rt_val_1
@@ -240,6 +248,20 @@ game_loop:
 
     SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
 
+    CALL_2 mul_byte, coord_y, #$1E
+    ADD nt_pointer, rt_val_1
+    STA nt_pointer
+
+    LDA #$04
+    STA OAM_RAM_ADDR + 1
+    LDY coord_x
+    DEBUG_BRK
+    LDA [nt_pointer], y
+    BEQ equ_zero
+    LDA #$01
+    STA OAM_RAM_ADDR + 1
+    equ_zero:
+
     LDA button_bits
     AND #%00000010
     BEQ right_not_pressed
@@ -261,32 +283,34 @@ game_loop:
     LDA button_bits
     AND #%00000100
     BEQ down_not_pressed
+
+    CALL_3 add_short, gravity, gravity + 1, #$80
+    SET_RT_VAL_2 gravity, gravity + 1
+
     down_not_pressed:
 
     LDA button_bits
     AND #%00001000
     BEQ up_not_pressed
 
-    LDA #$FC
-    STA gravity
-    LDA #$00
-    STA gravity + 1
+    CALL_3 sub_short, gravity, gravity + 1, #$80
+    SET_RT_VAL_2 gravity, gravity + 1
 
     up_not_pressed:
 
     CALL_3 div_short, pos_x, pos_x + 1, #$08
     SET_RT_VAL_2 pos_x, pos_x + 1
 
-    CALL_3 add_short, gravity, gravity + 1, #$40
-    SET_RT_VAL_2 gravity, gravity + 1
+    ;CALL_3 add_short, gravity, gravity + 1, #$40
+    ;SET_RT_VAL_2 gravity, gravity + 1
 
     ;clamp pos_x
-    CALL_3 clamp, pos_x, #$04, #$FB
-    STA pos_x
+    ;CALL_3 clamp, pos_x, #$04, #$FB
+    ;STA pos_x
 
     ;clamp gravity
-    CALL_3 clamp, gravity, #$08, #$FB
-    STA gravity
+    ;CALL_3 clamp, gravity, #$08, #$FB
+    ;STA gravity
 
     ADD OAM_RAM_ADDR + 3, pos_x
     STA OAM_RAM_ADDR + 3
