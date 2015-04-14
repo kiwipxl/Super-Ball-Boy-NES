@@ -42,8 +42,8 @@ SPRITES:
     ;y, tile index, attribs (palette 4 to 7, priority, flip), x
     .db $2a, $07, %00000000, $80
 
-NUM_SPRITES         = 4
-SPRITES_DATA_LEN    = 16
+NUM_SPRITES         = 1
+SPRITES_DATA_LEN    = NUM_SPRITES * 4
 
     ;store game variables in zero page (2x faster access)
     .rsset $0000
@@ -119,7 +119,7 @@ RESET:
     LDY #$00
     endif:
 
-    PUSH_PAR_3 #$80, #$7f, #$22
+    PUSH_PAR_3 #$00, #$04, #$02
     JSR div_short
     DEBUG_BRK
     LDA rt_val_1
@@ -240,28 +240,6 @@ game_loop:
         CMP vblank_counter         ;compare register a with the vblank counter
         BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
 
-    CALL_3 div_short, OAM_RAM_ADDR + 3, OAM_RAM_ADDR + 3, #$08
-    SET_RT_VAL_1 coord_x
-
-    CALL_3 div_short, OAM_RAM_ADDR, OAM_RAM_ADDR, #$08
-    SET_RT_VAL_1 coord_y
-
-    SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
-
-    CALL_2 mul_byte, coord_y, #$1E
-    ADD nt_pointer, rt_val_1
-    STA nt_pointer
-
-    LDA #$04
-    STA OAM_RAM_ADDR + 1
-    LDY coord_x
-    DEBUG_BRK
-    LDA [nt_pointer], y
-    BEQ equ_zero
-    LDA #$01
-    STA OAM_RAM_ADDR + 1
-    equ_zero:
-
     LDA button_bits
     AND #%00000010
     BEQ right_not_pressed
@@ -298,8 +276,11 @@ game_loop:
 
     up_not_pressed:
 
-    CALL_3 div_short, pos_x, pos_x + 1, #$08
-    SET_RT_VAL_2 pos_x, pos_x + 1
+    LDA button_bits
+    AND #%00010000
+    BEQ any_not_pressed
+
+    any_not_pressed:
 
     ;CALL_3 add_short, gravity, gravity + 1, #$40
     ;SET_RT_VAL_2 gravity, gravity + 1
@@ -328,8 +309,8 @@ read_controller:
     STA $4016
     LDA #$00
     STA $4016
-
     ;read the button press bit of a, b, start, select, up, down, left, right and store all bits in button_bits
+
     LDX #$08
     read_loop:
         LDA $4016                   ;load input status byte into register a
@@ -342,6 +323,37 @@ read_controller:
 ;NMI interrupts the cpu and is called once per video frame
 ;PPU is starting vblank time and is available for graphics updates
 NMI:
+    CALL_2 div_byte, OAM_RAM_ADDR + 3, #$08
+    SET_RT_VAL_1 coord_x
+
+    CALL_2 div_byte, OAM_RAM_ADDR, #$08
+    SET_RT_VAL_1 coord_y
+
+    SET_POINTER VRAM_NT_0, nt_pointer + 1, nt_pointer
+
+    CALL_2 mul_byte, coord_y, #$20
+    ADD nt_pointer, rt_val_1
+    ADD nt_pointer, coord_x
+    STA nt_pointer
+
+    LDA #$04
+    STA OAM_RAM_ADDR + 1
+    LDY coord_x
+    LDA [nt_pointer], y
+    BEQ equ_zero
+    LDA #$01
+    STA OAM_RAM_ADDR + 1
+    equ_zero:
+
+    DEBUG_BRK
+    LDA coord_x
+    LDA coord_y
+    LDA nt_pointer + 1
+    STA PPU_ADDR
+    LDA nt_pointer
+    STA PPU_ADDR
+    LDA PPU_DATA
+
     ;copies 256 bytes of OAM data in RAM (OAM_RAM_ADDR - OAM_RAM_ADDR + $FF) to the PPU internal OAM
     ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
 

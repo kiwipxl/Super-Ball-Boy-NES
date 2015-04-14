@@ -81,6 +81,19 @@ div_byte:
         JMP end_div
     divddequ:
 
+    ;check if dividend = 0
+    LDA param_1
+    BEQ div_result_equ0
+
+    ;check if divisor = 0
+    LDA param_2
+    BNE div_no_equ0
+    div_result_equ0:
+        LDA #$00
+        STA param_1
+        JMP end_div
+    div_no_equ0:
+
     STORE_PAR_2 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
 
     ;keep looping and bitshifting left until divisor > dividend
@@ -158,8 +171,7 @@ div_short:
     ;divide high byte by divisor (param_3)
     CALL_2 div_byte, param_1, param_3
     TSX
-
-    DEBUG_BRK
+    
     ;store division result in hbresult
     LDA rt_val_1
     STA $0101, x
@@ -176,7 +188,6 @@ div_short:
     CALL_2 div_byte, param_2, param_3
     TSX
 
-    DEBUG_BRK
     ;store division result in lbresult
     LDA rt_val_1
     STA $0102, x
@@ -191,7 +202,6 @@ div_short:
 
     STORE_PAR_3 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
 
-    DEBUG_BRK
     LDY temp
     BEQ mul_divadd_loop_end
     LDA #$00
