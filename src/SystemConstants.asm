@@ -47,3 +47,19 @@ VRAM_ATTRIB_3   = $2FC0     ;attrib list 3      ($2FC0 - $2FFF)     64 bytes
 
 VRAM_BG_PLT     = $3F00     ;background palette ($3F00 - $3FFF)     256 bytes
 VRAM_SPRITE_PLT = $3F10     ;sprite palette     ($3F10 - $3F1F)     256 bytes
+
+;-- Button input constants --;
+
+;the following are a list of byte constants that will be and gated with an input byte
+;to determine when a specific button is pressed
+
+INPUT_ANY_BUTTON 	= #%11111111
+INPUT_NO_BUTTON 	= #%00000000
+INPUT_A_BUTTON 		= #%10000000
+INPUT_B_BUTTON 		= #%01000000
+INPUT_SELECT_BUTTON = #%00100000
+INPUT_START_BUTTON 	= #%00010000
+INPUT_LEFT_BUTTON 	= #%00001000
+INPUT_UP_BUTTON 	= #%00000100
+INPUT_RIGHT_BUTTON 	= #%00000010
+INPUT_DOWN_BUTTON 	= #%00000001

@@ -73,6 +73,7 @@ pos_x               .rs     2
 gravity             .rs     2
 coord_x             .rs     1
 coord_y             .rs     1
+current_tile        .rs     1
 
 ;------------------------------------------------------------------------------------;
 ;map loading macros
@@ -247,6 +248,27 @@ game_loop:
         CMP vblank_counter         ;compare register a with the vblank counter
         BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
 
+    LDA OAM_RAM_ADDR + 3
+    LSR a
+    LSR a
+    LSR a
+    STA coord_x
+
+    LDA OAM_RAM_ADDR
+    LSR a
+    LSR a
+    LSR a
+    STA coord_y
+
+    SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
+
+    CALL_3 mul_short, nt_pointer + 1, coord_y, #$20
+    SET_RT_VAL_2 nt_pointer + 1, nt_pointer
+
+    LDY coord_x
+    LDA [nt_pointer], y
+    STA current_tile
+
     LDA button_bits
     AND #%00000010
     BEQ right_not_pressed
@@ -266,8 +288,14 @@ game_loop:
     ;CALL_3 add_short, pos_x, pos_x + 1, #$80
     ;SET_RT_VAL_2 pos_x, pos_x + 1
 
+    LDY coord_x
+    INY
+    LDA [nt_pointer], y
+    CMP #$00
+    BNE isnotwall
     ADD OAM_RAM_ADDR + 3, #$01
     STA OAM_RAM_ADDR + 3
+    isnotwall:
 
     left_not_pressed:
 
@@ -342,41 +370,6 @@ read_controller:
 ;NMI interrupts the cpu and is called once per video frame
 ;PPU is starting vblank time and is available for graphics updates
 NMI:
-    CALL_2 div_byte, OAM_RAM_ADDR + 3, #$08
-    SET_RT_VAL_1 coord_x
-
-    ADD OAM_RAM_ADDR, #$03
-    STA OAM_RAM_ADDR
-    CALL_2 div_byte, OAM_RAM_ADDR, #$08
-    SET_RT_VAL_1 coord_y
-    SUB OAM_RAM_ADDR, #$03
-    STA OAM_RAM_ADDR
-
-    SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
-
-    DEBUG_BRK
-    LDA nt_pointer + 1
-    LDA coord_y
-    CALL_3 mul_short, nt_pointer + 1, coord_y, #$20
-    DEBUG_BRK
-    LDA rt_val_1
-    STA nt_pointer + 1
-    ADD nt_pointer, rt_val_2
-    STA nt_pointer
-
-    CALL_3 add_short, nt_pointer + 1, nt_pointer, coord_x
-    SET_RT_VAL_2 nt_pointer + 1, nt_pointer
-    
-    LDA #$04
-    STA OAM_RAM_ADDR + 1
-
-    LDY #$00
-    LDA [nt_pointer], y
-    BEQ equ_zero
-    LDA #$01
-    STA OAM_RAM_ADDR + 1
-    equ_zero:
-
     ;copies 256 bytes of OAM data in RAM (OAM_RAM_ADDR - OAM_RAM_ADDR + $FF) to the PPU internal OAM
     ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
 
