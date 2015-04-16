@@ -348,51 +348,72 @@ game_loop:
         ;CALL_3 add_short, gravity, gravity + 1, #$80
         ;SET_RT_VAL_2 gravity, gravity + 1
 
-        SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
+        ADD OAM_RAM_ADDR, #$01
+        STA OAM_RAM_ADDR
+    dbnotdown:
+    SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
 
-        INC coord_y + 1
-        CALL_3 mul_short, nt_pointer + 1, coord_y + 1, #$20
-        SET_RT_VAL_2 nt_pointer + 1, nt_pointer
+    INC coord_y + 1
+    CALL_3 mul_short, nt_pointer + 1, coord_y + 1, #$20
+    SET_RT_VAL_2 nt_pointer + 1, nt_pointer
 
-        LDY coord_x
+    LDY coord_x
+    LDA [nt_pointer], y
+    CMP #$00
+    BNE dbisnotwall
+        LDY coord_x + 1
+        INY
         LDA [nt_pointer], y
         CMP #$00
         BNE dbisnotwall
-            LDY coord_x + 1
-            INY
+            JMP dbnotdown2
+    dbisnotwall:
+
+    IF_UNSIGNED_GT gravity, #$00, dbnotdown2
+        IF_UNSIGNED_LT gravity, #$7f, dbnotdown2
+            DEBUG_BRK
+            LDY coord_x
             LDA [nt_pointer], y
-            CMP #$00
-            BNE dbisnotwall
-                ADD OAM_RAM_ADDR, #$01
-                STA OAM_RAM_ADDR
-        dbisnotwall:
-    dbnotdown:
+            CMP #$0A
+            BNE elseif
+                LDA #$FA
+                STA gravity
+                JMP dbnotdown2
+            elseif:
+                LDA #$FC
+                STA gravity
+    dbnotdown2:
 
     UP_BUTTON_DOWN ubnotdown
         ;CALL_3 sub_short, gravity, gravity + 1, #$80
         ;SET_RT_VAL_2 gravity, gravity + 1
 
-        SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
+        SUB OAM_RAM_ADDR, #$01
+        STA OAM_RAM_ADDR
+    ubnotdown:
 
-        CALL_3 mul_short, nt_pointer + 1, coord_y + 2, #$20
-        SET_RT_VAL_2 nt_pointer + 1, nt_pointer
+    SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
 
-        LDY coord_x
+    CALL_3 mul_short, nt_pointer + 1, coord_y + 2, #$20
+    SET_RT_VAL_2 nt_pointer + 1, nt_pointer
+
+    LDY coord_x
+    LDA [nt_pointer], y
+    CMP #$00
+    BNE ubisnotwall
+        LDY coord_x + 1
+        INY
         LDA [nt_pointer], y
         CMP #$00
         BNE ubisnotwall
-            LDY coord_x + 1
-            INY
-            LDA [nt_pointer], y
-            CMP #$00
-            BNE ubisnotwall
-                SUB OAM_RAM_ADDR, #$01
-                STA OAM_RAM_ADDR
-        ubisnotwall:
-    ubnotdown:
+            JMP ubnotdown2
+    ubisnotwall:
+    LDA #$00
+    STA gravity
+    ubnotdown2:
 
-    ;CALL_3 add_short, gravity, gravity + 1, #$40
-    ;SET_RT_VAL_2 gravity, gravity + 1
+    CALL_3 add_short, gravity, gravity + 1, #$40
+    SET_RT_VAL_2 gravity, gravity + 1
 
     ;clamp pos_x
     ;CALL_3 clamp, pos_x, #$04, #$FB
