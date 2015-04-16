@@ -119,6 +119,13 @@ RESET:
     LDY #$00
     endif:
 
+    PUSH_PAR_3 #$01, #$04, #$02
+    JSR mul_short
+    DEBUG_BRK
+    LDA rt_val_1
+    LDA rt_val_2
+    POP_3
+
     PUSH_PAR_3 #$00, #$04, #$02
     JSR div_short
     DEBUG_BRK
@@ -244,8 +251,11 @@ game_loop:
     AND #%00000010
     BEQ right_not_pressed
 
-    CALL_3 sub_short, pos_x, pos_x + 1, #$80
-    SET_RT_VAL_2 pos_x, pos_x + 1
+    ;CALL_3 sub_short, pos_x, pos_x + 1, #$80
+    ;SET_RT_VAL_2 pos_x, pos_x + 1
+
+    ADD OAM_RAM_ADDR + 3, #$FF
+    STA OAM_RAM_ADDR + 3
 
     right_not_pressed:
 	
@@ -253,8 +263,11 @@ game_loop:
     AND #%00000001
     BEQ left_not_pressed
 
-    CALL_3 add_short, pos_x, pos_x + 1, #$80
-    SET_RT_VAL_2 pos_x, pos_x + 1
+    ;CALL_3 add_short, pos_x, pos_x + 1, #$80
+    ;SET_RT_VAL_2 pos_x, pos_x + 1
+
+    ADD OAM_RAM_ADDR + 3, #$01
+    STA OAM_RAM_ADDR + 3
 
     left_not_pressed:
 
@@ -262,8 +275,11 @@ game_loop:
     AND #%00000100
     BEQ down_not_pressed
 
-    CALL_3 add_short, gravity, gravity + 1, #$80
-    SET_RT_VAL_2 gravity, gravity + 1
+    ;CALL_3 add_short, gravity, gravity + 1, #$80
+    ;SET_RT_VAL_2 gravity, gravity + 1
+
+    ADD OAM_RAM_ADDR, #$FF
+    STA OAM_RAM_ADDR
 
     down_not_pressed:
 
@@ -271,8 +287,11 @@ game_loop:
     AND #%00001000
     BEQ up_not_pressed
 
-    CALL_3 sub_short, gravity, gravity + 1, #$80
-    SET_RT_VAL_2 gravity, gravity + 1
+    ;CALL_3 sub_short, gravity, gravity + 1, #$80
+    ;SET_RT_VAL_2 gravity, gravity + 1
+
+    ADD OAM_RAM_ADDR, #$01
+    STA OAM_RAM_ADDR
 
     up_not_pressed:
 
@@ -326,24 +345,31 @@ NMI:
     CALL_2 div_byte, OAM_RAM_ADDR + 3, #$08
     SET_RT_VAL_1 coord_x
 
+    ADD OAM_RAM_ADDR, #$03
+    STA OAM_RAM_ADDR
     CALL_2 div_byte, OAM_RAM_ADDR, #$08
     SET_RT_VAL_1 coord_y
+    SUB OAM_RAM_ADDR, #$03
+    STA OAM_RAM_ADDR
 
     SET_POINTER VRAM_NT_0, nt_pointer + 1, nt_pointer
 
-    CALL_2 mul_byte, coord_y, #$20
-    ADD nt_pointer, rt_val_1
-    ADD nt_pointer, coord_x
+    DEBUG_BRK
+    LDA nt_pointer + 1
+    LDA coord_y
+    CALL_3 mul_short, nt_pointer + 1, coord_y, #$20
+    DEBUG_BRK
+    LDA rt_val_1
+    STA nt_pointer + 1
+    ADD nt_pointer, rt_val_2
     STA nt_pointer
 
-    LDA #$04
-    STA OAM_RAM_ADDR + 1
-    LDY coord_x
-    LDA [nt_pointer], y
-    BEQ equ_zero
-    LDA #$01
-    STA OAM_RAM_ADDR + 1
-    equ_zero:
+    CALL_3 add_short, nt_pointer + 1, nt_pointer, coord_x
+    SET_RT_VAL_2 nt_pointer + 1, nt_pointer
+
+    DEBUG_BRK
+    LDA nt_pointer
+    LDA nt_pointer + 1
 
     DEBUG_BRK
     LDA coord_x
@@ -352,7 +378,17 @@ NMI:
     STA PPU_ADDR
     LDA nt_pointer
     STA PPU_ADDR
+
+    LDA #$04
+    STA OAM_RAM_ADDR + 1
+
     LDA PPU_DATA
+    BEQ equ_zero
+    LDA #$01
+    STA OAM_RAM_ADDR + 1
+    equ_zero:
+
+    SET_POINTER VRAM_NT_0, PPU_ADDR, PPU_ADDR
 
     ;copies 256 bytes of OAM data in RAM (OAM_RAM_ADDR - OAM_RAM_ADDR + $FF) to the PPU internal OAM
     ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer

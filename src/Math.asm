@@ -49,6 +49,33 @@ mul_byte:
     
     RTS
 
+mul_short:
+    STORE_PAR_3 $0103
+
+    LDY param_3
+    mul16_add_loop:
+        DEY
+        BEQ mul16_end_add_loop
+
+        LDA param_2                     ;load low 8 bits of 16 bit value (parameter 2)
+        CLC                             ;clear carry before adding with carry
+        ADC $0104, x                     ;add a by parameter 3
+        STA param_2                     ;store low 8 bit result back
+
+        LDA param_1                     ;load upper 8 bits
+        ADC #$00                        ;add a by #$00 + the previous carry (0 or 1)
+        STA param_1                    ;store upper 8 bits result back
+
+        JMP mul16_add_loop
+    mul16_end_add_loop:
+    
+    LDA param_1
+    STA rt_val_1
+    LDA param_2
+    STA rt_val_2
+
+    RTS
+
 ;function to divide an 8 bit number by a specified divisor
 
 ;proc
