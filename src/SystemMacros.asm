@@ -273,3 +273,96 @@ SUB .macro
     SBC \2
 
     .endm
+
+;------------------------------------------------------------------------------------;
+;input macros
+
+;macro that checks whether any key is down, if it is not, go to specified label, otherwise continue
+;input - (else_label)
+ANY_KEY_BUTTON_DOWN .macro
+    LDA button_bits
+    AND INPUT_ANY_KEY_BUTTON
+    BEQ \1
+
+    .endm
+
+;macro that checks whether no key is down, if it is not, go to specified label, otherwise continue
+;input - (else_label)
+NO_KEY_BUTTON_DOWN .macro
+    LDA button_bits
+    AND INPUT_NO_KEY_BUTTON
+    BNE \1
+
+    .endm
+
+;macro that checks whether a is down, if it is not, go to specified label, otherwise continue
+;input - (else_label)
+A_BUTTON_DOWN .macro
+    LDA button_bits
+    AND INPUT_A_BUTTON
+    BEQ \1
+
+    .endm
+
+;macro that checks whether b is down, if it is not, go to specified label, otherwise continue
+;input - (else_label)
+B_BUTTON_DOWN .macro
+    LDA button_bits
+    AND INPUT_B_BUTTON
+    BEQ \1
+
+    .endm
+
+;macro that checks whether select is down, if it is not, go to specified label, otherwise continue
+;input - (else_label)
+SELECT_BUTTON_DOWN .macro
+    LDA button_bits
+    AND INPUT_SELECT_BUTTON
+    BEQ \1
+
+    .endm
+
+;macro that checks whether start is down, if it is not, go to specified label, otherwise continue
+;input - (else_label)
+START_BUTTON_DOWN .macro
+    LDA button_bits
+    AND INPUT_START_BUTTON
+    BEQ \1
+
+    .endm
+
+;macro that checks whether up is down, if it is not, go to specified label, otherwise continue
+;input - (else_label)
+UP_BUTTON_DOWN .macro
+    LDA button_bits
+    AND INPUT_UP_BUTTON
+    BEQ \1
+
+    .endm
+
+;macro that checks whether down is down, if it is not, go to specified label, otherwise continue
+;input - (else_label)
+DOWN_BUTTON_DOWN .macro
+    LDA button_bits
+    AND INPUT_DOWN_BUTTON
+    BEQ \1
+
+    .endm
+
+;macro that checks whether left is down, if it is not, go to specified label, otherwise continue
+;input - (else_label)
+LEFT_BUTTON_DOWN .macro
+    LDA button_bits
+    AND INPUT_LEFT_BUTTON
+    BEQ \1
+
+    .endm
+    
+;macro that checks whether right is down, if it is not, go to specified label, otherwise continue
+;input - (else_label)
+RIGHT_BUTTON_DOWN .macro
+    LDA button_bits
+    AND INPUT_RIGHT_BUTTON
+    BEQ \1
+
+    .endm

@@ -112,28 +112,6 @@ RESET:
     INX                             ;add 1 to the x register and overflow it which results in 0
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
 
-    DEBUG_BRK
-    IF_UNSIGNED_GT_OR_EQU #$81, #$01, else
-    LDY #$01
-    JMP endif
-    else:
-    LDY #$00
-    endif:
-
-    PUSH_PAR_3 #$01, #$04, #$02
-    JSR mul_short
-    DEBUG_BRK
-    LDA rt_val_1
-    LDA rt_val_2
-    POP_3
-
-    PUSH_PAR_3 #$00, #$04, #$02
-    JSR div_short
-    DEBUG_BRK
-    LDA rt_val_1
-    LDA rt_val_2
-    POP_3
-
     JSR vblank_wait                 ;first vblank wait to make sure the PPU is warming up
 
 ;------------------------------------------------------------------------------------;
@@ -269,65 +247,50 @@ game_loop:
     LDA [nt_pointer], y
     STA current_tile
 
-    LDA button_bits
-    AND #%00000010
-    BEQ right_not_pressed
+    LEFT_BUTTON_DOWN lbnotdown
+        ;CALL_3 sub_short, pos_x, pos_x + 1, #$80
+        ;SET_RT_VAL_2 pos_x, pos_x + 1
 
-    ;CALL_3 sub_short, pos_x, pos_x + 1, #$80
-    ;SET_RT_VAL_2 pos_x, pos_x + 1
+        SUB OAM_RAM_ADDR + 3, #$01
+        STA OAM_RAM_ADDR + 3
+    lbnotdown:
 
-    ADD OAM_RAM_ADDR + 3, #$FF
-    STA OAM_RAM_ADDR + 3
+    DEBUG_BRK
+    LDY #$80
+    LDA coord_x
+    LDA coord_y
+    LDA INPUT_RIGHT_BUTTON
+    LDY #$80
 
-    right_not_pressed:
-	
-	LDA button_bits
-    AND #%00000001
-    BEQ left_not_pressed
+    RIGHT_BUTTON_DOWN rbnotdown
+        ;CALL_3 add_short, pos_x, pos_x + 1, #$80
+        ;SET_RT_VAL_2 pos_x, pos_x + 1
 
-    ;CALL_3 add_short, pos_x, pos_x + 1, #$80
-    ;SET_RT_VAL_2 pos_x, pos_x + 1
+        LDY coord_x
+        INY
+        LDA [nt_pointer], y
+        CMP #$00
+        BNE isnotwall
+        ADD OAM_RAM_ADDR + 3, #$01
+        STA OAM_RAM_ADDR + 3
+        isnotwall:
+    rbnotdown:
 
-    LDY coord_x
-    INY
-    LDA [nt_pointer], y
-    CMP #$00
-    BNE isnotwall
-    ADD OAM_RAM_ADDR + 3, #$01
-    STA OAM_RAM_ADDR + 3
-    isnotwall:
+    DOWN_BUTTON_DOWN dbnotdown
+        ;CALL_3 add_short, gravity, gravity + 1, #$80
+        ;SET_RT_VAL_2 gravity, gravity + 1
 
-    left_not_pressed:
+        ADD OAM_RAM_ADDR, #$01
+        STA OAM_RAM_ADDR
+    dbnotdown:
 
-    LDA button_bits
-    AND #%00000100
-    BEQ down_not_pressed
+    UP_BUTTON_DOWN ubnotdown
+        ;CALL_3 sub_short, gravity, gravity + 1, #$80
+        ;SET_RT_VAL_2 gravity, gravity + 1
 
-    ;CALL_3 add_short, gravity, gravity + 1, #$80
-    ;SET_RT_VAL_2 gravity, gravity + 1
-
-    ADD OAM_RAM_ADDR, #$FF
-    STA OAM_RAM_ADDR
-
-    down_not_pressed:
-
-    LDA button_bits
-    AND #%00001000
-    BEQ up_not_pressed
-
-    ;CALL_3 sub_short, gravity, gravity + 1, #$80
-    ;SET_RT_VAL_2 gravity, gravity + 1
-
-    ADD OAM_RAM_ADDR, #$01
-    STA OAM_RAM_ADDR
-
-    up_not_pressed:
-
-    LDA button_bits
-    AND #%00010000
-    BEQ any_not_pressed
-
-    any_not_pressed:
+        SUB OAM_RAM_ADDR, #$01
+        STA OAM_RAM_ADDR
+    ubnotdown:
 
     ;CALL_3 add_short, gravity, gravity + 1, #$40
     ;SET_RT_VAL_2 gravity, gravity + 1
