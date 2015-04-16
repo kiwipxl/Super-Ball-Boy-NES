@@ -352,7 +352,7 @@ NMI:
     SUB OAM_RAM_ADDR, #$03
     STA OAM_RAM_ADDR
 
-    SET_POINTER VRAM_NT_0, nt_pointer + 1, nt_pointer
+    SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
 
     DEBUG_BRK
     LDA nt_pointer + 1
@@ -366,29 +366,16 @@ NMI:
 
     CALL_3 add_short, nt_pointer + 1, nt_pointer, coord_x
     SET_RT_VAL_2 nt_pointer + 1, nt_pointer
-
-    DEBUG_BRK
-    LDA nt_pointer
-    LDA nt_pointer + 1
-
-    DEBUG_BRK
-    LDA coord_x
-    LDA coord_y
-    LDA nt_pointer + 1
-    STA PPU_ADDR
-    LDA nt_pointer
-    STA PPU_ADDR
-
+    
     LDA #$04
     STA OAM_RAM_ADDR + 1
 
-    LDA PPU_DATA
+    LDY #$00
+    LDA [nt_pointer], y
     BEQ equ_zero
     LDA #$01
     STA OAM_RAM_ADDR + 1
     equ_zero:
-
-    SET_POINTER VRAM_NT_0, PPU_ADDR, PPU_ADDR
 
     ;copies 256 bytes of OAM data in RAM (OAM_RAM_ADDR - OAM_RAM_ADDR + $FF) to the PPU internal OAM
     ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
