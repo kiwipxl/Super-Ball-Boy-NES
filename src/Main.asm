@@ -51,6 +51,7 @@ SPRITES_DATA_LEN    = NUM_SPRITES * 4
     .include "src/SystemConstants.asm"
     .include "src/SystemMacros.asm"
     .include "src/Math.asm"
+    .include "src/Map.asm"
 
 ;local params used to store inputs from functions - note that these params may be modified when a function with a input is called
 param_1             .rs     1
@@ -347,70 +348,35 @@ game_loop:
     DOWN_BUTTON_DOWN dbnotdown
         ;CALL_3 add_short, gravity, gravity + 1, #$80
         ;SET_RT_VAL_2 gravity, gravity + 1
-
-        ADD OAM_RAM_ADDR, #$01
-        STA OAM_RAM_ADDR
     dbnotdown:
-    SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
-
-    INC coord_y + 1
-    CALL_3 mul_short, nt_pointer + 1, coord_y + 1, #$20
-    SET_RT_VAL_2 nt_pointer + 1, nt_pointer
-
-    LDY coord_x
-    LDA [nt_pointer], y
+    JSR check_collide_down
     CMP #$00
-    BNE dbisnotwall
-        LDY coord_x + 1
-        INY
-        LDA [nt_pointer], y
-        CMP #$00
-        BNE dbisnotwall
-            JMP dbnotdown2
-    dbisnotwall:
-
-    IF_UNSIGNED_GT gravity, #$00, dbnotdown2
-        IF_UNSIGNED_LT gravity, #$7f, dbnotdown2
-            DEBUG_BRK
-            LDY coord_x
-            LDA [nt_pointer], y
-            CMP #$0A
-            BNE elseif
-                LDA #$FA
-                STA gravity
-                JMP dbnotdown2
-            elseif:
-                LDA #$FC
-                STA gravity
-    dbnotdown2:
+    BEQ ncdelse
+        IF_UNSIGNED_GT gravity, #$00, ncdelse
+            IF_UNSIGNED_LT gravity, #$7f, ncdelse
+                DEBUG_BRK
+                LDY coord_x
+                LDA [nt_pointer], y
+                CMP #$0A
+                BNE elseif
+                    LDA #$FA
+                    STA gravity
+                    JMP ncdelse
+                elseif:
+                    LDA #$FC
+                    STA gravity
+    ncdelse:
 
     UP_BUTTON_DOWN ubnotdown
         ;CALL_3 sub_short, gravity, gravity + 1, #$80
         ;SET_RT_VAL_2 gravity, gravity + 1
-
-        SUB OAM_RAM_ADDR, #$01
-        STA OAM_RAM_ADDR
     ubnotdown:
-
-    SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
-
-    CALL_3 mul_short, nt_pointer + 1, coord_y + 2, #$20
-    SET_RT_VAL_2 nt_pointer + 1, nt_pointer
-
-    LDY coord_x
-    LDA [nt_pointer], y
+    JSR check_collide_up
     CMP #$00
-    BNE ubisnotwall
-        LDY coord_x + 1
-        INY
-        LDA [nt_pointer], y
-        CMP #$00
-        BNE ubisnotwall
-            JMP ubnotdown2
-    ubisnotwall:
-    LDA #$00
-    STA gravity
-    ubnotdown2:
+    BEQ ncuendif
+        LDA #$00
+        STA gravity
+    ncuendif:
 
     CALL_3 add_short, gravity, gravity + 1, #$40
     SET_RT_VAL_2 gravity, gravity + 1
