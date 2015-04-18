@@ -77,7 +77,7 @@ upc_pointer         .rs     2
 pos_x               .rs     2
 gravity             .rs     2
 coord_x             .rs     3
-coord_y             .rs     1
+coord_y             .rs     3
 current_tile        .rs     1
 
 ;------------------------------------------------------------------------------------;
@@ -232,7 +232,7 @@ game_loop:
         BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
 
     ;clamp pos_x
-    CALL_3 clamp_signed, pos_x, #$FB, #$04
+    CALL_3 clamp_signed, pos_x, #$FE, #$02
     LDA rt_val_1
     STA pos_x
 
@@ -240,6 +240,16 @@ game_loop:
     CALL_3 clamp_signed, gravity, #$FB, #$07
     LDA rt_val_1
     STA gravity
+
+    IF_SIGNED_GT_OR_EQU pos_x, #$01, posxgtelse
+        CALL_3 sub_short, pos_x, pos_x + 1, #$40
+        SET_RT_VAL_2 pos_x, pos_x + 1
+    posxgtelse:
+
+    IF_SIGNED_LT_OR_EQU pos_x, #$FF, posxltelse
+        CALL_3 add_short, pos_x, pos_x + 1, #$40
+        SET_RT_VAL_2 pos_x, pos_x + 1
+    posxltelse:
 
     ADD OAM_RAM_ADDR + 3, pos_x
     STA OAM_RAM_ADDR + 3
@@ -275,16 +285,26 @@ game_loop:
     LSR a
     STA coord_y
 
+    LDX OAM_RAM_ADDR
+    TXA
+    LSR a
+    LSR a
+    LSR a
+    STA coord_y + 1
+
     SET_POINTER LEVEL_1_MAP_0, leftc_pointer + 1, leftc_pointer
     CALL_3 mul_short, leftc_pointer + 1, coord_y, #$20
     SET_RT_VAL_2 leftc_pointer + 1, leftc_pointer
     SET_RT_VAL_2 rightc_pointer + 1, rightc_pointer
     SET_RT_VAL_2 downc_pointer + 1, downc_pointer
+
+    SET_POINTER LEVEL_1_MAP_0, upc_pointer + 1, upc_pointer
+    CALL_3 mul_short, upc_pointer + 1, coord_y + 1, #$20
     SET_RT_VAL_2 upc_pointer + 1, upc_pointer
 
     DEBUG_BRK
     LDA gravity
-    
+
     CALL_3 add_short, gravity, gravity + 1, #$40
     SET_RT_VAL_2 gravity, gravity + 1
 
@@ -292,11 +312,11 @@ game_loop:
     CMP #$00
     BNE nclelse
         LEFT_BUTTON_DOWN lbnotdown
-            ;CALL_3 sub_short, pos_x, pos_x + 1, #$80
-            ;SET_RT_VAL_2 pos_x, pos_x + 1
+            CALL_3 sub_short, pos_x, pos_x + 1, #$80
+            SET_RT_VAL_2 pos_x, pos_x + 1
 
-            SUB OAM_RAM_ADDR + 3, #$01
-            STA OAM_RAM_ADDR + 3
+            ;SUB OAM_RAM_ADDR + 3, #$01
+            ;STA OAM_RAM_ADDR + 3
         lbnotdown:
     nclelse:
 
@@ -304,11 +324,11 @@ game_loop:
     CMP #$00
     BNE ncrelse
         RIGHT_BUTTON_DOWN rbnotdown
-            ;CALL_3 add_short, pos_x, pos_x + 1, #$80
-            ;SET_RT_VAL_2 pos_x, pos_x + 1
+            CALL_3 add_short, pos_x, pos_x + 1, #$80
+            SET_RT_VAL_2 pos_x, pos_x + 1
 
-            ADD OAM_RAM_ADDR + 3, #$01
-            STA OAM_RAM_ADDR + 3
+            ;ADD OAM_RAM_ADDR + 3, #$01
+            ;STA OAM_RAM_ADDR + 3
         rbnotdown:
     ncrelse:
 
@@ -321,15 +341,10 @@ game_loop:
     BEQ nosolidcollidedown
         IF_UNSIGNED_GT_OR_EQU gravity, #$00, endcollidedown
             IF_UNSIGNED_LT gravity, #$7f, endcollidedown
-                DEBUG_BRK
-                LDA OAM_RAM_ADDR
-                LSR a
-                LSR a
-                LSR a
+                LDA coord_y
                 ASL a
                 ASL a
                 ASL a
-                DEBUG_BRK
                 STA OAM_RAM_ADDR
 
                 LDA rt_val_1
@@ -352,12 +367,9 @@ game_loop:
     JSR check_collide_up
     CMP #$00
     BEQ nosolidcollideup
-        LDA OAM_RAM_ADDR
-        CLC
-        ADC #$07
-        LSR a
-        LSR a
-        LSR a
+        LDX coord_y
+        INX
+        TXA
         ASL a
         ASL a
         ASL a

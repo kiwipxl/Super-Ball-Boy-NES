@@ -169,7 +169,6 @@ IF_SIGNED_GT .macro
     ;successful if val_1 > val_2
     LDA \1
     CMP \2
-    BNE \3              ;fail if val_1 = val_2
     BMI \3              ;fail if val_1 <= val_2
 
     .endm
