@@ -33,15 +33,9 @@ check_collide_right:
     LDA [rightc_pointer], y
     CMP #$00
     BNE ncright
-        IF_NOT_EQU coord_y, coord_y + 1, y12nequelseif
-            ;CALL_3 sub_short, rightc_pointer + 1, rightc_pointer, #$20
-            ;SET_RT_VAL_2 rightc_pointer + 1, rightc_pointer
-            JMP y12nequendif
-        y12nequelseif:
-            CALL_3 add_short, rightc_pointer + 1, rightc_pointer, #$20
-            SET_RT_VAL_2 rightc_pointer + 1, rightc_pointer
-        y12nequendif:
-
+        CALL_3 add_short, rightc_pointer + 1, rightc_pointer, #$20
+        SET_RT_VAL_2 rightc_pointer + 1, rightc_pointer
+        
         LDY coord_x
         INY
         LDA [rightc_pointer], y

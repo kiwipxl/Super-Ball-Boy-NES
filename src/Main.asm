@@ -77,7 +77,7 @@ upc_pointer         .rs     2
 pos_x               .rs     2
 gravity             .rs     2
 coord_x             .rs     3
-coord_y             .rs     3
+coord_y             .rs     1
 current_tile        .rs     1
 
 ;------------------------------------------------------------------------------------;
@@ -231,6 +231,22 @@ game_loop:
         CMP vblank_counter         ;compare register a with the vblank counter
         BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
 
+    ;clamp pos_x
+    CALL_3 clamp_signed, pos_x, #$FB, #$04
+    LDA rt_val_1
+    STA pos_x
+
+    ;clamp gravity
+    CALL_3 clamp_signed, gravity, #$FB, #$07
+    LDA rt_val_1
+    STA gravity
+
+    ADD OAM_RAM_ADDR + 3, pos_x
+    STA OAM_RAM_ADDR + 3
+
+    ADD OAM_RAM_ADDR, gravity
+    STA OAM_RAM_ADDR
+
     LDA OAM_RAM_ADDR + 3
     LSR a
     LSR a
@@ -259,39 +275,16 @@ game_loop:
     LSR a
     STA coord_y
 
-    LDX OAM_RAM_ADDR
-    INX
-    TXA
-    LSR a
-    LSR a
-    LSR a
-    STA coord_y + 1
-
-    LDX OAM_RAM_ADDR
-    DEX
-    TXA
-    LSR a
-    LSR a
-    LSR a
-    STA coord_y + 2
-
     SET_POINTER LEVEL_1_MAP_0, leftc_pointer + 1, leftc_pointer
-
-    CALL_3 mul_short, leftc_pointer + 1, coord_y + 1, #$20
+    CALL_3 mul_short, leftc_pointer + 1, coord_y, #$20
     SET_RT_VAL_2 leftc_pointer + 1, leftc_pointer
     SET_RT_VAL_2 rightc_pointer + 1, rightc_pointer
     SET_RT_VAL_2 downc_pointer + 1, downc_pointer
     SET_RT_VAL_2 upc_pointer + 1, upc_pointer
 
-    IF_NOT_EQU coord_y, coord_y + 2, y2nequendif
-        CALL_3 sub_short, upc_pointer + 1, upc_pointer, #$20
-        SET_RT_VAL_2 upc_pointer + 1, upc_pointer
-    y2nequendif:
-
-    LDY coord_x
-    LDA [nt_pointer], y
-    STA current_tile
-
+    DEBUG_BRK
+    LDA gravity
+    
     CALL_3 add_short, gravity, gravity + 1, #$40
     SET_RT_VAL_2 gravity, gravity + 1
 
@@ -325,21 +318,32 @@ game_loop:
     dbnotdown:
     JSR check_collide_down
     CMP #$00
-    BEQ ncdelse
-        IF_UNSIGNED_GT gravity, #$00, ncdelse
-            IF_UNSIGNED_LT gravity, #$7f, ncdelse
+    BEQ nosolidcollidedown
+        IF_UNSIGNED_GT_OR_EQU gravity, #$00, endcollidedown
+            IF_UNSIGNED_LT gravity, #$7f, endcollidedown
                 DEBUG_BRK
-                LDY coord_x
-                LDA [downc_pointer], y
+                LDA OAM_RAM_ADDR
+                LSR a
+                LSR a
+                LSR a
+                ASL a
+                ASL a
+                ASL a
+                DEBUG_BRK
+                STA OAM_RAM_ADDR
+
+                LDA rt_val_1
                 CMP #$0A
                 BNE elseif
                     LDA #$FA
                     STA gravity
-                    JMP ncdelse
+                    JMP endcollidedown
                 elseif:
-                    LDA #$FC
+                    LDA #$FD
                     STA gravity
-    ncdelse:
+                    JMP endcollidedown
+    nosolidcollidedown:
+    endcollidedown:
 
     UP_BUTTON_DOWN ubnotdown
         ;CALL_3 sub_short, gravity, gravity + 1, #$80
@@ -347,24 +351,21 @@ game_loop:
     ubnotdown:
     JSR check_collide_up
     CMP #$00
-    BEQ ncuendif
+    BEQ nosolidcollideup
+        LDA OAM_RAM_ADDR
+        CLC
+        ADC #$07
+        LSR a
+        LSR a
+        LSR a
+        ASL a
+        ASL a
+        ASL a
+        STA OAM_RAM_ADDR
+
         LDA #$01
         STA gravity
-    ncuendif:
-
-    ;clamp pos_x
-    ;CALL_3 clamp, pos_x, #$04, #$FB
-    ;STA pos_x
-
-    ;clamp gravity
-    ;CALL_3 clamp, gravity, #$08, #$FB
-    ;STA gravity
-
-    ADD OAM_RAM_ADDR + 3, pos_x
-    STA OAM_RAM_ADDR + 3
-
-    ADD OAM_RAM_ADDR, gravity
-    STA OAM_RAM_ADDR
+    nosolidcollideup:
 
     JMP game_loop                   ;jump back to game_loop, infinite loop
 

@@ -268,20 +268,18 @@ div_short:
 ;function that clamps an unsigned byte to min and max values
 ;(byte, min, max)
 ;example - (my_val, #$04, #$FB)
-clamp:
-    TSX
-    LDA $0103, x
-    CMP $0104, x
-    BMI second_compare
-    LDA $0104, x
-    JMP end_compares
+clamp_signed:
+    STORE_PAR_3 $0103
 
-    second_compare:
-    LDA $0103, x
-    CMP $0105, x
-    BPL end_compares
-    LDA $0105, x
+    IF_SIGNED_GT param_2, param_1, valnotgtmin
+        STA param_1
+    valnotgtmin:
 
-    end_compares:
+    IF_SIGNED_LT param_3, param_1, valnotltmin
+        STA param_1
+    valnotltmin:
+
+    LDA param_1
+    STA rt_val_1
 
     RTS
