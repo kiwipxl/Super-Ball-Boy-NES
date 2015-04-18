@@ -70,6 +70,10 @@ temp                .rs     4
 vblank_counter      .rs     1
 button_bits         .rs     1
 nt_pointer 			.rs 	2
+leftc_pointer       .rs     2
+rightc_pointer      .rs     2
+downc_pointer       .rs     2
+upc_pointer         .rs     2
 pos_x               .rs     2
 gravity             .rs     2
 coord_x             .rs     3
@@ -271,14 +275,25 @@ game_loop:
     LSR a
     STA coord_y + 2
 
-    SET_POINTER LEVEL_1_MAP_0, nt_pointer + 1, nt_pointer
+    SET_POINTER LEVEL_1_MAP_0, leftc_pointer + 1, leftc_pointer
 
-    CALL_3 mul_short, nt_pointer + 1, coord_y + 1, #$20
-    SET_RT_VAL_2 nt_pointer + 1, nt_pointer
+    CALL_3 mul_short, leftc_pointer + 1, coord_y + 1, #$20
+    SET_RT_VAL_2 leftc_pointer + 1, leftc_pointer
+    SET_RT_VAL_2 rightc_pointer + 1, rightc_pointer
+    SET_RT_VAL_2 downc_pointer + 1, downc_pointer
+    SET_RT_VAL_2 upc_pointer + 1, upc_pointer
+
+    IF_NOT_EQU coord_y, coord_y + 2, y2nequendif
+        CALL_3 sub_short, upc_pointer + 1, upc_pointer, #$20
+        SET_RT_VAL_2 upc_pointer + 1, upc_pointer
+    y2nequendif:
 
     LDY coord_x
     LDA [nt_pointer], y
     STA current_tile
+
+    CALL_3 add_short, gravity, gravity + 1, #$40
+    SET_RT_VAL_2 gravity, gravity + 1
 
     JSR check_collide_left
     CMP #$00
@@ -291,7 +306,7 @@ game_loop:
             STA OAM_RAM_ADDR + 3
         lbnotdown:
     nclelse:
-    
+
     JSR check_collide_right
     CMP #$00
     BNE ncrelse
@@ -315,7 +330,7 @@ game_loop:
             IF_UNSIGNED_LT gravity, #$7f, ncdelse
                 DEBUG_BRK
                 LDY coord_x
-                LDA [nt_pointer], y
+                LDA [downc_pointer], y
                 CMP #$0A
                 BNE elseif
                     LDA #$FA
@@ -333,12 +348,9 @@ game_loop:
     JSR check_collide_up
     CMP #$00
     BEQ ncuendif
-        LDA #$00
+        LDA #$01
         STA gravity
     ncuendif:
-
-    CALL_3 add_short, gravity, gravity + 1, #$40
-    SET_RT_VAL_2 gravity, gravity + 1
 
     ;clamp pos_x
     ;CALL_3 clamp, pos_x, #$04, #$FB
