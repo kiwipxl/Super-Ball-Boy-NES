@@ -43,14 +43,14 @@ STORE_PAR_3 .macro
     .endm
 
 ;macro that pushes 1 parameter on the stack in reverse (because the stack moves down rather than up)
-;(par1)
+;input - (par1)
 PUSH_PAR_1 .macro
     LDA \1
     PHA
     .endm
 
 ;macro that pushes 2 parameters on the stack in reverse (because the stack moves down rather than up)
-;(par1, par2)
+;input - (par1, par2)
 PUSH_PAR_2 .macro
     LDA \2
     PHA
@@ -59,7 +59,7 @@ PUSH_PAR_2 .macro
     .endm
 
 ;macro that pushes 3 parameters on the stack in reverse (because the stack moves down rather than up)
-;(par1, par2, par3)
+;input - (par1, par2, par3)
 PUSH_PAR_3 .macro
     LDA \3
     PHA
@@ -88,14 +88,14 @@ POP_3 .macro
     .endm
 
 ;macro that that stores the first return value into one address/variable
-;(address_1)
+;input - (address_1)
 SET_RT_VAL_1 .macro
     LDA rt_val_1
     STA \1
     .endm
 
 ;macro that stores the first and second return values into two different addresses/variables
-;(address_1, address_2)
+;input - (address_1, address_2)
 SET_RT_VAL_2 .macro
     LDA rt_val_1
     STA \1
@@ -130,12 +130,23 @@ CALL_3 .macro
 ;------------------------------------------------------------------------------------;
 ;pointer macros
 
-;macro to set a high byte + low byte address into two bytes or 16 bit PPU register
-;(pointing_to_address, high_byte_store, low_byte_store)
-SET_POINTER .macro
-    LDA #HIGH(\1)                   ;gets the high byte of pointing_to_address
+;macro to set a 16 bit LABel or PPU register into two separate bytes
+;input - (point_address = PPU register or LABel, high_byte_store, low_byte_store)
+SET_POINTER_TO_LABEL .macro
+    LDA #HIGH(\1)                   ;gets the high byte of point_address
     STA \2                          ;store in high_byte_store
-    LDA #LOW(\1)                    ;gets the low byte of pointing_to_address
+    LDA #LOW(\1)                    ;gets the low byte of point_address
+    STA \3                          ;store in low_byte_store
+
+    .endm
+
+;macro to set a pointer to the specified high byte start plus the following low byte (+1)
+;in memory and then store into two separate bytes
+;input - (point_address = hi_byte_start, high_byte_store, low_byte_store)
+SET_POINTER_HI_LO .macro
+    LDA \1                          ;gets the first byte of point_address (high byte)
+    STA \2                          ;store in high_byte_store
+    LDA \1 + 1                      ;gets the second byte of point_address (low byte)
     STA \3                          ;store in low_byte_store
 
     .endm
@@ -144,7 +155,7 @@ SET_POINTER .macro
 ;if branching macros
 
 ;macro to check whether 1 value is equal to the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;input - (val_1, val_2, else_label)
 IF_EQU .macro
     ;successful if val_1 = val_2
     LDA \1
@@ -154,7 +165,7 @@ IF_EQU .macro
     .endm
 
 ;macro to check whether 1 value is not equal to the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;input - (val_1, val_2, else_label)
 IF_NOT_EQU .macro
     ;successful if val_1 != val_2
     LDA \1
@@ -164,7 +175,7 @@ IF_NOT_EQU .macro
     .endm
 
 ;macro to check whether 1 signed value is greater than the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;input - (val_1, val_2, else_label)
 IF_SIGNED_GT .macro
     ;successful if val_1 > val_2
     LDA \1
@@ -174,7 +185,7 @@ IF_SIGNED_GT .macro
     .endm
 
 ;macro to check whether 1 signed value is greater than or equal the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;input - (val_1, val_2, else_label)
 IF_SIGNED_GT_OR_EQU .macro
     ;successful if val_1 >= val_2
     LDA \1
@@ -186,7 +197,7 @@ IF_SIGNED_GT_OR_EQU .macro
     .endm
 
 ;macro to check whether 1 unsigned value is greater than the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;input - (val_1, val_2, else_label)
 IF_UNSIGNED_GT .macro
     ;successful if val_1 > val_2
     LDA \1
@@ -197,7 +208,7 @@ IF_UNSIGNED_GT .macro
     .endm
 
 ;macro to check whether 1 unsigned value is greater than or equal the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;input - (val_1, val_2, else_label)
 IF_UNSIGNED_GT_OR_EQU .macro
     ;successful if val_1 >= val_2
     LDA \1
@@ -209,7 +220,7 @@ IF_UNSIGNED_GT_OR_EQU .macro
     .endm
 
 ;macro to check whether 1 signed value is less than the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;input - (val_1, val_2, else_label)
 IF_SIGNED_LT .macro
     ;successful if val_1 < val_2
     LDA \1
@@ -219,7 +230,7 @@ IF_SIGNED_LT .macro
     .endm
 
 ;macro to check whether 1 signed value is less than or equal the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;input - (val_1, val_2, else_label)
 IF_SIGNED_LT_OR_EQU .macro
     ;successful if val_1 <= val_2
     LDA \1
@@ -231,7 +242,7 @@ IF_SIGNED_LT_OR_EQU .macro
     .endm
 
 ;macro to check whether 1 unsigned value is less than the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;input - (val_1, val_2, else_label)
 IF_UNSIGNED_LT .macro
     ;successful if val_1 < val_2
     LDA \1
@@ -241,7 +252,7 @@ IF_UNSIGNED_LT .macro
     .endm
 
 ;macro to check whether 1 unsigned value is less than or equal the other, if false, then jmp to the specified label
-;(val_1, val_2, else_label)
+;input - (val_1, val_2, else_label)
 IF_UNSIGNED_LT_OR_EQU .macro
     ;successful if val_1 <= val_2
     LDA \1
@@ -256,7 +267,7 @@ IF_UNSIGNED_LT_OR_EQU .macro
 ;math macros
 
 ;macro to add val_1 by val_2 (val_1 + val_2) and store the result register a
-;(val_1, val_2)
+;input - (val_1, val_2)
 ADD .macro
     LDA \1
     CLC
@@ -265,7 +276,7 @@ ADD .macro
     .endm
 
 ;macro to subtract val_1 by val_2 (val_1 - val_2) and store the result register a
-;(val_1, val_2)
+;input - (val_1, val_2)
 SUB .macro
     LDA \1
     SEC

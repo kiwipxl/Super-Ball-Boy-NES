@@ -83,6 +83,7 @@ coord_y             .rs     3
 current_tile        .rs     1
 scroll_x            .rs     1
 scroll_y            .rs     1
+current_room        .rs     2
 
 ;------------------------------------------------------------------------------------;
 ;map loading macros
@@ -91,8 +92,8 @@ scroll_y            .rs     1
 ;(nametable_address (including attributes), PPU_nametable_address)
 LOAD_MAP .macro
     BIT PPU_STATUS                  ;read PPU_STATUS to reset high/low latch so low byte can be stored then high byte (little endian)
-    SET_POINTER \2, PPU_ADDR, PPU_ADDR
-    SET_POINTER \1, nt_pointer + 1, nt_pointer
+    SET_POINTER_TO_LABEL \2, PPU_ADDR, PPU_ADDR
+    SET_POINTER_TO_LABEL \1, nt_pointer + 1, nt_pointer
     JSR load_nametable
 
     .endm
@@ -156,7 +157,7 @@ clr_mem_loop:
 ;although we start at the BG palette, we also continue writing into the sprite palette
 load_palettes:
     BIT PPU_STATUS                  ;read PPU_STATUS to reset high/low latch so low byte can be stored then high byte (little endian)
-    SET_POINTER VRAM_BG_PLT, PPU_ADDR, PPU_ADDR
+    SET_POINTER_TO_LABEL VRAM_BG_PLT, PPU_ADDR, PPU_ADDR
 
     LDX #$00                        ;set x counter register to 0
     load_palettes_loop:
@@ -287,16 +288,28 @@ game_loop:
     LSR a
     STA coord_y + 2
 
-    SET_POINTER LEVEL_1_MAP_0, leftc_pointer + 1, leftc_pointer
+    DEBUG_BRK
+    LDY #$20
+    LDA #HIGH(LEVEL_1_MAP_0)
+    STA current_room
+    LDA #LOW(LEVEL_1_MAP_0)
+    STA current_room + 1
+    LDA current_room
+    LDA current_room + 1
+
+    LDA #HIGH(current_room)
+    LDA #LOW(current_room)
+    
+    SET_POINTER_HI_LO current_room, leftc_pointer + 1, leftc_pointer
     CALL_3 mul_short, leftc_pointer + 1, coord_y + 2, #$20
     SET_RT_VAL_2 leftc_pointer + 1, leftc_pointer
     SET_RT_VAL_2 rightc_pointer + 1, rightc_pointer
 
-    SET_POINTER LEVEL_1_MAP_0, downc_pointer + 1, downc_pointer
+    SET_POINTER_HI_LO current_room, downc_pointer + 1, downc_pointer
     CALL_3 mul_short, downc_pointer + 1, coord_y, #$20
     SET_RT_VAL_2 downc_pointer + 1, downc_pointer
 
-    SET_POINTER LEVEL_1_MAP_0, upc_pointer + 1, upc_pointer
+    SET_POINTER_HI_LO current_room, upc_pointer + 1, upc_pointer
     CALL_3 mul_short, upc_pointer + 1, coord_y + 1, #$20
     SET_RT_VAL_2 upc_pointer + 1, upc_pointer
 
