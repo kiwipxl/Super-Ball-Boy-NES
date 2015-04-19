@@ -123,12 +123,12 @@ RESET:
     INX                             ;add 1 to the x register and overflow it which results in 0
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
 
-    IF_SIGNED_LT #$01, #$01, t
-        DEBUG_BRK
-        LDY #$01
-    t:
-        DEBUG_BRK
-        LDY #$02
+    ;IF_SIGNED_LT #$01, #$01, t
+    ;    DEBUG_BRK
+    ;    LDY #$01
+    ;t:
+    ;    DEBUG_BRK
+    ;    LDY #$02
 
     JSR vblank_wait                 ;first vblank wait to make sure the PPU is warming up
 
@@ -390,10 +390,14 @@ game_loop:
                 BNE elseif
                     LDA #$FA
                     STA gravity
+                    LDA #$00
+                    STA gravity + 1
                     JMP nscdownendif
                 elseif:
-                    LDA #$FC
+                    LDA #$FD
                     STA gravity
+                    LDA #$00
+                    STA gravity + 1
     nscdownendif:
 
     JSR check_collide_up
@@ -406,16 +410,16 @@ game_loop:
     nscupelse:
         IF_SIGNED_LT_OR_EQU gravity, #$00, nscupendif
             IF_SIGNED_GT gravity, #$80, nscupendif
-                ;LDX coord_y
-                ;INX
-                ;TXA
-                ;ASL a
-                ;ASL a
-                ;ASL a
-                ;STA pos_y
+                LDX coord_y
+                INX
+                TXA
+                ASL a
+                ASL a
+                ASL a
+                STA pos_y
 
-                ;LDA #$01
-                ;STA gravity
+                LDA #$01
+                STA gravity
     nscupendif:
 
     ;clamp speed_x
@@ -478,17 +482,20 @@ game_loop:
     STA pos_y
     STA OAM_RAM_ADDR
 
+    IF_NOT_EQU scroll_x_type, #$00, ntransleft
     IF_SIGNED_LT speed_x, #$00, ntransleft
         IF_SIGNED_GT speed_x, #$80, ntransleft
-            IF_UNSIGNED_LT_OR_EQU pos_x, #$04, ntransleft
+            IF_UNSIGNED_GT_OR_EQU pos_x, #$F8, ntransleft
                 SET_POINTER_TO_LABEL LEVEL_1_MAP_0, current_room, current_room + 1
                 DEBUG_BRK
                 LDY #$01
-                LDA speed_x
-                SUB OAM_RAM_ADDR + 3, #$04
-                STA OAM_RAM_ADDR + 3
+
                 LDA #$FF
                 STA pos_x
+
+                LDA #$7F
+                STA scroll_x
+
                 LDA #$00
                 STA scroll_x_type
                 JMP ntransright
@@ -496,15 +503,18 @@ game_loop:
 
     IF_SIGNED_GT speed_x, #$00, ntransright
         IF_SIGNED_LT speed_x, #$7F, ntransright
-            IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, ntransright
+            IF_UNSIGNED_GT_OR_EQU pos_x, #$F8, ntransright
                 SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
                 DEBUG_BRK
                 LDY #$02
-                LDA speed_x
-                ADD OAM_RAM_ADDR + 3, #$04
-                STA OAM_RAM_ADDR + 3
+                LDA pos_x
+
                 LDA #$00
                 STA pos_x
+
+                LDA #$80
+                STA scroll_x
+
                 LDA #$01
                 STA scroll_x_type
     ntransright:

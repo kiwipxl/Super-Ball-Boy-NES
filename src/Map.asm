@@ -44,6 +44,7 @@ check_collide_down:
     LDA [downc_pointer], y
     CMP #$00
     BNE ncdown
+        IF_UNSIGNED_LT coord_x + 1, #$1F, ncdown2
         LDY coord_x + 1
         INY
         LDA [downc_pointer], y
@@ -54,12 +55,17 @@ check_collide_down:
     ncdown:
     STA rt_val_1
     RTS
+    ncdown2:
+    LDA #$00
+    STA rt_val_1
+    RTS
 
 check_collide_up:
     LDY coord_x
     LDA [upc_pointer], y
     CMP #$00
     BNE ncup
+        IF_UNSIGNED_LT coord_x + 1, #$1F, ncup2
         LDY coord_x + 1
         INY
         LDA [upc_pointer], y
@@ -68,5 +74,9 @@ check_collide_up:
             STA rt_val_1
             RTS
     ncup:
+    STA rt_val_1
+    RTS
+    ncup2:
+    LDA #$00
     STA rt_val_1
     RTS
