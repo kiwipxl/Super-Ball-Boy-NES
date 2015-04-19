@@ -74,11 +74,15 @@ leftc_pointer       .rs     2
 rightc_pointer      .rs     2
 downc_pointer       .rs     2
 upc_pointer         .rs     2
-pos_x               .rs     2
+pos_x               .rs     1
+pos_y               .rs     1
+speed_x             .rs     2
 gravity             .rs     2
 coord_x             .rs     3
 coord_y             .rs     3
 current_tile        .rs     1
+scroll_x            .rs     1
+scroll_y            .rs     1
 
 ;------------------------------------------------------------------------------------;
 ;map loading macros
@@ -204,8 +208,8 @@ init_PPU:
     STA PPU_MASK
 
     LDA #$00
-    STA pos_x
-    STA pos_x + 1
+    STA speed_x
+    STA speed_x + 1
     STA gravity
 
 ;loads all sprite attribs into OAM_RAM_ADDR
@@ -220,7 +224,13 @@ load_sprites:
         CPX #SPRITES_DATA_LEN       ;check if all attribs have been stored by comparing x to the data length of all sprites
         BNE load_sprites_loop       ;continue loop if x register is not equal to 0, otherwise move down
 
-        JMP game_loop
+init_sprites:
+    LDA OAM_RAM_ADDR + 3
+    STA pos_x
+    LDA OAM_RAM_ADDR
+    STA pos_y
+
+    JMP game_loop
 
 ;------------------------------------------------------------------------------------;
 
@@ -231,13 +241,13 @@ game_loop:
         CMP vblank_counter         ;compare register a with the vblank counter
         BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
 
-    LDA OAM_RAM_ADDR + 3
+    LDA pos_x
     LSR a
     LSR a
     LSR a
     STA coord_x
 
-    LDX OAM_RAM_ADDR + 3
+    LDX pos_x
     DEX
     TXA
     LSR a
@@ -245,7 +255,7 @@ game_loop:
     LSR a
     STA coord_x + 1
 
-    LDX OAM_RAM_ADDR + 3
+    LDX pos_x
     INX
     TXA
     LSR a
@@ -300,16 +310,13 @@ game_loop:
     CMP #$00
     BNE nscleftelse
         LEFT_BUTTON_DOWN lbnotdown
-            CALL_3 sub_short, pos_x, pos_x + 1, #$80
-            SET_RT_VAL_2 pos_x, pos_x + 1
-
-            ;SUB OAM_RAM_ADDR + 3, #$01
-            ;STA OAM_RAM_ADDR + 3
+            CALL_3 sub_short, speed_x, speed_x + 1, #$80
+            SET_RT_VAL_2 speed_x, speed_x + 1
         lbnotdown:
         JMP nscleftendif
     nscleftelse:
-        IF_SIGNED_LT_OR_EQU pos_x, #$00, nscleftendif
-            IF_SIGNED_GT pos_x, #$80, nscleftendif
+        IF_SIGNED_LT_OR_EQU speed_x, #$00, nscleftendif
+            IF_SIGNED_GT speed_x, #$80, nscleftendif
                 DEBUG_BRK
                 LDY #$90
 
@@ -319,26 +326,23 @@ game_loop:
                 ASL a
                 ASL a
                 ASL a
-                STA OAM_RAM_ADDR + 3
+                STA pos_x
 
                 LDA #$00
-                STA pos_x
+                STA speed_x
     nscleftendif:
 
     JSR check_collide_right
     CMP #$00
     BNE nscrightelse
         RIGHT_BUTTON_DOWN rbnotdown
-            CALL_3 add_short, pos_x, pos_x + 1, #$80
-            SET_RT_VAL_2 pos_x, pos_x + 1
-
-            ;ADD OAM_RAM_ADDR + 3, #$01
-            ;STA OAM_RAM_ADDR + 3
+            CALL_3 add_short, speed_x, speed_x + 1, #$80
+            SET_RT_VAL_2 speed_x, speed_x + 1
         rbnotdown:
         JMP nscrightendif
     nscrightelse:
-        IF_SIGNED_GT_OR_EQU pos_x, #$00, nscrightendif
-            IF_SIGNED_LT pos_x, #$7F, nscrightendif
+        IF_SIGNED_GT_OR_EQU speed_x, #$00, nscrightendif
+            IF_SIGNED_LT speed_x, #$7F, nscrightendif
                 DEBUG_BRK
                 LDY #$70
 
@@ -347,10 +351,10 @@ game_loop:
                 ASL a
                 ASL a
                 ASL a
-                STA OAM_RAM_ADDR + 3
+                STA pos_x
 
                 LDA #$00
-                STA pos_x
+                STA speed_x
     nscrightendif:
 
     JSR check_collide_down
@@ -371,7 +375,7 @@ game_loop:
                 ASL a
                 ASL a
                 ASL a
-                STA OAM_RAM_ADDR
+                STA pos_y
 
                 LDA rt_val_1
                 CMP #$0A
@@ -401,36 +405,49 @@ game_loop:
                 ASL a
                 ASL a
                 ASL a
-                STA OAM_RAM_ADDR
+                STA pos_y
 
                 LDA #$01
                 STA gravity
     nscupendif:
 
-    ;clamp pos_x
-    CALL_3 clamp_signed, pos_x, #$FE, #$02
+    ;clamp speed_x
+    CALL_3 clamp_signed, speed_x, #$FE, #$02
     LDA rt_val_1
-    STA pos_x
+    STA speed_x
 
     ;clamp gravity
     CALL_3 clamp_signed, gravity, #$FB, #$07
     LDA rt_val_1
     STA gravity
 
-    IF_SIGNED_GT_OR_EQU pos_x, #$01, posxgtelse
-        CALL_3 sub_short, pos_x, pos_x + 1, #$40
-        SET_RT_VAL_2 pos_x, pos_x + 1
+    IF_SIGNED_GT_OR_EQU speed_x, #$01, posxgtelse
+        CALL_3 sub_short, speed_x, speed_x + 1, #$40
+        SET_RT_VAL_2 speed_x, speed_x + 1
     posxgtelse:
 
-    IF_SIGNED_LT_OR_EQU pos_x, #$FF, posxltelse
-        CALL_3 add_short, pos_x, pos_x + 1, #$40
-        SET_RT_VAL_2 pos_x, pos_x + 1
+    IF_SIGNED_LT_OR_EQU speed_x, #$FF, posxltelse
+        CALL_3 add_short, speed_x, speed_x + 1, #$40
+        SET_RT_VAL_2 speed_x, speed_x + 1
     posxltelse:
 
-    ADD OAM_RAM_ADDR + 3, pos_x
-    STA OAM_RAM_ADDR + 3
+    IF_UNSIGNED_GT OAM_RAM_ADDR + 3, #$7F, scrleftstartelse
+        ADD scroll_x, speed_x
+        STA scroll_x
+        ADD pos_x, speed_x
+        STA pos_x
+        IF_SIGNED_LT_OR_EQU scroll_x, #$00, scrleftendif
+            IF_SIGNED_GT scroll_x, #$F0, scrleftendif
+                LDA #$00
+                STA scroll_x
+    scrleftstartelse:
+        ADD pos_x, speed_x
+        STA pos_x
+        STA OAM_RAM_ADDR + 3
+    scrleftendif:
 
-    ADD OAM_RAM_ADDR, gravity
+    ADD pos_y, gravity
+    STA pos_y
     STA OAM_RAM_ADDR
 
     JMP game_loop                   ;jump back to game_loop, infinite loop
@@ -473,13 +490,14 @@ NMI:
     ;LDA $0302
     ;STA $2005
 
-    ;INC $0304
-    ;LDA $0304
-    ;STA $2005
+    LDA scroll_x
+    STA $2005
+    LDA scroll_y
+    STA $2005
 
-    LDA #$00
-    STA $2005
-    STA $2005
+    ;LDA #$00
+    ;STA $2005
+    ;STA $2005
 
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 
