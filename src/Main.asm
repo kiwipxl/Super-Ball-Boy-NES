@@ -231,6 +231,8 @@ init_sprites:
     LDA OAM_RAM_ADDR
     STA pos_y
 
+    SET_POINTER_TO_LABEL LEVEL_1_MAP_0, current_room, current_room + 1
+
     JMP game_loop
 
 ;------------------------------------------------------------------------------------;
@@ -288,18 +290,28 @@ game_loop:
     LSR a
     STA coord_y + 2
 
-    DEBUG_BRK
-    LDY #$20
-    LDA #HIGH(LEVEL_1_MAP_0)
-    STA current_room
-    LDA #LOW(LEVEL_1_MAP_0)
-    STA current_room + 1
-    LDA current_room
-    LDA current_room + 1
+    IF_SIGNED_LT_OR_EQU speed_x, #$00, ntransleft
+        IF_SIGNED_GT speed_x, #$80, ntransleft
+            IF_UNSIGNED_LT_OR_EQU pos_x, #$01, ntransleft
+                SET_POINTER_TO_LABEL LEVEL_1_MAP_0, current_room, current_room + 1
+                DEBUG_BRK
+                LDA #$F8
+                STA pos_x
+                LDA #$1F
+                STA coord_x
+                JMP ntransright
+    ntransleft:
 
-    LDA #HIGH(current_room)
-    LDA #LOW(current_room)
-    
+    IF_SIGNED_GT_OR_EQU speed_x, #$00, ntransright
+        IF_SIGNED_LT speed_x, #$7F, ntransright
+            IF_UNSIGNED_GT_OR_EQU pos_x, #$FE, ntransright
+                SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
+                DEBUG_BRK
+                LDA #$00
+                STA pos_x
+                STA coord_x
+    ntransright:
+
     SET_POINTER_HI_LO current_room, leftc_pointer + 1, leftc_pointer
     CALL_3 mul_short, leftc_pointer + 1, coord_y + 2, #$20
     SET_RT_VAL_2 leftc_pointer + 1, leftc_pointer
@@ -313,15 +325,14 @@ game_loop:
     CALL_3 mul_short, upc_pointer + 1, coord_y + 1, #$20
     SET_RT_VAL_2 upc_pointer + 1, upc_pointer
 
-    DEBUG_BRK
-    LDA gravity
-
     CALL_3 add_short, gravity, gravity + 1, #$40
     SET_RT_VAL_2 gravity, gravity + 1
 
+    IF_UNSIGNED_GT pos_x, #$05, scleft
     JSR check_collide_left
     CMP #$00
     BNE nscleftelse
+        scleft:
         LEFT_BUTTON_DOWN lbnotdown
             CALL_3 sub_short, speed_x, speed_x + 1, #$80
             SET_RT_VAL_2 speed_x, speed_x + 1
@@ -330,9 +341,6 @@ game_loop:
     nscleftelse:
         IF_SIGNED_LT_OR_EQU speed_x, #$00, nscleftendif
             IF_SIGNED_GT speed_x, #$80, nscleftendif
-                DEBUG_BRK
-                LDY #$90
-
                 LDX coord_x + 1
                 INX
                 TXA
@@ -345,9 +353,11 @@ game_loop:
                 STA speed_x
     nscleftendif:
 
+    IF_UNSIGNED_LT pos_x, #$F8, scright
     JSR check_collide_right
     CMP #$00
     BNE nscrightelse
+        scright:
         RIGHT_BUTTON_DOWN rbnotdown
             CALL_3 add_short, speed_x, speed_x + 1, #$80
             SET_RT_VAL_2 speed_x, speed_x + 1
@@ -356,9 +366,6 @@ game_loop:
     nscrightelse:
         IF_SIGNED_GT_OR_EQU speed_x, #$00, nscrightendif
             IF_SIGNED_LT speed_x, #$7F, nscrightendif
-                DEBUG_BRK
-                LDY #$70
-
                 LDX coord_x
                 TXA
                 ASL a
@@ -374,16 +381,12 @@ game_loop:
     CMP #$00
     BNE nscdownelse
         DOWN_BUTTON_DOWN dbnotdown
-            ;CALL_3 add_short, gravity, gravity + 1, #$80
-            ;SET_RT_VAL_2 gravity, gravity + 1
+
         dbnotdown:
         JMP nscdownendif
     nscdownelse:
         IF_SIGNED_GT_OR_EQU gravity, #$00, nscdownendif
             IF_SIGNED_LT gravity, #$7F, nscdownendif
-                DEBUG_BRK
-                LDY #$80
-
                 LDA coord_y
                 ASL a
                 ASL a
@@ -405,8 +408,7 @@ game_loop:
     CMP #$00
     BNE nscupelse
         UP_BUTTON_DOWN ubnotdown
-            ;CALL_3 sub_short, gravity, gravity + 1, #$80
-            ;SET_RT_VAL_2 gravity, gravity + 1
+
         ubnotdown:
         JMP nscupendif
     nscupelse:
