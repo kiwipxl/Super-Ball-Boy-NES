@@ -190,16 +190,28 @@ load_nametable:
     LDX #$00
     nt_loop:
         nt_loop_nested:
-            LDA [nt_pointer], y         ;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
+            CPY #$C0
+            BCC lt960
+                CPX #$03
+                BNE lt960
+                    LDA [nt_pointer], y     ;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
+                    JMP ntcmpendif
+            lt960:
+                LDA [nt_pointer], y         ;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
+                CMP #$07
+                BNE ntcmpendif
+                    LDA #$00
+            ntcmpendif:
+
             STA PPU_DATA                ;write byte to the PPU nametable address
             INY                         ;add by 1 to move to the next byte
-            
+
             CPY #$00                    ;check if y is equal to 0 (it has overflowed)
             BNE nt_loop_nested          ;keep looping if y not equal to 0, otherwise continue
 
             INC nt_pointer + 1          ;increase the high byte of nt_pointer by 1 ((#$FF + 1) low bytes)
             INX                         ;increase x by 1
-            
+
             CPX #$04                    ;check if x has looped and overflowed 4 times (1kb, #$04FF)
             BNE nt_loop                 ;go to the start of the loop if x is not equal to 0, otherwise continue
     RTS
