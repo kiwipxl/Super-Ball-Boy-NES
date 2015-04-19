@@ -84,6 +84,7 @@ current_tile        .rs     1
 scroll_x            .rs     1
 scroll_y            .rs     1
 current_room        .rs     2
+scroll_x_type       .rs     1
 
 ;------------------------------------------------------------------------------------;
 ;map loading macros
@@ -121,6 +122,13 @@ RESET:
 
     INX                             ;add 1 to the x register and overflow it which results in 0
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
+
+    IF_SIGNED_LT #$01, #$01, t
+        DEBUG_BRK
+        LDY #$01
+    t:
+        DEBUG_BRK
+        LDY #$02
 
     JSR vblank_wait                 ;first vblank wait to make sure the PPU is warming up
 
@@ -232,6 +240,8 @@ init_sprites:
     STA pos_y
 
     SET_POINTER_TO_LABEL LEVEL_1_MAP_0, current_room, current_room + 1
+    LDA #$00
+    STA scroll_x_type
 
     JMP game_loop
 
@@ -290,27 +300,9 @@ game_loop:
     LSR a
     STA coord_y + 2
 
-    IF_SIGNED_LT_OR_EQU speed_x, #$00, ntransleft
-        IF_SIGNED_GT speed_x, #$80, ntransleft
-            IF_UNSIGNED_LT_OR_EQU pos_x, #$01, ntransleft
-                SET_POINTER_TO_LABEL LEVEL_1_MAP_0, current_room, current_room + 1
-                DEBUG_BRK
-                LDA #$F8
-                STA pos_x
-                LDA #$1F
-                STA coord_x
-                JMP ntransright
-    ntransleft:
-
-    IF_SIGNED_GT_OR_EQU speed_x, #$00, ntransright
-        IF_SIGNED_LT speed_x, #$7F, ntransright
-            IF_UNSIGNED_GT_OR_EQU pos_x, #$FE, ntransright
-                SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
-                DEBUG_BRK
-                LDA #$00
-                STA pos_x
-                STA coord_x
-    ntransright:
+    ;DEBUG_BRK
+    ;LDA coord_x
+    ;LDA pos_x
 
     SET_POINTER_HI_LO current_room, leftc_pointer + 1, leftc_pointer
     CALL_3 mul_short, leftc_pointer + 1, coord_y + 2, #$20
@@ -414,16 +406,16 @@ game_loop:
     nscupelse:
         IF_SIGNED_LT_OR_EQU gravity, #$00, nscupendif
             IF_SIGNED_GT gravity, #$80, nscupendif
-                LDX coord_y
-                INX
-                TXA
-                ASL a
-                ASL a
-                ASL a
-                STA pos_y
+                ;LDX coord_y
+                ;INX
+                ;TXA
+                ;ASL a
+                ;ASL a
+                ;ASL a
+                ;STA pos_y
 
-                LDA #$01
-                STA gravity
+                ;LDA #$01
+                ;STA gravity
     nscupendif:
 
     ;clamp speed_x
@@ -446,24 +438,76 @@ game_loop:
         SET_RT_VAL_2 speed_x, speed_x + 1
     posxltelse:
 
-    IF_UNSIGNED_GT OAM_RAM_ADDR + 3, #$7F, scrleftstartelse
-        ADD scroll_x, speed_x
-        STA scroll_x
-        ADD pos_x, speed_x
-        STA pos_x
-        IF_SIGNED_LT_OR_EQU scroll_x, #$00, scrleftendif
-            IF_SIGNED_GT scroll_x, #$F0, scrleftendif
-                LDA #$00
-                STA scroll_x
-    scrleftstartelse:
-        ADD pos_x, speed_x
-        STA pos_x
-        STA OAM_RAM_ADDR + 3
-    scrleftendif:
+    LDA scroll_x_type
+    BNE right_scroll_map
+        IF_UNSIGNED_GT_OR_EQU pos_x, #$7F, scrleftstartelse
+            ADD scroll_x, speed_x
+            STA scroll_x
+            ADD pos_x, speed_x
+            STA pos_x
+            ;LDA #$7F
+            ;STA OAM_RAM_ADDR + 3
+            IF_SIGNED_LT_OR_EQU scroll_x, #$00, scroll_x_endif
+                IF_SIGNED_GT scroll_x, #$F0, scroll_x_endif
+                    LDA #$00
+                    STA scroll_x
+        scrleftstartelse:
+            ADD pos_x, speed_x
+            STA pos_x
+            STA OAM_RAM_ADDR + 3
+            JMP scroll_x_endif
+    right_scroll_map:
+        IF_UNSIGNED_LT_OR_EQU pos_x, #$7F, scrrightstartelse
+            ADD scroll_x, speed_x
+            STA scroll_x
+            ADD pos_x, speed_x
+            STA pos_x
+            ;LDA #$7F
+            ;STA OAM_RAM_ADDR + 3
+            IF_SIGNED_GT_OR_EQU scroll_x, #$FF, scroll_x_endif
+                IF_SIGNED_LT scroll_x, #$0F, scroll_x_endif
+                    LDA #$FF
+                    STA scroll_x
+        scrrightstartelse:
+            ADD pos_x, speed_x
+            STA pos_x
+            STA OAM_RAM_ADDR + 3
+    scroll_x_endif:
 
     ADD pos_y, gravity
     STA pos_y
     STA OAM_RAM_ADDR
+
+    IF_SIGNED_LT speed_x, #$00, ntransleft
+        IF_SIGNED_GT speed_x, #$80, ntransleft
+            IF_UNSIGNED_LT_OR_EQU pos_x, #$04, ntransleft
+                SET_POINTER_TO_LABEL LEVEL_1_MAP_0, current_room, current_room + 1
+                DEBUG_BRK
+                LDY #$01
+                LDA speed_x
+                SUB OAM_RAM_ADDR + 3, #$04
+                STA OAM_RAM_ADDR + 3
+                LDA #$FF
+                STA pos_x
+                LDA #$00
+                STA scroll_x_type
+                JMP ntransright
+    ntransleft:
+
+    IF_SIGNED_GT speed_x, #$00, ntransright
+        IF_SIGNED_LT speed_x, #$7F, ntransright
+            IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, ntransright
+                SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
+                DEBUG_BRK
+                LDY #$02
+                LDA speed_x
+                ADD OAM_RAM_ADDR + 3, #$04
+                STA OAM_RAM_ADDR + 3
+                LDA #$00
+                STA pos_x
+                LDA #$01
+                STA scroll_x_type
+    ntransright:
 
     JMP game_loop                   ;jump back to game_loop, infinite loop
 
