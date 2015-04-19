@@ -18,7 +18,7 @@
 ;------------------------------------------------------------------------------------;
 
     .bank 1                           ;uses the second bank, which is a 8kb ROM memory region
-	
+    
     .org $fffa                        ;places the address of NMI, reset and BRK handlers at the very end of the ROM
     .dw NMI                           ;address for NMI (non maskable interrupt). when an NMI happens (once per frame if enabled) the 
                                       ;processor will jump to the label NMI and return to the point where it was interrupted
@@ -35,7 +35,7 @@ LEVEL_1_MAP_2:
     .incbin "assets/level-1/map2.nam"
 
 PALETTE:
-	.incbin "assets/level-palette.pal"
+    .incbin "assets/level-palette.pal"
     .incbin "assets/sprite-palette.pal"
 
 SPRITES:
@@ -69,7 +69,7 @@ temp                .rs     4
 
 vblank_counter      .rs     1
 button_bits         .rs     1
-nt_pointer 			.rs 	2
+nt_pointer          .rs     2
 leftc_pointer       .rs     2
 rightc_pointer      .rs     2
 downc_pointer       .rs     2
@@ -173,22 +173,22 @@ load_level_1:
 ;write the PPU nametable address VRAM_NT_0 to the PPU register PPU_ADDR
 ;so whenever we write data to PPU_DATA, it will map to the VRAM_NT_0 + write offset address in the PPU VRAM
 load_nametable:
-	LDY #$00
-	LDX #$00
-	nt_loop:
-		nt_loop_nested:
-			LDA [nt_pointer], y 		;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
-			STA PPU_DATA                ;write byte to the PPU nametable address
-			INY                       	;add by 1 to move to the next byte
-			
-			CPY #$00                    ;check if y is equal to 0 (it has overflowed)
-			BNE nt_loop_nested    		;keep looping if y not equal to 0, otherwise continue
+    LDY #$00
+    LDX #$00
+    nt_loop:
+        nt_loop_nested:
+            LDA [nt_pointer], y         ;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
+            STA PPU_DATA                ;write byte to the PPU nametable address
+            INY                         ;add by 1 to move to the next byte
+            
+            CPY #$00                    ;check if y is equal to 0 (it has overflowed)
+            BNE nt_loop_nested          ;keep looping if y not equal to 0, otherwise continue
 
             INC nt_pointer + 1          ;increase the high byte of nt_pointer by 1 ((#$FF + 1) low bytes)
-			INX 						;increase x by 1
-			
-			CPX #$04 					;check if x has looped and overflowed 4 times (1kb, #$04FF)
-			BNE nt_loop 				;go to the start of the loop if x is not equal to 0, otherwise continue
+            INX                         ;increase x by 1
+            
+            CPX #$04                    ;check if x has looped and overflowed 4 times (1kb, #$04FF)
+            BNE nt_loop                 ;go to the start of the loop if x is not equal to 0, otherwise continue
     RTS
 
 ;------------------------------------------------------------------------------------;
@@ -211,7 +211,7 @@ init_PPU:
 ;loads all sprite attribs into OAM_RAM_ADDR
 load_sprites:
     LDX #$00                        ;start x register counter at 0
-	
+    
     load_sprites_loop:
         LDA SPRITES, x              ;load sprite attrib into register a (sprite + x)
         STA OAM_RAM_ADDR, x         ;store attrib in OAM on RAM(address + x)
@@ -310,7 +310,7 @@ game_loop:
 
     JSR check_collide_left
     CMP #$00
-    BNE nclelse
+    BNE nscleftelse
         LEFT_BUTTON_DOWN lbnotdown
             CALL_3 sub_short, pos_x, pos_x + 1, #$80
             SET_RT_VAL_2 pos_x, pos_x + 1
@@ -318,11 +318,24 @@ game_loop:
             ;SUB OAM_RAM_ADDR + 3, #$01
             ;STA OAM_RAM_ADDR + 3
         lbnotdown:
-    nclelse:
+        JMP nscleftendif
+    nscleftelse:
+        IF_SIGNED_LT_OR_EQU pos_x, #$00, nscleftendif
+            IF_SIGNED_GT pos_x, #$7F, nscleftendif
+                LDX coord_x
+                TXA
+                ASL a
+                ASL a
+                ASL a
+                STA OAM_RAM_ADDR + 3
+                
+                LDA #$00
+                STA pos_x
+    nscleftendif:
 
     JSR check_collide_right
     CMP #$00
-    BNE ncrelse
+    BNE nscrightelse
         RIGHT_BUTTON_DOWN rbnotdown
             CALL_3 add_short, pos_x, pos_x + 1, #$80
             SET_RT_VAL_2 pos_x, pos_x + 1
@@ -330,17 +343,32 @@ game_loop:
             ;ADD OAM_RAM_ADDR + 3, #$01
             ;STA OAM_RAM_ADDR + 3
         rbnotdown:
-    ncrelse:
+        JMP nscrightendif
+    nscrightelse:
+        IF_SIGNED_GT_OR_EQU pos_x, #$00, nscrightendif
+            IF_SIGNED_LT pos_x, #$7F, nscrightendif
+                LDX coord_x
+                TXA
+                ASL a
+                ASL a
+                ASL a
+                STA OAM_RAM_ADDR + 3
 
-    DOWN_BUTTON_DOWN dbnotdown
-        ;CALL_3 add_short, gravity, gravity + 1, #$80
-        ;SET_RT_VAL_2 gravity, gravity + 1
-    dbnotdown:
+                LDA #$00
+                STA pos_x
+    nscrightendif:
+
     JSR check_collide_down
     CMP #$00
-    BEQ nosolidcollidedown
-        IF_UNSIGNED_GT_OR_EQU gravity, #$00, endcollidedown
-            IF_UNSIGNED_LT gravity, #$7f, endcollidedown
+    BNE nscdownelse
+        DOWN_BUTTON_DOWN dbnotdown
+            ;CALL_3 add_short, gravity, gravity + 1, #$80
+            ;SET_RT_VAL_2 gravity, gravity + 1
+        dbnotdown:
+        JMP nscdownendif
+    nscdownelse:
+        IF_SIGNED_GT_OR_EQU gravity, #$00, nscdownendif
+            IF_SIGNED_LT gravity, #$7F, nscdownendif
                 LDA coord_y
                 ASL a
                 ASL a
@@ -352,32 +380,34 @@ game_loop:
                 BNE elseif
                     LDA #$FA
                     STA gravity
-                    JMP endcollidedown
+                    JMP nscdownendif
                 elseif:
                     LDA #$FD
                     STA gravity
-                    JMP endcollidedown
-    nosolidcollidedown:
-    endcollidedown:
+    nscdownendif:
 
-    UP_BUTTON_DOWN ubnotdown
-        ;CALL_3 sub_short, gravity, gravity + 1, #$80
-        ;SET_RT_VAL_2 gravity, gravity + 1
-    ubnotdown:
     JSR check_collide_up
     CMP #$00
-    BEQ nosolidcollideup
-        LDX coord_y
-        INX
-        TXA
-        ASL a
-        ASL a
-        ASL a
-        STA OAM_RAM_ADDR
+    BNE nscupelse
+        UP_BUTTON_DOWN ubnotdown
+            ;CALL_3 sub_short, gravity, gravity + 1, #$80
+            ;SET_RT_VAL_2 gravity, gravity + 1
+        ubnotdown:
+        JMP nscupendif
+    nscupelse:
+        IF_SIGNED_LT_OR_EQU gravity, #$00, nscupendif
+            IF_SIGNED_GT gravity, #$7F, nscupendif
+                LDX coord_y
+                INX
+                TXA
+                ASL a
+                ASL a
+                ASL a
+                STA OAM_RAM_ADDR
 
-        LDA #$01
-        STA gravity
-    nosolidcollideup:
+                LDA #$01
+                STA gravity
+    nscupendif:
 
     JMP game_loop                   ;jump back to game_loop, infinite loop
 

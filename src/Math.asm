@@ -269,7 +269,6 @@ div_short:
 ;(byte, min, max)
 ;example - (my_val, #$04, #$FB)
 clamp_signed:
-    DEBUG_BRK
     STORE_PAR_3 $0103
 
     IF_SIGNED_GT param_2, param_1, valnotgtmin
