@@ -85,6 +85,7 @@ scroll_x            .rs     1
 scroll_y            .rs     1
 current_room        .rs     2
 scroll_x_type       .rs     1
+player_spawn        .rs     2
 
 ;------------------------------------------------------------------------------------;
 ;map loading macros
@@ -204,16 +205,13 @@ load_nametable:
                 CMP #$07
                 BNE ntcmpendif
                     DEBUG_BRK
-                    TYA
-                    LDA temp
-                    LDA temp + 1
-
                     LDA temp
                     ASL a
                     ASL a
                     ASL a
                     STA OAM_RAM_ADDR + 3
                     STA pos_x
+                    STA player_spawn
 
                     SEC
                     SBC #$7F
@@ -225,6 +223,7 @@ load_nametable:
                     ASL a
                     STA OAM_RAM_ADDR + 3
                     STA pos_y
+                    STA player_spawn + 1
 
                     LDA #$00
             ntcmpendif:
@@ -240,9 +239,6 @@ load_nametable:
 
                 ADD temp + 1, #$01
                 STA temp + 1
-                IF_UNSIGNED_GT_OR_EQU temp, #$20, nrowreset
-                    LDA #$00
-                    STA temp + 1
             nrowreset:
 
             CPY #$00                    ;check if y is equal to 0 (it has overflowed)
@@ -456,11 +452,9 @@ game_loop:
                     SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
                     LDA #$01
                     STA scroll_x_type
-                    
-                    LDA temp
-                    ASL a
-                    ASL a
-                    ASL a
+
+                    DEBUG_BRK
+                    LDA player_spawn
                     STA OAM_RAM_ADDR + 3
                     STA pos_x
 
@@ -468,10 +462,7 @@ game_loop:
                     SBC #$7F
                     STA scroll_x
 
-                    LDA temp + 1
-                    ASL a
-                    ASL a
-                    ASL a
+                    LDA player_spawn + 1
                     STA OAM_RAM_ADDR + 3
                     STA pos_y
                 welseif:
