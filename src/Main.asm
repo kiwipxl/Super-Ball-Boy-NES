@@ -215,6 +215,8 @@ load_nametable:
                     STA OAM_RAM_ADDR + 3
                     STA pos_x
 
+                    SEC
+                    SBC #$7F
                     STA scroll_x
 
                     LDA temp + 1
@@ -288,8 +290,8 @@ init_sprites:
     ;LDA OAM_RAM_ADDR
     ;STA pos_y
 
-    SET_POINTER_TO_LABEL LEVEL_1_MAP_0, current_room, current_room + 1
-    LDA #$00
+    SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
+    LDA #$01
     STA scroll_x_type
 
     JMP game_loop
@@ -447,6 +449,32 @@ game_loop:
                     STA gravity
                     LDA #$00
                     STA gravity + 1
+
+                LDA rt_val_1
+                CMP #$0B
+                BNE welseif
+                    SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
+                    LDA #$01
+                    STA scroll_x_type
+                    
+                    LDA temp
+                    ASL a
+                    ASL a
+                    ASL a
+                    STA OAM_RAM_ADDR + 3
+                    STA pos_x
+
+                    SEC
+                    SBC #$7F
+                    STA scroll_x
+
+                    LDA temp + 1
+                    ASL a
+                    ASL a
+                    ASL a
+                    STA OAM_RAM_ADDR + 3
+                    STA pos_y
+                welseif:
     nscdownendif:
 
     JSR check_collide_up
