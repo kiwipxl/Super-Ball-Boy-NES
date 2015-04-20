@@ -188,6 +188,9 @@ load_level_1:
 load_nametable:
     LDY #$00
     LDX #$00
+    LDA #$00
+    STA temp
+    STA temp + 1
     nt_loop:
         nt_loop_nested:
             CPY #$C0
@@ -200,11 +203,45 @@ load_nametable:
                 LDA [nt_pointer], y         ;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
                 CMP #$07
                 BNE ntcmpendif
+                    DEBUG_BRK
+                    TYA
+                    LDA temp
+                    LDA temp + 1
+
+                    LDA temp
+                    ASL a
+                    ASL a
+                    ASL a
+                    STA OAM_RAM_ADDR + 3
+                    STA pos_x
+
+                    STA scroll_x
+
+                    LDA temp + 1
+                    ASL a
+                    ASL a
+                    ASL a
+                    STA OAM_RAM_ADDR + 3
+                    STA pos_y
+
                     LDA #$00
             ntcmpendif:
 
             STA PPU_DATA                ;write byte to the PPU nametable address
             INY                         ;add by 1 to move to the next byte
+
+            ADD temp, #$01
+            STA temp
+            IF_UNSIGNED_GT_OR_EQU temp, #$20, nrowreset
+                LDA #$00
+                STA temp
+
+                ADD temp + 1, #$01
+                STA temp + 1
+                IF_UNSIGNED_GT_OR_EQU temp, #$20, nrowreset
+                    LDA #$00
+                    STA temp + 1
+            nrowreset:
 
             CPY #$00                    ;check if y is equal to 0 (it has overflowed)
             BNE nt_loop_nested          ;keep looping if y not equal to 0, otherwise continue
@@ -246,10 +283,10 @@ load_sprites:
         BNE load_sprites_loop       ;continue loop if x register is not equal to 0, otherwise move down
 
 init_sprites:
-    LDA OAM_RAM_ADDR + 3
-    STA pos_x
-    LDA OAM_RAM_ADDR
-    STA pos_y
+    ;LDA OAM_RAM_ADDR + 3
+    ;STA pos_x
+    ;LDA OAM_RAM_ADDR
+    ;STA pos_y
 
     SET_POINTER_TO_LABEL LEVEL_1_MAP_0, current_room, current_room + 1
     LDA #$00
@@ -464,13 +501,15 @@ game_loop:
             ;LDA #$7F
             ;STA OAM_RAM_ADDR + 3
             IF_SIGNED_LT_OR_EQU scroll_x, #$00, scroll_x_endif
-                IF_SIGNED_GT scroll_x, #$F0, scroll_x_endif
+                IF_SIGNED_GT scroll_x, #$F8, scroll_x_endif
                     LDA #$00
                     STA scroll_x
         scrleftstartelse:
             ADD pos_x, speed_x
             STA pos_x
             STA OAM_RAM_ADDR + 3
+            LDA #$00
+            STA scroll_x
             JMP scroll_x_endif
     right_scroll_map:
         IF_UNSIGNED_LT_OR_EQU pos_x, #$7F, scrrightstartelse
@@ -481,13 +520,15 @@ game_loop:
             ;LDA #$7F
             ;STA OAM_RAM_ADDR + 3
             IF_SIGNED_GT_OR_EQU scroll_x, #$FF, scroll_x_endif
-                IF_SIGNED_LT scroll_x, #$0F, scroll_x_endif
+                IF_SIGNED_LT scroll_x, #$08, scroll_x_endif
                     LDA #$FF
                     STA scroll_x
         scrrightstartelse:
             ADD pos_x, speed_x
             STA pos_x
             STA OAM_RAM_ADDR + 3
+            LDA #$FF
+            STA scroll_x
     scroll_x_endif:
 
     ADD pos_y, gravity
