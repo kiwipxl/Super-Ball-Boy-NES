@@ -42,6 +42,21 @@ STORE_PAR_3 .macro
 
     .endm
 
+;macro to store 4 parameters from the stack into the param_1, param_2, param_3 and param_4 variables
+;used at the start of functions to load stack parameters into param variables
+STORE_PAR_4 .macro
+    TSX
+    LDA \1, x
+    STA param_1
+    LDA \1 + 1, x
+    STA param_2
+    LDA \1 + 2, x
+    STA param_3
+	LDA \1 + 3, x
+    STA param_4
+	
+    .endm
+	
 ;macro that pushes 1 parameter on the stack in reverse (because the stack moves down rather than up)
 ;input - (par1)
 PUSH_PAR_1 .macro
@@ -69,6 +84,19 @@ PUSH_PAR_3 .macro
     PHA
     .endm
 
+;macro that pushes 4 parameters on the stack in reverse (because the stack moves down rather than up)
+;input - (par1, par2, par3, par4)
+PUSH_PAR_4 .macro
+	LDA \4
+	PHA
+    LDA \3
+    PHA
+    LDA \2
+    PHA
+    LDA \1
+    PHA
+    .endm
+	
 ;macro that pops 1 value from the stack
 POP_1 .macro
     PLA
@@ -80,13 +108,25 @@ POP_2 .macro
     PLA
     .endm
 
-;macro that pops 3 values from the stack
+;macro that moves the stack pointer up by 3 bytes in 10 cycles compared to 12
 POP_3 .macro
-    PLA
-    PLA
-    PLA
+	TSX
+	INX
+	INX
+	INX
+	TXS
     .endm
 
+;macro that moves the stack pointer up by 4 bytes in 12 cycles compared to 16
+POP_4 .macro
+	TSX
+	TXA
+	CLC
+	ADC #$04
+	TAX
+	TXS
+    .endm
+	
 ;macro that that stores the first return value into one address/variable
 ;input - (address_1)
 SET_RT_VAL_1 .macro
@@ -127,6 +167,14 @@ CALL_3 .macro
 
     .endm
 
+;macro to push 4 parameters, call the specified function and then pop the parameters
+CALL_4 .macro
+    PUSH_PAR_4 \2, \3, \4, \5
+    JSR \1
+    POP_4
+	
+    .endm
+	
 ;------------------------------------------------------------------------------------;
 ;pointer macros
 

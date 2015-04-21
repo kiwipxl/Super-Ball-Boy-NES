@@ -7,14 +7,13 @@
 
     .bank 3                           ;uses the fourth bank, which is a 8kb ROM memory region
     .org $8000                        ;places graphics tiles at the beginning of ROM (8000 - a000, offset: 0kb)
-    .incbin "assets/tileset1.chr"     ;includes 8kb graphics file from SMB1
-
+	
 ;------------------------------------------------------------------------------------;
 
     .bank 2                           ;uses the third bank, which is a 8kb ROM memory region
     .org $a000                        ;places graphics tiles in the first quarter of ROM (a000 - e000, offset: 8kb)
-    .incbin "assets/tileset1.chr"     ;includes 8kb graphics file from SMB1
-
+	.incbin "assets/tileset1.chr"     ;includes 8kb graphics file from SMB1
+	
 ;------------------------------------------------------------------------------------;
 
     .bank 1                           ;uses the second bank, which is a 8kb ROM memory region
@@ -28,65 +27,93 @@
     .org $e000                        ;place all program code at the third quarter of ROM (e000 - fffa, offset: 24kb)
 
 LEVEL_1_MAP_0:
-    .incbin "assets/level-1/map0.nam"
+	.incbin "assets/level-1/map0.nam"
 LEVEL_1_MAP_1:
-    .incbin "assets/level-1/map1.nam"
+	.incbin "assets/level-1/map1.nam"
 LEVEL_1_MAP_2:
-    .incbin "assets/level-1/map2.nam"
+	.incbin "assets/level-1/map2.nam"
 
 PALETTE:
-    .incbin "assets/level-palette.pal"
-    .incbin "assets/sprite-palette.pal"
+	.incbin "assets/level-palette.pal"
+	.incbin "assets/sprite-palette.pal"
 
 SPRITES:
-    ;y, tile index, attribs (palette 4 to 7, priority, flip), x
-    .db $2a, $07, %00000000, $80
+	;y, tile index, attribs (palette 4 to 7, priority, flip), x
+	.db $2a, $07, %00000000, $80
 
 NUM_SPRITES         = 1
 SPRITES_DATA_LEN    = NUM_SPRITES * 4
 
-    ;store game variables in zero page (2x faster access)
+	;store function params, return values and temporary values in the first 16 bytes of zero page
     .rsset $0000
-
-    .include "src/SystemConstants.asm"
-    .include "src/SystemMacros.asm"
-    .include "src/Math.asm"
-    .include "src/Map.asm"
-
+	
 ;local params used to store inputs from functions - note that these params may be modified when a function with a input is called
 param_1             .rs     1
 param_2             .rs     1
 param_3             .rs     1
 param_4             .rs     1
 param_5             .rs     1
+param_6             .rs     1
+param_7             .rs     1
+param_8             .rs     1
 
 ;return values used for functions that have an output / multiple outputs
 rt_val_1            .rs     1
 rt_val_2            .rs     1
+rt_val_3            .rs     1
+rt_val_4            .rs     1
 
 ;temporary value that can be modified at any time
-temp                .rs     4
+temp                .rs     6
 
-vblank_counter      .rs     1
-button_bits         .rs     1
-nt_pointer          .rs     2
-leftc_pointer       .rs     2
-rightc_pointer      .rs     2
-downc_pointer       .rs     2
-upc_pointer         .rs     2
-pos_x               .rs     1
-pos_y               .rs     1
-speed_x             .rs     2
-gravity             .rs     2
-coord_x             .rs     3
-coord_y             .rs     3
-current_tile        .rs     1
-scroll_x            .rs     1
-scroll_y            .rs     1
-current_room        .rs     2
-scroll_x_type       .rs     1
-player_spawn        .rs     2
+	;store game variables in zero page with a 16 byte offset
+	.rsset $0010
+	
+vblank_counter      	.rs     1
+button_bits         	.rs     1
+nt_pointer          	.rs     2
+leftc_pointer       	.rs     2
+rightc_pointer      	.rs     2
+downc_pointer       	.rs     2
+upc_pointer         	.rs     2
+pos_x               	.rs     1
+pos_y               	.rs     1
+speed_x             	.rs     2
+gravity             	.rs     2
+coord_x             	.rs     3
+coord_y             	.rs     3
+current_tile        	.rs     1
+scroll_x            	.rs     1
+scroll_y            	.rs     1
+current_room        	.rs     2
+scroll_x_type       	.rs     1
+player_spawn        	.rs     2
 
+ani_frames 				.rs 	16 		;store hi + lo byte pointer to pre-built animation, 2 bytes per animation
+ani_nt_pointer 			.rs 	16 		;stores hi + lo byte pointers to a nametable which tile animations will use, 2 bytes per animation
+
+	;store animation array with a 256 byte offset with a max amount of 8 running animations
+	.rsset $0100
+	
+ani_rate 				.rs 	8 		;frame rate byte that defines how often the animation will run per frame, 1 byte per animation
+ani_frame_counter 		.rs 	8 		;frame counter that increases every frame, 1 byte per animation
+ani_current_frame 		.rs 	8 		;byte that defines the current frame of the animation, 1 byte per animation
+ani_loop 				.rs 	8 		;defines whether the animation will loop or note, 1 byte per animation
+ani_num_frames 			.rs 	8 		;the amount of frames in the current animation, 1 byte per animation
+ani_tile_pos 			.rs 	16 		;stores the tile x and y positions to modify, 2 bytes per animation
+ani_num_running 		.rs 	1 		;defines the current amount of animations running for all animations
+
+SPRING_ANI:
+	.db $02
+	SPRING_FRAMES:
+		.db $01, $02
+		
+	.include "src/SystemConstants.asm"
+    .include "src/SystemMacros.asm"
+    .include "src/Math.asm"
+    .include "src/Map.asm"
+	.include "src/Animation.asm"
+	
 ;------------------------------------------------------------------------------------;
 ;map loading macros
 
@@ -281,15 +308,12 @@ load_sprites:
         BNE load_sprites_loop       ;continue loop if x register is not equal to 0, otherwise move down
 
 init_sprites:
-    ;LDA OAM_RAM_ADDR + 3
-    ;STA pos_x
-    ;LDA OAM_RAM_ADDR
-    ;STA pos_y
-
     SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
     LDA #$01
     STA scroll_x_type
-
+	
+	CREATE_TILE_ANIMATION SPRING_ANI, SPRING_FRAMES, #$09, #$00, #$88, #$78, current_room
+	
     JMP game_loop
 
 ;------------------------------------------------------------------------------------;
@@ -300,7 +324,38 @@ game_loop:
     vblank_wait_main:
         CMP vblank_counter         ;compare register a with the vblank counter
         BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
+	
+	;clamp speed_x
+    CALL_3 clamp_signed, speed_x, #$FE, #$02
+    LDA rt_val_1
+    STA speed_x
 
+    ;clamp gravity
+    CALL_3 clamp_signed, gravity, #$FB, #$07
+    LDA rt_val_1
+    STA gravity
+	
+	;if speed_x is >= 1, then apply friction and slow it down by 64
+    IF_SIGNED_GT_OR_EQU speed_x, #$01, posxgtelse
+        CALL_3 sub_short, speed_x, speed_x + 1, #$40
+        SET_RT_VAL_2 speed_x, speed_x + 1
+		
+    posxgtelse:
+	
+	;if speed_x is <= 255, then apply friction and slow it down by 64
+    IF_SIGNED_LT_OR_EQU speed_x, #$FF, posxltelse
+        CALL_3 add_short, speed_x, speed_x + 1, #$40
+        SET_RT_VAL_2 speed_x, speed_x + 1
+    posxltelse:
+	
+	;add gravity to pos_y and set it as the player's y sprite position
+	ADD pos_y, gravity
+    STA pos_y
+    STA OAM_RAM_ADDR
+	
+	JSR read_controller
+	JSR update_animations
+	
     LDA pos_x
     LSR a
     LSR a
@@ -346,11 +401,7 @@ game_loop:
     LSR a
     LSR a
     STA coord_y + 2
-
-    ;DEBUG_BRK
-    ;LDA coord_x
-    ;LDA pos_x
-
+	
     SET_POINTER_HI_LO current_room, leftc_pointer + 1, leftc_pointer
     CALL_3 mul_short, leftc_pointer + 1, coord_y + 2, #$20
     SET_RT_VAL_2 leftc_pointer + 1, leftc_pointer
@@ -431,7 +482,7 @@ game_loop:
                 ASL a
                 ASL a
                 STA pos_y
-
+				
                 LDA rt_val_1
                 CMP #$0A
                 BNE elseif
@@ -445,15 +496,15 @@ game_loop:
                     STA gravity
                     LDA #$00
                     STA gravity + 1
-
+				
+				;respawn
                 LDA rt_val_1
                 CMP #$0B
                 BNE welseif
                     SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
                     LDA #$01
                     STA scroll_x_type
-
-                    DEBUG_BRK
+					
                     LDA player_spawn
                     STA OAM_RAM_ADDR + 3
                     STA pos_x
@@ -489,27 +540,13 @@ game_loop:
                 LDA #$01
                 STA gravity
     nscupendif:
-
-    ;clamp speed_x
-    CALL_3 clamp_signed, speed_x, #$FE, #$02
-    LDA rt_val_1
-    STA speed_x
-
-    ;clamp gravity
-    CALL_3 clamp_signed, gravity, #$FB, #$07
-    LDA rt_val_1
-    STA gravity
-
-    IF_SIGNED_GT_OR_EQU speed_x, #$01, posxgtelse
-        CALL_3 sub_short, speed_x, speed_x + 1, #$40
-        SET_RT_VAL_2 speed_x, speed_x + 1
-    posxgtelse:
-
-    IF_SIGNED_LT_OR_EQU speed_x, #$FF, posxltelse
-        CALL_3 add_short, speed_x, speed_x + 1, #$40
-        SET_RT_VAL_2 speed_x, speed_x + 1
-    posxltelse:
-
+	
+	LDA pos_x
+	STA OAM_RAM_ADDR + 3
+	
+	LDA pos_y
+    STA OAM_RAM_ADDR
+	
     LDA scroll_x_type
     BNE right_scroll_map
         IF_UNSIGNED_GT_OR_EQU pos_x, #$7F, scrleftstartelse
@@ -517,12 +554,13 @@ game_loop:
             STA scroll_x
             ADD pos_x, speed_x
             STA pos_x
-            ;LDA #$7F
-            ;STA OAM_RAM_ADDR + 3
+            LDA #$7F
+            STA OAM_RAM_ADDR + 3
             IF_SIGNED_LT_OR_EQU scroll_x, #$00, scroll_x_endif
                 IF_SIGNED_GT scroll_x, #$F8, scroll_x_endif
                     LDA #$00
                     STA scroll_x
+					JMP scroll_x_endif
         scrleftstartelse:
             ADD pos_x, speed_x
             STA pos_x
@@ -536,12 +574,13 @@ game_loop:
             STA scroll_x
             ADD pos_x, speed_x
             STA pos_x
-            ;LDA #$7F
-            ;STA OAM_RAM_ADDR + 3
+            LDA #$7F
+            STA OAM_RAM_ADDR + 3
             IF_SIGNED_GT_OR_EQU scroll_x, #$FF, scroll_x_endif
                 IF_SIGNED_LT scroll_x, #$08, scroll_x_endif
                     LDA #$FF
                     STA scroll_x
+					JMP scroll_x_endif
         scrrightstartelse:
             ADD pos_x, speed_x
             STA pos_x
@@ -549,19 +588,13 @@ game_loop:
             LDA #$FF
             STA scroll_x
     scroll_x_endif:
-
-    ADD pos_y, gravity
-    STA pos_y
-    STA OAM_RAM_ADDR
-
+	
     IF_NOT_EQU scroll_x_type, #$00, ntransleft
     IF_SIGNED_LT speed_x, #$00, ntransleft
         IF_SIGNED_GT speed_x, #$80, ntransleft
             IF_UNSIGNED_GT_OR_EQU pos_x, #$F8, ntransleft
                 SET_POINTER_TO_LABEL LEVEL_1_MAP_0, current_room, current_room + 1
-                DEBUG_BRK
-                LDY #$01
-
+				
                 LDA #$FF
                 STA pos_x
 
@@ -577,10 +610,7 @@ game_loop:
         IF_SIGNED_LT speed_x, #$7F, ntransright
             IF_UNSIGNED_GT_OR_EQU pos_x, #$F8, ntransright
                 SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
-                DEBUG_BRK
-                LDY #$02
-                LDA pos_x
-
+				
                 LDA #$00
                 STA pos_x
 
@@ -590,7 +620,7 @@ game_loop:
                 LDA #$01
                 STA scroll_x_type
     ntransright:
-
+	
     JMP game_loop                   ;jump back to game_loop, infinite loop
 
 ;------------------------------------------------------------------------------------;
@@ -625,26 +655,14 @@ NMI:
     LDA #HIGH(OAM_RAM_ADDR)
     STA OAM_DMA                    ;stores OAM_RAM_ADDR to high byte of OAM_DMA
     ;CPU is now suspended and transfer begins
-
-    ;BIT PPU_STATUS
-    ;INC $0302
-    ;LDA $0302
-    ;STA $2005
-
+	
     LDA scroll_x
     STA $2005
     LDA scroll_y
     STA $2005
-
-    ;LDA #$00
-    ;STA $2005
-    ;STA $2005
-
+	
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
-
-    JSR read_controller
-
-input_end:
+	
     RTI                             ;returns from the interrupt
 
 IQR:
