@@ -2,44 +2,62 @@
 ;input - (ani_label, frame_label, animation rate, loop (0 or > 0), tile_x, tile_y, nt_pointer_hi)
 CREATE_TILE_ANIMATION .macro
 	LDY ani_num_running
-	INY
-	STA ani_num_running
-	DEY
-	
+
+	LDA \1
+	STA ani_num_frames, y
+
 	LDA \3
 	STA ani_rate, y
 	
 	LDA \4
 	STA ani_loop, y
-	
-	LDA \1
-	STA ani_num_frames, y
-	
-	ASL ani_num_running
+
+	LDA ani_num_running
+	ASL a
 	TAY
-	
-	LDA \5
-	STA ani_tile_pos, y
-	
+
 	LDA #HIGH(\2)
 	STA ani_frames, y
-	
-	LDA \6
-	STA ani_nt_pointer, y
-	
-	INY
-	LDA \6
-	STA ani_tile_pos + 1, y
-	
+
 	LDA #LOW(\2)
 	STA ani_frames + 1, y
-	
+
 	LDA \7
+	STA ani_nt_pointer, y
+
+	LDA \7 + 1
 	STA ani_nt_pointer + 1, y
-	
+
+	CALL_3 add_short, ani_nt_pointer, ani_nt_pointer + 1, \5
+	SET_RT_VAL_2 ani_nt_pointer, ani_nt_pointer + 1
+
+	CALL_3 mul_short, ani_nt_pointer, \6, #$20
+	SET_RT_VAL_2 ani_nt_pointer, ani_nt_pointer + 1
+
 	LDA #$00
 	STA ani_frame_counter
 	STA ani_current_frame
+
+	INC ani_num_running
+
+	;DEBUG_BRK
+	;LDA ani_frames
+	;LDA ani_frames + 1
+	;LDY #$01
+	;LDA ani_nt_pointer
+	;LDA ani_nt_pointer + 1
+	;LDY #$02
+	;LDA ani_rate
+	;LDY #$04
+	;LDA ani_frame_counter
+	;LDY #$08
+	;LDA ani_current_frame
+	;LDY #$10
+	;LDA ani_loop
+	;LDY #$20
+	;LDA ani_num_frames
+	;LDY #$40
+	;LDA ani_num_running
 	
 	.endm
 	

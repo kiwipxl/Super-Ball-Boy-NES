@@ -86,6 +86,7 @@ current_tile        	.rs     1
 scroll_x            	.rs     1
 scroll_y            	.rs     1
 current_room        	.rs     2
+current_VRAM            .rs     2
 scroll_x_type       	.rs     1
 player_spawn        	.rs     2
 
@@ -98,9 +99,8 @@ ani_nt_pointer 			.rs 	16 		;stores hi + lo byte pointers to a nametable which t
 ani_rate 				.rs 	8 		;frame rate byte that defines how often the animation will run per frame, 1 byte per animation
 ani_frame_counter 		.rs 	8 		;frame counter that increases every frame, 1 byte per animation
 ani_current_frame 		.rs 	8 		;byte that defines the current frame of the animation, 1 byte per animation
-ani_loop 				.rs 	8 		;defines whether the animation will loop or note, 1 byte per animation
+ani_loop 				.rs 	8 		;defines whether the animation will loop or not, 1 byte per animation
 ani_num_frames 			.rs 	8 		;the amount of frames in the current animation, 1 byte per animation
-ani_tile_pos 			.rs 	16 		;stores the tile x and y positions to modify, 2 bytes per animation
 ani_num_running 		.rs 	1 		;defines the current amount of animations running for all animations
 
 SPRING_ANI:
@@ -309,11 +309,12 @@ load_sprites:
 
 init_sprites:
     SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
+    SET_POINTER_TO_LABEL VRAM_NT_1, current_VRAM, current_VRAM + 1
     LDA #$01
     STA scroll_x_type
 	
-	CREATE_TILE_ANIMATION SPRING_ANI, SPRING_FRAMES, #$09, #$00, #$88, #$78, current_room
-	
+	CREATE_TILE_ANIMATION SPRING_ANI, SPRING_FRAMES, #$09, #$00, #$10, #$04, current_VRAM
+
     JMP game_loop
 
 ;------------------------------------------------------------------------------------;
@@ -645,25 +646,6 @@ read_controller:
 ;NMI interrupts the cpu and is called once per video frame
 ;PPU is starting vblank time and is available for graphics updates
 NMI:
-    SET_POINTER_TO_LABEL VRAM_NT_1, downc_pointer, downc_pointer + 1
-    CALL_3 mul_short, downc_pointer, coord_y, #$20
-    SET_RT_VAL_2 downc_pointer, downc_pointer + 1
-    CALL_3 add_short, downc_pointer, downc_pointer + 1, coord_x
-    SET_RT_VAL_2 downc_pointer, downc_pointer + 1
-    CALL_3 add_short, downc_pointer, downc_pointer + 1, #$20
-    SET_RT_VAL_2 downc_pointer, downc_pointer + 1
-    SET_POINTER_HI_LO downc_pointer, PPU_ADDR, PPU_ADDR
-    LDA #$00
-    STA PPU_DATA
-    CMP #$0A
-    BNE ta
-    DEBUG_BRK
-    ta:
-    
-    SET_POINTER_TO_LABEL VRAM_NT_0, downc_pointer, downc_pointer + 1
-    CALL_3 mul_short, downc_pointer, coord_y, #$20
-    SET_POINTER_HI_LO downc_pointer, PPU_ADDR, PPU_ADDR
-
     ;copies 256 bytes of OAM data in RAM (OAM_RAM_ADDR - OAM_RAM_ADDR + $FF) to the PPU internal OAM
     ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
 
@@ -679,7 +661,13 @@ NMI:
     STA $2005
     LDA scroll_y
     STA $2005
-	
+
+    ;pseudo
+    ;loop through animations here
+    ;can check if animation is updated or not by setting a value on the next animation frame change
+    ;animation nt pointers are set to the nt position in VRAM + tile offset position
+    ;change tile to the animation frames pointer + current frame
+
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 	
     RTI                             ;returns from the interrupt
