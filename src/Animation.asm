@@ -60,7 +60,6 @@ update_animations:
 			BEQ cfgtnf     				;success if val_1 = val_2
 			BCC nfcgtrate              	;fail if no carry flag set
 			cfgtnf:
-				DEBUG_BRK
 				LDA #$00
 				STA ani_current_frame, x
 		nfcgtrate:

@@ -645,6 +645,25 @@ read_controller:
 ;NMI interrupts the cpu and is called once per video frame
 ;PPU is starting vblank time and is available for graphics updates
 NMI:
+    SET_POINTER_TO_LABEL VRAM_NT_1, downc_pointer, downc_pointer + 1
+    CALL_3 mul_short, downc_pointer, coord_y, #$20
+    SET_RT_VAL_2 downc_pointer, downc_pointer + 1
+    CALL_3 add_short, downc_pointer, downc_pointer + 1, coord_x
+    SET_RT_VAL_2 downc_pointer, downc_pointer + 1
+    CALL_3 add_short, downc_pointer, downc_pointer + 1, #$20
+    SET_RT_VAL_2 downc_pointer, downc_pointer + 1
+    SET_POINTER_HI_LO downc_pointer, PPU_ADDR, PPU_ADDR
+    LDA #$00
+    STA PPU_DATA
+    CMP #$0A
+    BNE ta
+    DEBUG_BRK
+    ta:
+    
+    SET_POINTER_TO_LABEL VRAM_NT_0, downc_pointer, downc_pointer + 1
+    CALL_3 mul_short, downc_pointer, coord_y, #$20
+    SET_POINTER_HI_LO downc_pointer, PPU_ADDR, PPU_ADDR
+
     ;copies 256 bytes of OAM data in RAM (OAM_RAM_ADDR - OAM_RAM_ADDR + $FF) to the PPU internal OAM
     ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
 
