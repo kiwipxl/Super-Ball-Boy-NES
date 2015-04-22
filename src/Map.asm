@@ -3,15 +3,13 @@ check_collide_left:
     LDA [leftc_pointer], y
     CMP #$00
     BNE ncleft
-        ;CALL_3 add_short, leftc_pointer + 1, leftc_pointer, #$20
-        ;SET_RT_VAL_2 leftc_pointer + 1, leftc_pointer
-
-        ;LDY coord_x + 1
-        ;LDA [leftc_pointer], y
-        ;CMP #$00
-        ;BNE ncleft
-            STA rt_val_1
-            RTS
+        STA rt_val_1
+        LDA coord_x + 1
+        STA c_coord_x
+        LDA coord_y + 2
+        STA c_coord_y
+        LDA rt_val_1
+        RTS
     ncleft:
     STA rt_val_1
     RTS
@@ -22,16 +20,15 @@ check_collide_right:
     LDA [rightc_pointer], y
     CMP #$00
     BNE ncright
-        ;CALL_3 add_short, rightc_pointer + 1, rightc_pointer, #$20
-        ;SET_RT_VAL_2 rightc_pointer + 1, rightc_pointer
-        
-        ;LDY coord_x
-        ;INY
-        ;LDA [rightc_pointer], y
-        ;CMP #$00
-        ;BNE ncright
-            STA rt_val_1
-            RTS
+        STA rt_val_1
+        LDA coord_x
+        CLC
+        ADC #$01
+        STA c_coord_x
+        LDA coord_y + 2
+        STA c_coord_y
+        LDA rt_val_1
+        RTS
     ncright:
     STA rt_val_1
     RTS
@@ -50,10 +47,30 @@ check_collide_down:
         LDA [downc_pointer], y
         CMP #$00
         BNE ncdown
+            ;todo: clean this stuff up!
             STA rt_val_1
+
+            TYA
+            STA c_coord_x
+            LDA coord_y
+            CLC
+            ADC #$01
+            STA c_coord_y
+            LDA rt_val_1
+
             RTS
     ncdown:
+    ;todo: clean this stuff up!
     STA rt_val_1
+
+    TYA
+    STA c_coord_x
+    LDA coord_y
+    CLC
+    ADC #$01
+    STA c_coord_y
+    LDA rt_val_1
+    
     RTS
     ncdown2:
     LDA #$00
@@ -71,10 +88,24 @@ check_collide_up:
         LDA [upc_pointer], y
         CMP #$00
         BNE ncup
+            ;todo: clean this stuff up
             STA rt_val_1
+            LDA coord_x + 1
+            CLC
+            ADC #$01
+            STA c_coord_x
+            LDA coord_y
+            STA c_coord_y
+            LDA rt_val_1
             RTS
     ncup:
+    ;todo: clean this stuff up
     STA rt_val_1
+    LDA coord_x
+    STA c_coord_x
+    LDA coord_y
+    STA c_coord_y
+    LDA rt_val_1
     RTS
     ncup2:
     LDA #$00

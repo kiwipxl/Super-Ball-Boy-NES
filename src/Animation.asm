@@ -1,38 +1,47 @@
 ;creates a tile animation set with specified animation parameters
 ;input - (ani_label_hi, ani_label_lo, animation rate, loop (0 or > 0), tile_x, tile_y)
 create_tile_animation:
-	LDY ani_num_running
+	LDX ani_num_running
+	LDY #$00
 
-	;LDA \1
-	STA ani_num_frames, y
+	LDA param_3
+	STA ani_rate, x
 
-	;LDA \3
-	STA ani_rate, y
-	
-	;LDA \4
-	STA ani_loop, y
+	LDA param_4
+	STA ani_loop, x
 
 	LDA ani_num_running
 	ASL a
-	TAY
+	TAX
 
-	;LDA #HIGH(\2)
-	STA ani_frames + 1, y
+	LDA param_1 + 1
+	STA ani_frames, x
 
-	;LDA #LOW(\2)
-	STA ani_frames, y
+	LDA param_1
+	STA ani_frames + 1, x
 
-	;LDA \7
-	STA ani_VRAM_pointer, y
+	LDA [ani_frames], y
+	STA ani_num_frames, x
 
-	;LDA \7 + 1
-	STA ani_VRAM_pointer + 1, y
+	INC ani_frames, x
 
-	;CALL_3 mul_short, ani_VRAM_pointer, \6, #$20
-	;SET_RT_VAL_2 ani_VRAM_pointer, ani_VRAM_pointer + 1
+	LDA current_VRAM
+	STA ani_VRAM_pointer, x
 
-	;CALL_3 add_short, ani_VRAM_pointer, ani_VRAM_pointer + 1, \5
-	;SET_RT_VAL_2 ani_VRAM_pointer, ani_VRAM_pointer + 1
+	LDA current_VRAM + 1
+	STA ani_VRAM_pointer + 1, x
+
+	CALL_NESTED mul_short, ani_VRAM_pointer, param_6, #$20
+	CALL_NESTED add_short, rt_val_1, rt_val_2, param_5
+
+	LDA ani_num_running
+	ASL a
+	TAX
+
+	LDA rt_val_1
+	STA ani_VRAM_pointer, x
+	LDA rt_val_2
+	STA ani_VRAM_pointer + 1, x
 
 	LDA #$00
 	STA ani_frame_counter
@@ -44,7 +53,10 @@ create_tile_animation:
 	;DEBUG_BRK
 	;LDA ani_frames
 	;LDA ani_frames + 1
+	;LDA [ani_frames], y
 	;LDY #$01
+	;LDA current_VRAM
+	;LDA current_VRAM + 1
 	;LDA ani_VRAM_pointer
 	;LDA ani_VRAM_pointer + 1
 	;LDY #$02
@@ -64,8 +76,8 @@ create_tile_animation:
 
 update_animations:
 	LDX ani_num_running
+	BEQ ani_update_loop_end
 	ani_update_loop:
-		BEQ ani_update_loop_end
 		DEX
 
 		INC ani_frame_counter, x
@@ -83,10 +95,18 @@ update_animations:
 			BEQ cfgtnf     				;success if val_1 = val_2
 			BCC nfcgtrate              	;fail if no carry flag set
 			cfgtnf:
-				LDA #$00
-				STA ani_current_frame, x
+				LDA ani_loop, x
+				BEQ ani_remove
+					LDA #$00
+					STA ani_current_frame, x
+					JMP nfcgtrate
+				ani_remove:
+					DEC ani_num_running
 		nfcgtrate:
 
+		INX
+		DEX
+		BEQ ani_update_loop_end
 		JMP ani_update_loop
 	ani_update_loop_end:
 	

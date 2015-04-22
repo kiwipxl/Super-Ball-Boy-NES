@@ -80,6 +80,8 @@ speed_x             	.rs     2
 gravity             	.rs     2
 coord_x             	.rs     3
 coord_y             	.rs     3
+c_coord_x               .rs     1
+c_coord_y               .rs     1
 current_tile        	.rs     1
 scroll_x            	.rs     1
 scroll_y            	.rs     1
@@ -102,9 +104,8 @@ ani_num_frames 			.rs 	8 		;the amount of frames in the current animation, 1 byt
 ani_num_running 		.rs 	1 		;defines the current amount of animations running for all animations
 
 SPRING_ANI:
-	.db $04
-	SPRING_FRAMES:
-		.db $0A, $1A, $2A, $3A
+	.db $08
+	.db $0A, $1A, $2A, $3A, $3A, $2A, $1A, $0A
 
 	.include "src/SystemConstants.asm"
     .include "src/SystemMacros.asm"
@@ -305,7 +306,6 @@ load_sprites:
         BNE load_sprites_loop       ;continue loop if x register is not equal to 0, otherwise move down
 
 init_sprites:
-
     SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
     SET_POINTER_TO_LABEL VRAM_NT_1, current_VRAM, current_VRAM + 1
     LDA #$01
@@ -321,7 +321,7 @@ game_loop:
     vblank_wait_main:
         CMP vblank_counter         ;compare register a with the vblank counter
         BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
-        
+
 	;clamp speed_x
     CALL clamp_signed, speed_x, #$FE, #$02
     LDA rt_val_1
@@ -460,8 +460,6 @@ game_loop:
                 ASL a
                 STA pos_x
 
-                ;CALL_6 create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$08, #$00, coord_x, coord_y
-
                 LDA #$00
                 STA speed_x
     nscrightendif:
@@ -485,10 +483,12 @@ game_loop:
                 LDA rt_val_1
                 CMP #$0A
                 BNE elseif
-                    LDA #$FA
+                    LDA #$fe
                     STA gravity
                     LDA #$00
                     STA gravity + 1
+
+                    CALL create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$08, #$00, c_coord_x, c_coord_y
 
                     JMP nscdownendif
                 elseif:
@@ -662,21 +662,30 @@ NMI:
     ;animation nt pointers are set to the nt position in VRAM + tile offset position
     ;change tile to the animation frames pointer + current frame
 
-    LDA ani_num_running
-    ASL a
-    TAX
+    LDX ani_num_running
+    BEQ ani_render_loop_end
     ani_render_loop:
-        ;decreases y by 2 and lazily checks if it has overflowed, if it has go to the end of the render loop
         DEX
-        DEX
-        CPX #$FE
-        BEQ ani_render_loop_end
 
-        SET_POINTER_HI_LO ani_VRAM_pointer, PPU_ADDR, PPU_ADDR
-        LDY ani_current_frame
-        LDA [ani_frames], y
+        TXA
+        ASL a
+        TAY
+        LDA ani_VRAM_pointer, y                     ;gets the first byte of point_address (high byte)
+        STA PPU_ADDR                                ;store in high_byte_store
+        LDA ani_VRAM_pointer + 1, y                 ;gets the second byte of point_address (low byte)
+        STA PPU_ADDR                                ;store in low_byte_store
+
+        LDA ani_frames, y
+        STA temp
+        LDA ani_frames + 1, y
+        STA temp + 1
+        LDY ani_current_frame, x
+        LDA [temp], y
         STA PPU_DATA
 
+        INX
+        DEX
+        BEQ ani_render_loop_end
         JMP ani_render_loop
     ani_render_loop_end:
     SET_POINTER_TO_LABEL VRAM_NT_0, PPU_ADDR, PPU_ADDR

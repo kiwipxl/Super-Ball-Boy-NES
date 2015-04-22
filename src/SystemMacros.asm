@@ -14,6 +14,18 @@ DEBUG_BRK .macro
 ;input - (stack_starting_address (usually $0103 + num local variables))
 STACK_TO_PARAMS .macro
     TSX
+    .IF \?9
+        LDA \1 + 7, x
+        STA param_8
+    .ENDIF
+    .IF \?8
+        LDA \1 + 6, x
+        STA param_7
+    .ENDIF
+    .IF \?7
+        LDA \1 + 5, x
+        STA param_6
+    .ENDIF
     .IF \?6
         LDA \1 + 4, x
         STA param_5
@@ -106,6 +118,21 @@ ST_RT_VAL_IN .macro
 ;this macro is used to call functions from within other functions
 ;input - ([param1], [param2], [param3], [param4], [param5], [param6]) [] = optional
 CALL_NESTED .macro
+    .IF \?9
+        LDA \9
+        PHA
+        STA param_8
+    .ENDIF
+    .IF \?8
+        LDA \8
+        PHA
+        STA param_7
+    .ENDIF
+    .IF \?7
+        LDA \7
+        PHA
+        STA param_6
+    .ENDIF
     .IF \?6
         LDA \6
         PHA
@@ -134,6 +161,15 @@ CALL_NESTED .macro
 
     JSR \1
 
+    .IF \?9
+        PLA
+    .ENDIF
+    .IF \?8
+        PLA
+    .ENDIF
+    .IF \?7
+        PLA
+    .ENDIF
     .IF \?6
         PLA
     .ENDIF
@@ -157,6 +193,18 @@ CALL_NESTED .macro
 ;this macro is used to call functions that are not nested
 ;input - ([param1], [param2], [param3], [param4], [param5], [param6]) [] = optional
 CALL .macro
+    .IF \?9
+        LDA \9
+        STA param_8
+    .ENDIF
+    .IF \?8
+        LDA \8
+        STA param_7
+    .ENDIF
+    .IF \?7
+        LDA \7
+        STA param_6
+    .ENDIF
     .IF \?6
         LDA \6
         STA param_5
@@ -184,6 +232,8 @@ CALL .macro
 
 ;------------------------------------------------------------------------------------;
 ;pointer macros
+
+;todo: merge both of these
 
 ;macro to set a 16 bit LABel or PPU register into two separate bytes
 ;input - (point_address = PPU register or LABel, high_byte_store, low_byte_store)
