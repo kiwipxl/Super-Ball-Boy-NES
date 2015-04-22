@@ -335,14 +335,14 @@ game_loop:
 	;if speed_x is >= 1, then apply friction and slow it down by 64
     IF_SIGNED_GT_OR_EQU speed_x, #$01, posxgtelse
         CALL sub_short, speed_x, speed_x + 1, #$40
-        SET_RT_VAL_2 speed_x, speed_x + 1
+        ST_RT_VAL_IN speed_x, speed_x + 1
 		
     posxgtelse:
 	
 	;if speed_x is <= 255, then apply friction and slow it down by 64
     IF_SIGNED_LT_OR_EQU speed_x, #$FF, posxltelse
         CALL add_short, speed_x, speed_x + 1, #$40
-        SET_RT_VAL_2 speed_x, speed_x + 1
+        ST_RT_VAL_IN speed_x, speed_x + 1
     posxltelse:
 	
 	;add gravity to pos_y and set it as the player's y sprite position
@@ -401,19 +401,19 @@ game_loop:
 	
     SET_POINTER_HI_LO current_room, leftc_pointer + 1, leftc_pointer
     CALL mul_short, leftc_pointer + 1, coord_y + 2, #$20
-    SET_RT_VAL_2 leftc_pointer + 1, leftc_pointer
-    SET_RT_VAL_2 rightc_pointer + 1, rightc_pointer
+    ST_RT_VAL_IN leftc_pointer + 1, leftc_pointer
+    ST_RT_VAL_IN rightc_pointer + 1, rightc_pointer
 
     SET_POINTER_HI_LO current_room, downc_pointer + 1, downc_pointer
     CALL mul_short, downc_pointer + 1, coord_y, #$20
-    SET_RT_VAL_2 downc_pointer + 1, downc_pointer
+    ST_RT_VAL_IN downc_pointer + 1, downc_pointer
 
     SET_POINTER_HI_LO current_room, upc_pointer + 1, upc_pointer
     CALL mul_short, upc_pointer + 1, coord_y + 1, #$20
-    SET_RT_VAL_2 upc_pointer + 1, upc_pointer
+    ST_RT_VAL_IN upc_pointer + 1, upc_pointer
 
     CALL add_short, gravity, gravity + 1, #$40
-    SET_RT_VAL_2 gravity, gravity + 1
+    ST_RT_VAL_IN gravity, gravity + 1
 
     IF_UNSIGNED_GT pos_x, #$05, scleft
     JSR check_collide_left
@@ -422,7 +422,7 @@ game_loop:
         scleft:
         LEFT_BUTTON_DOWN lbnotdown
             CALL sub_short, speed_x, speed_x + 1, #$80
-            SET_RT_VAL_2 speed_x, speed_x + 1
+            ST_RT_VAL_IN speed_x, speed_x + 1
         lbnotdown:
         JMP nscleftendif
     nscleftelse:
@@ -447,7 +447,7 @@ game_loop:
         scright:
         RIGHT_BUTTON_DOWN rbnotdown
             CALL add_short, speed_x, speed_x + 1, #$80
-            SET_RT_VAL_2 speed_x, speed_x + 1
+            ST_RT_VAL_IN speed_x, speed_x + 1
         rbnotdown:
         JMP nscrightendif
     nscrightelse:

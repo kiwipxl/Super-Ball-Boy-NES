@@ -87,26 +87,24 @@ POP_6 .macro
     TXS
     .endm
 
-;macro that that stores the first return value into one address/variable
-;input - (address_1)
-SET_RT_VAL_1 .macro
-    LDA rt_val_1
-    STA \1
-    .endm
+;macro that that stores return values into addresses/variables
+;input - ([val_1], [val_2]) [] = optional
+ST_RT_VAL_IN .macro
+    .IF \?1
+        LDA rt_val_1
+        STA \1
+    .ENDIF
+    .IF \?2
+        LDA rt_val_2
+        STA \2
+    .ENDIF
 
-;macro that stores the first and second return values into two different addresses/variables
-;input - (address_1, address_2)
-SET_RT_VAL_2 .macro
-    LDA rt_val_1
-    STA \1
-    LDA rt_val_2
-    STA \2
     .endm
 
 ;macro to push the specified amount of parameters to the stack, call the specified function and then pop the parameters
 ;from the stack
 ;this macro is used to call functions from within other functions
-;input - (param1, [param2], [param3], [param4], [param5], [param6]) [] = optional
+;input - ([param1], [param2], [param3], [param4], [param5], [param6]) [] = optional
 CALL_NESTED .macro
     .IF \?6
         LDA \6
@@ -157,7 +155,7 @@ CALL_NESTED .macro
 ;macro to store all specified parameters in zero page rather than in stack and call a specified function
 ;note - this macro should not be called within other functions as parameters may be overwritten, therefore
 ;this macro is used to call functions that are not nested
-;input - (param1, [param2], [param3], [param4], [param5], [param6]) [] = optional
+;input - ([param1], [param2], [param3], [param4], [param5], [param6]) [] = optional
 CALL .macro
     .IF \?6
         LDA \6

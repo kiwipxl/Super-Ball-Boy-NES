@@ -38,7 +38,7 @@ check_collide_right:
 
 check_collide_down:
     CALL add_short, downc_pointer + 1, downc_pointer, #$20
-    SET_RT_VAL_2 downc_pointer + 1, downc_pointer
+    ST_RT_VAL_IN downc_pointer + 1, downc_pointer
 
     LDY coord_x
     LDA [downc_pointer], y
