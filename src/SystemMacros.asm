@@ -92,7 +92,7 @@ STORE_PAR_6 .macro
     STA param_6
 
     .endm
-    
+
 ;macro that pops 1 value from the stack
 POP_1 .macro
     PLA
@@ -159,28 +159,35 @@ SET_RT_VAL_2 .macro
     STA \2
     .endm
 
-;macro to push the specified amount of parameters, call the specified function and then pop the parameters
+;macro to push the specified amount of parameters to the stack, call the specified function and then pop the parameters
+;from the stack
+;this macro is used to call functions from within other functions
 ;input - (param1, [param2], [param3], [param4], [param5], [param6]) [] = optional
-CALL .macro
+CALL_NESTED .macro
     .IF \?6
         LDA \6
         PHA
+        STORE_PAR_5 $0103   ;temp
     .ENDIF
     .IF \?5
         LDA \5
         PHA
+        STORE_PAR_4 $0103   ;temp
     .ENDIF
     .IF \?4
         LDA \4
         PHA
+        STORE_PAR_3 $0103   ;temp
     .ENDIF
     .IF \?3
         LDA \3
         PHA
+        STORE_PAR_2 $0103   ;temp
     .ENDIF
     .IF \?2
         LDA \2
         PHA
+        STORE_PAR_1 $0103   ;temp
     .ENDIF
 
     JSR \1
@@ -204,9 +211,10 @@ CALL .macro
     .endm
 
 ;macro to store all specified parameters in zero page rather than in stack and call a specified function
-;note - this function should not be called within other functions as parameters may be overwritten
+;note - this macro should not be called within other functions as parameters may be overwritten, therefore
+;this macro is used to call functions that are not nested
 ;input - (param1, [param2], [param3], [param4], [param5], [param6]) [] = optional
-CALL_ZP .macro
+CALL .macro
     .IF \?6
         LDA \6
         STA param_5

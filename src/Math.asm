@@ -3,12 +3,12 @@
 add_short:
     TSX
 
-    LDA $0104, x                    ;load low 8 bits of 16 bit value (parameter 2)
+    LDA param_2                     ;load low 8 bits of 16 bit value
     CLC                             ;clear carry before adding with carry
-    ADC $0105, x                    ;add a by parameter 3
+    ADC param_3                     ;add a by param 3
     STA rt_val_2                    ;store low 8 bit result back
 
-    LDA $0103, x                    ;load upper 8 bits
+    LDA param_1                     ;load upper 8 bits
     ADC #$00                        ;add a by #$00 + the previous carry (0 or 1)
     STA rt_val_1                    ;store upper 8 bits result back
 
@@ -19,27 +19,28 @@ add_short:
 sub_short:
     TSX
 
-    LDA $0104, x                    ;load low 8 bits of 16 bit value (parameter 2)
+    LDA param_2                     ;load low 8 bits of 16 bit value (parameter 2)
     SEC                             ;set the carry to 1 before subtracting with carry
-    SBC $0105, x                    ;subtract a by parameter 3
+    SBC param_3                     ;subtract a by parameter 3
     STA rt_val_2                    ;store low 8 bit result back
 
-    LDA $0103, x                    ;load parameter 1
+    LDA param_1                     ;load parameter 1
     SBC #$00                        ;subtract by #$00 + the previous carry (0 or 1)
     STA rt_val_1                    ;store upper 8 bits result back
 
     RTS
     
 mul_byte:
-    STORE_PAR_2 $0103
+    LDA param_2
+    STA temp
 
-    LDY $0103, x
+    LDY param_1
     mul_add_loop:
         DEY
         BEQ mul_end_add_loop
         LDA param_2
         CLC
-        ADC $0104, x
+        ADC temp
         STA param_2
         JMP mul_add_loop
     mul_end_add_loop:
@@ -50,7 +51,8 @@ mul_byte:
     RTS
 
 mul_short:
-    STORE_PAR_3 $0103
+    LDA param_2
+    STA temp
 
     LDY param_3
     mul16_add_loop:
@@ -59,12 +61,12 @@ mul_short:
 
         LDA param_2                     ;load low 8 bits of 16 bit value (parameter 2)
         CLC                             ;clear carry before adding with carry
-        ADC $0104, x                     ;add a by parameter 3
+        ADC temp                        ;add a by parameter 3
         STA param_2                     ;store low 8 bit result back
 
         LDA param_1                     ;load upper 8 bits
         ADC #$00                        ;add a by #$00 + the previous carry (0 or 1)
-        STA param_1                    ;store upper 8 bits result back
+        STA param_1                     ;store upper 8 bits result back
 
         JMP mul16_add_loop
     mul16_end_add_loop:
@@ -96,8 +98,6 @@ div_byte:
     ;result ($0101, x)
     LDA #$00
     PHA
-
-    STORE_PAR_2 $0103                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
     
     ;check if divisor is = dividend
     IF_EQU param_2, param_1, divddequ
@@ -196,7 +196,7 @@ div_short:
     STORE_PAR_3 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
 
     ;divide high byte by divisor (param_3)
-    CALL_2 div_byte, param_1, param_3
+    CALL_NESTED div_byte, param_1, param_3
     TSX
     
     ;store division result in hbresult
@@ -212,7 +212,7 @@ div_short:
     STORE_PAR_3 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
 
     ;divide low byte by divisor (param_3)
-    CALL_2 div_byte, param_2, param_3
+    CALL_NESTED div_byte, param_2, param_3
     TSX
 
     ;store division result in lbresult
@@ -225,7 +225,7 @@ div_short:
     ;multiply the division remainder of the high byte (temp + 0) by 256 / divisor (rt_val_1)
 
     ;divide 256 by divisor (param_3)
-    CALL_2 div_byte, #$FF, param_3
+    CALL_NESTED div_byte, #$FF, param_3
 
     STORE_PAR_3 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
 
@@ -269,8 +269,6 @@ div_short:
 ;(byte, min, max)
 ;example - (my_val, #$04, #$FB)
 clamp_signed:
-    STORE_PAR_3 $0103
-
     IF_SIGNED_GT param_2, param_1, valnotgtmin
         STA param_1
     valnotgtmin:

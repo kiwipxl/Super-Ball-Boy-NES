@@ -37,7 +37,7 @@ check_collide_right:
     RTS
 
 check_collide_down:
-    CALL_3 add_short, downc_pointer + 1, downc_pointer, #$20
+    CALL add_short, downc_pointer + 1, downc_pointer, #$20
     SET_RT_VAL_2 downc_pointer + 1, downc_pointer
 
     LDY coord_x

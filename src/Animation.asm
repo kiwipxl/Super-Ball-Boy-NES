@@ -64,8 +64,10 @@ create_tile_animation:
 
 update_animations:
 	LDX ani_num_running
-	DEX
 	ani_update_loop:
+		BEQ ani_update_loop_end
+		DEX
+
 		INC ani_frame_counter, x
 		LDA ani_frame_counter, x
 		CMP ani_rate, x              	;sets carry flag if val_1 >= val_2
@@ -85,9 +87,6 @@ update_animations:
 				STA ani_current_frame, x
 		nfcgtrate:
 
-		INX
-		DEX
-		BEQ ani_update_loop_end
 		JMP ani_update_loop
 	ani_update_loop_end:
 	

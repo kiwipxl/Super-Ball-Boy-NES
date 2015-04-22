@@ -156,8 +156,6 @@ RESET:
     ;    DEBUG_BRK
     ;    LDY #$02
 
-    CALL_1 vblank_wait, #$04
-    
     JSR vblank_wait                 ;first vblank wait to make sure the PPU is warming up
 
 ;------------------------------------------------------------------------------------;
@@ -307,6 +305,7 @@ load_sprites:
         BNE load_sprites_loop       ;continue loop if x register is not equal to 0, otherwise move down
 
 init_sprites:
+
     SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
     SET_POINTER_TO_LABEL VRAM_NT_1, current_VRAM, current_VRAM + 1
     LDA #$01
@@ -322,27 +321,27 @@ game_loop:
     vblank_wait_main:
         CMP vblank_counter         ;compare register a with the vblank counter
         BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
-	
+        
 	;clamp speed_x
-    CALL_3 clamp_signed, speed_x, #$FE, #$02
+    CALL clamp_signed, speed_x, #$FE, #$02
     LDA rt_val_1
     STA speed_x
 
     ;clamp gravity
-    CALL_3 clamp_signed, gravity, #$FB, #$07
+    CALL clamp_signed, gravity, #$FB, #$07
     LDA rt_val_1
     STA gravity
 	
 	;if speed_x is >= 1, then apply friction and slow it down by 64
     IF_SIGNED_GT_OR_EQU speed_x, #$01, posxgtelse
-        CALL_3 sub_short, speed_x, speed_x + 1, #$40
+        CALL sub_short, speed_x, speed_x + 1, #$40
         SET_RT_VAL_2 speed_x, speed_x + 1
 		
     posxgtelse:
 	
 	;if speed_x is <= 255, then apply friction and slow it down by 64
     IF_SIGNED_LT_OR_EQU speed_x, #$FF, posxltelse
-        CALL_3 add_short, speed_x, speed_x + 1, #$40
+        CALL add_short, speed_x, speed_x + 1, #$40
         SET_RT_VAL_2 speed_x, speed_x + 1
     posxltelse:
 	
@@ -401,19 +400,19 @@ game_loop:
     STA coord_y + 2
 	
     SET_POINTER_HI_LO current_room, leftc_pointer + 1, leftc_pointer
-    CALL_3 mul_short, leftc_pointer + 1, coord_y + 2, #$20
+    CALL mul_short, leftc_pointer + 1, coord_y + 2, #$20
     SET_RT_VAL_2 leftc_pointer + 1, leftc_pointer
     SET_RT_VAL_2 rightc_pointer + 1, rightc_pointer
 
     SET_POINTER_HI_LO current_room, downc_pointer + 1, downc_pointer
-    CALL_3 mul_short, downc_pointer + 1, coord_y, #$20
+    CALL mul_short, downc_pointer + 1, coord_y, #$20
     SET_RT_VAL_2 downc_pointer + 1, downc_pointer
 
     SET_POINTER_HI_LO current_room, upc_pointer + 1, upc_pointer
-    CALL_3 mul_short, upc_pointer + 1, coord_y + 1, #$20
+    CALL mul_short, upc_pointer + 1, coord_y + 1, #$20
     SET_RT_VAL_2 upc_pointer + 1, upc_pointer
 
-    CALL_3 add_short, gravity, gravity + 1, #$40
+    CALL add_short, gravity, gravity + 1, #$40
     SET_RT_VAL_2 gravity, gravity + 1
 
     IF_UNSIGNED_GT pos_x, #$05, scleft
@@ -422,7 +421,7 @@ game_loop:
     BNE nscleftelse
         scleft:
         LEFT_BUTTON_DOWN lbnotdown
-            CALL_3 sub_short, speed_x, speed_x + 1, #$80
+            CALL sub_short, speed_x, speed_x + 1, #$80
             SET_RT_VAL_2 speed_x, speed_x + 1
         lbnotdown:
         JMP nscleftendif
@@ -447,7 +446,7 @@ game_loop:
     BNE nscrightelse
         scright:
         RIGHT_BUTTON_DOWN rbnotdown
-            CALL_3 add_short, speed_x, speed_x + 1, #$80
+            CALL add_short, speed_x, speed_x + 1, #$80
             SET_RT_VAL_2 speed_x, speed_x + 1
         rbnotdown:
         JMP nscrightendif
