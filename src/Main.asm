@@ -96,12 +96,14 @@ ani_VRAM_pointer 		.rs 	16 		;stores hi + lo byte pointers to a nametable which 
 	;store animation array with a 256 byte offset with a max amount of 8 running animations
 	.rsset $0100
 	
-ani_rate 				.rs 	8 		;frame rate byte that defines how often the animation will run per frame, 1 byte per animation
+ani_rate 				.rs 	8 		;frame rate byte that defines how often the animation will run per frame, 1 byte per animatio
 ani_frame_counter 		.rs 	8 		;frame counter that increases every frame, 1 byte per animation
 ani_current_frame 		.rs 	8 		;byte that defines the current frame of the animation, 1 byte per animation
 ani_loop 				.rs 	8 		;defines whether the animation will loop or not, 1 byte per animation
 ani_num_frames 			.rs 	8 		;the amount of frames in the current animation, 1 byte per animation
-ani_num_running 		.rs 	1 		;defines the current amount of animations running for all animations
+ani_active              .rs     8       ;defines whether the animation is currently playing or not, 1 byte per animation
+ani_max:
+    .db $08
 
 SPRING_ANI:
 	.db $08
@@ -311,6 +313,8 @@ init_sprites:
     LDA #$01
     STA scroll_x_type
 
+    JSR init_animations
+
     JMP game_loop
 
 ;------------------------------------------------------------------------------------;
@@ -483,12 +487,12 @@ game_loop:
                 LDA rt_val_1
                 CMP #$0A
                 BNE elseif
-                    LDA #$fe
+                    LDA #$FA
                     STA gravity
                     LDA #$00
                     STA gravity + 1
 
-                    CALL create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$08, #$00, c_coord_x, c_coord_y
+                    CALL create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$02, #$00, c_coord_x, c_coord_y
 
                     JMP nscdownendif
                 elseif:
@@ -656,16 +660,13 @@ NMI:
     STA OAM_DMA                    ;stores OAM_RAM_ADDR to high byte of OAM_DMA
     ;CPU is now suspended and transfer begins
 
-    ;pseudo
-    ;loop through animations here
-    ;can check if animation is updated or not by setting a value on the next animation frame change
-    ;animation nt pointers are set to the nt position in VRAM + tile offset position
-    ;change tile to the animation frames pointer + current frame
-
-    LDX ani_num_running
+    LDX ani_max
     BEQ ani_render_loop_end
     ani_render_loop:
         DEX
+
+        LDA ani_active, x
+        BEQ ani_chk_if_zero
 
         TXA
         ASL a
@@ -683,6 +684,7 @@ NMI:
         LDA [temp], y
         STA PPU_DATA
 
+        ani_chk_if_zero:
         INX
         DEX
         BEQ ani_render_loop_end
