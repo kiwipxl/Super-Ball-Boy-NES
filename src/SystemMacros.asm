@@ -9,87 +9,31 @@ DEBUG_BRK .macro
 ;------------------------------------------------------------------------------------;
 ;stack and function macros
 
-;macro to store 1 parameter from the stack into the param_1 variable
-;used at the start of functions to load stack parameters into param variables
-STORE_PAR_1 .macro
+;macro to store parameters from the stack into the zero page param variables
+;used to transfer stack values into params
+;input - (stack_starting_address (usually $0103 + num local variables))
+STACK_TO_PARAMS .macro
     TSX
-    LDA \1, x
-    STA param_1
-
-    .endm
-
-;macro to store 2 parameters from the stack into the param_1 and param_2 variables
-;used at the start of functions to load stack parameters into param variables
-STORE_PAR_2 .macro
-    TSX
-    LDA \1, x
-    STA param_1
-    LDA \1 + 1, x
-    STA param_2
-
-    .endm
-
-;macro to store 3 parameters from the stack into the param_1, param_2 and param_3 variables
-;used at the start of functions to load stack parameters into param variables
-STORE_PAR_3 .macro
-    TSX
-    LDA \1, x
-    STA param_1
-    LDA \1 + 1, x
-    STA param_2
-    LDA \1 + 2, x
-    STA param_3
-
-    .endm
-
-;macro to store 4 parameters from the stack into the param_1, param_2, param_3 and param_4 variables
-;used at the start of functions to load stack parameters into param variables
-STORE_PAR_4 .macro
-    TSX
-    LDA \1, x
-    STA param_1
-    LDA \1 + 1, x
-    STA param_2
-    LDA \1 + 2, x
-    STA param_3
-	LDA \1 + 3, x
-    STA param_4
-	
-    .endm
-
-;macro to store 5 parameters from the stack into the param_1, param_2, param_3, param_4 and param_5 variables
-;used at the start of functions to load stack parameters into param variables
-STORE_PAR_5 .macro
-    TSX
-    LDA \1, x
-    STA param_1
-    LDA \1 + 1, x
-    STA param_2
-    LDA \1 + 2, x
-    STA param_3
-    LDA \1 + 3, x
-    STA param_4
-    LDA \1 + 4, x
-    STA param_5
-
-    .endm
-
-;macro to store 6 parameters from the stack into the param_1, param_2, param_3, param_4, param_5 and param_6 variables
-;used at the start of functions to load stack parameters into param variables
-STORE_PAR_6 .macro
-    TSX
-    LDA \1, x
-    STA param_1
-    LDA \1 + 1, x
-    STA param_2
-    LDA \1 + 2, x
-    STA param_3
-    LDA \1 + 3, x
-    STA param_4
-    LDA \1 + 4, x
-    STA param_5
-    LDA \1 + 5, x
-    STA param_6
+    .IF \?6
+        LDA \1 + 4, x
+        STA param_5
+    .ENDIF
+    .IF \?5
+        LDA \1 + 3, x
+        STA param_4
+    .ENDIF
+    .IF \?4
+        LDA \1 + 2, x
+        STA param_3
+    .ENDIF
+    .IF \?3
+        LDA \1 + 1, x
+        STA param_2
+    .ENDIF
+    .IF \?2
+        LDA \1, x
+        STA param_1
+    .ENDIF
 
     .endm
 
@@ -167,27 +111,27 @@ CALL_NESTED .macro
     .IF \?6
         LDA \6
         PHA
-        STORE_PAR_5 $0103   ;temp
+        STA param_5
     .ENDIF
     .IF \?5
         LDA \5
         PHA
-        STORE_PAR_4 $0103   ;temp
+        STA param_4
     .ENDIF
     .IF \?4
         LDA \4
         PHA
-        STORE_PAR_3 $0103   ;temp
+        STA param_3
     .ENDIF
     .IF \?3
         LDA \3
         PHA
-        STORE_PAR_2 $0103   ;temp
+        STA param_2
     .ENDIF
     .IF \?2
         LDA \2
         PHA
-        STORE_PAR_1 $0103   ;temp
+        STA param_1
     .ENDIF
 
     JSR \1

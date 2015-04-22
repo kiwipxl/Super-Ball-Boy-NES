@@ -121,7 +121,7 @@ div_byte:
         JMP end_div
     div_no_equ0:
 
-    STORE_PAR_2 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
+    STACK_TO_PARAMS $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
 
     ;keep looping and bitshifting left until divisor > dividend
     div_shift_loop:
@@ -193,7 +193,7 @@ div_short:
 
     ;----------------------------------------
 
-    STORE_PAR_3 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
+    STACK_TO_PARAMS $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
 
     ;divide high byte by divisor (param_3)
     CALL_NESTED div_byte, param_1, param_3
@@ -209,7 +209,7 @@ div_short:
 
     ;----------------------------------------
 
-    STORE_PAR_3 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
+    STACK_TO_PARAMS $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
 
     ;divide low byte by divisor (param_3)
     CALL_NESTED div_byte, param_2, param_3
@@ -227,7 +227,7 @@ div_short:
     ;divide 256 by divisor (param_3)
     CALL_NESTED div_byte, #$FF, param_3
 
-    STORE_PAR_3 $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
+    STACK_TO_PARAMS $0105                   ;get params from stack and store them in param variables ($0103 + 2 local variables)
 
     LDY temp
     BEQ mul_divadd_loop_end
