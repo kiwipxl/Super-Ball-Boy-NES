@@ -102,10 +102,10 @@ ani_num_frames 			.rs 	8 		;the amount of frames in the current animation, 1 byt
 ani_num_running 		.rs 	1 		;defines the current amount of animations running for all animations
 
 SPRING_ANI:
-	.db $02
+	.db $04
 	SPRING_FRAMES:
-		.db $01, $02
-		
+		.db $0A, $1A, $2A, $3A
+
 	.include "src/SystemConstants.asm"
     .include "src/SystemMacros.asm"
     .include "src/Math.asm"
@@ -156,6 +156,8 @@ RESET:
     ;    DEBUG_BRK
     ;    LDY #$02
 
+    CALL_1 vblank_wait, #$04
+    
     JSR vblank_wait                 ;first vblank wait to make sure the PPU is warming up
 
 ;------------------------------------------------------------------------------------;
@@ -229,7 +231,6 @@ load_nametable:
                 LDA [nt_pointer], y         ;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
                 CMP #$07
                 BNE ntcmpendif
-                    DEBUG_BRK
                     LDA temp
                     ASL a
                     ASL a
@@ -310,8 +311,6 @@ init_sprites:
     SET_POINTER_TO_LABEL VRAM_NT_1, current_VRAM, current_VRAM + 1
     LDA #$01
     STA scroll_x_type
-	
-	CREATE_TILE_ANIMATION SPRING_ANI, SPRING_FRAMES, #$09, #$00, #$10, #$08, current_VRAM
 
     JMP game_loop
 
@@ -462,6 +461,8 @@ game_loop:
                 ASL a
                 STA pos_x
 
+                ;CALL_6 create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$08, #$00, coord_x, coord_y
+
                 LDA #$00
                 STA speed_x
     nscrightendif:
@@ -489,6 +490,7 @@ game_loop:
                     STA gravity
                     LDA #$00
                     STA gravity + 1
+
                     JMP nscdownendif
                 elseif:
                     LDA #$FD
@@ -663,16 +665,16 @@ NMI:
 
     LDA ani_num_running
     ASL a
-    TAY
+    TAX
     ani_render_loop:
         ;decreases y by 2 and lazily checks if it has overflowed, if it has go to the end of the render loop
-        DEY
-        DEY
-        CPY #$FE
+        DEX
+        DEX
+        CPX #$FE
         BEQ ani_render_loop_end
 
         SET_POINTER_HI_LO ani_VRAM_pointer, PPU_ADDR, PPU_ADDR
-        DEBUG_BRK
+        LDY ani_current_frame
         LDA [ani_frames], y
         STA PPU_DATA
 

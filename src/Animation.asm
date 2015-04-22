@@ -1,39 +1,39 @@
 ;creates a tile animation set with specified animation parameters
-;input - (ani_label, frame_label, animation rate, loop (0 or > 0), tile_x, tile_y, nt_pointer_hi)
-CREATE_TILE_ANIMATION .macro
+;input - (ani_label_hi, ani_label_lo, animation rate, loop (0 or > 0), tile_x, tile_y)
+create_tile_animation:
 	LDY ani_num_running
 
-	LDA \1
+	;LDA \1
 	STA ani_num_frames, y
 
-	LDA \3
+	;LDA \3
 	STA ani_rate, y
 	
-	LDA \4
+	;LDA \4
 	STA ani_loop, y
 
 	LDA ani_num_running
 	ASL a
 	TAY
 
-	LDA #HIGH(\2)
+	;LDA #HIGH(\2)
 	STA ani_frames + 1, y
 
-	LDA #LOW(\2)
+	;LDA #LOW(\2)
 	STA ani_frames, y
 
-	LDA \7
+	;LDA \7
 	STA ani_VRAM_pointer, y
 
-	LDA \7 + 1
+	;LDA \7 + 1
 	STA ani_VRAM_pointer + 1, y
 
-	CALL_3 mul_short, ani_VRAM_pointer, \6, #$20
-	SET_RT_VAL_2 ani_VRAM_pointer, ani_VRAM_pointer + 1
+	;CALL_3 mul_short, ani_VRAM_pointer, \6, #$20
+	;SET_RT_VAL_2 ani_VRAM_pointer, ani_VRAM_pointer + 1
 
-	CALL_3 add_short, ani_VRAM_pointer, ani_VRAM_pointer + 1, \5
-	SET_RT_VAL_2 ani_VRAM_pointer, ani_VRAM_pointer + 1
-	
+	;CALL_3 add_short, ani_VRAM_pointer, ani_VRAM_pointer + 1, \5
+	;SET_RT_VAL_2 ani_VRAM_pointer, ani_VRAM_pointer + 1
+
 	LDA #$00
 	STA ani_frame_counter
 	STA ani_current_frame
@@ -59,22 +59,24 @@ CREATE_TILE_ANIMATION .macro
 	;LDA ani_num_frames
 	;LDY #$40
 	;LDA ani_num_running
-	
-	.endm
-	
+
+	RTS
+
 update_animations:
 	LDX ani_num_running
+	DEX
 	ani_update_loop:
 		INC ani_frame_counter, x
-		;LDA ani_frame_counter, x
+		LDA ani_frame_counter, x
 		CMP ani_rate, x              	;sets carry flag if val_1 >= val_2
 		BEQ fcgtrate     				;success if val_1 = val_2
 		BCC nfcgtrate              		;fail if no carry flag set
 		fcgtrate:
 			LDA #$00
 			STA ani_frame_counter, x
-			
+
 			INC ani_current_frame, x
+			LDA ani_current_frame, x
 			CMP ani_num_frames, x       ;sets carry flag if val_1 >= val_2
 			BEQ cfgtnf     				;success if val_1 = val_2
 			BCC nfcgtrate              	;fail if no carry flag set
@@ -82,27 +84,8 @@ update_animations:
 				LDA #$00
 				STA ani_current_frame, x
 		nfcgtrate:
-		
-		;LDY ani_current_frame, x
-		;LDA [ani_frames], y
-		;STA temp
-		
-		;TXA
-		;ASL a
-		;TAY
-		
-		;LDA ani_tile_pos, y
-		;STA temp + 1
-		
-		;SET_POINTER_HI_LO ani_VRAM_pointer, nt_pointer + 1, nt_pointer
-		;CALL_3 mul_short, nt_pointer + 1, temp + 1, #$20
-		;SET_RT_VAL_2 nt_pointer + 1, nt_pointer
-		
-		;LDA ani_tile_pos + 1, y
-		;TAY
-		;LDA temp
-		;STA [nt_pointer], y
-		
+
+		INX
 		DEX
 		BEQ ani_update_loop_end
 		JMP ani_update_loop
