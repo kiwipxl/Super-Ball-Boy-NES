@@ -17,35 +17,36 @@ CREATE_TILE_ANIMATION .macro
 	TAY
 
 	LDA #HIGH(\2)
-	STA ani_frames, y
-
-	LDA #LOW(\2)
 	STA ani_frames + 1, y
 
+	LDA #LOW(\2)
+	STA ani_frames, y
+
 	LDA \7
-	STA ani_nt_pointer, y
+	STA ani_VRAM_pointer, y
 
 	LDA \7 + 1
-	STA ani_nt_pointer + 1, y
+	STA ani_VRAM_pointer + 1, y
 
-	CALL_3 add_short, ani_nt_pointer, ani_nt_pointer + 1, \5
-	SET_RT_VAL_2 ani_nt_pointer, ani_nt_pointer + 1
+	CALL_3 mul_short, ani_VRAM_pointer, \6, #$20
+	SET_RT_VAL_2 ani_VRAM_pointer, ani_VRAM_pointer + 1
 
-	CALL_3 mul_short, ani_nt_pointer, \6, #$20
-	SET_RT_VAL_2 ani_nt_pointer, ani_nt_pointer + 1
-
+	CALL_3 add_short, ani_VRAM_pointer, ani_VRAM_pointer + 1, \5
+	SET_RT_VAL_2 ani_VRAM_pointer, ani_VRAM_pointer + 1
+	
 	LDA #$00
 	STA ani_frame_counter
 	STA ani_current_frame
 
 	INC ani_num_running
 
+	;debugging stuff
 	;DEBUG_BRK
 	;LDA ani_frames
 	;LDA ani_frames + 1
 	;LDY #$01
-	;LDA ani_nt_pointer
-	;LDA ani_nt_pointer + 1
+	;LDA ani_VRAM_pointer
+	;LDA ani_VRAM_pointer + 1
 	;LDY #$02
 	;LDA ani_rate
 	;LDY #$04
@@ -93,7 +94,7 @@ update_animations:
 		;LDA ani_tile_pos, y
 		;STA temp + 1
 		
-		;SET_POINTER_HI_LO ani_nt_pointer, nt_pointer + 1, nt_pointer
+		;SET_POINTER_HI_LO ani_VRAM_pointer, nt_pointer + 1, nt_pointer
 		;CALL_3 mul_short, nt_pointer + 1, temp + 1, #$20
 		;SET_RT_VAL_2 nt_pointer + 1, nt_pointer
 		

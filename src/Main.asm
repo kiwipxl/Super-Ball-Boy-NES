@@ -27,11 +27,9 @@
     .org $e000                        ;place all program code at the third quarter of ROM (e000 - fffa, offset: 24kb)
 
 LEVEL_1_MAP_0:
-	.incbin "assets/level-1/map0.nam"
+	.incbin "assets/level-1/chamber1_room1.nam"
 LEVEL_1_MAP_1:
-	.incbin "assets/level-1/map1.nam"
-LEVEL_1_MAP_2:
-	.incbin "assets/level-1/map2.nam"
+	.incbin "assets/level-1/chamber1_room2.nam"
 
 PALETTE:
 	.incbin "assets/level-palette.pal"
@@ -48,23 +46,23 @@ SPRITES_DATA_LEN    = NUM_SPRITES * 4
     .rsset $0000
 	
 ;local params used to store inputs from functions - note that these params may be modified when a function with a input is called
-param_1             .rs     1
-param_2             .rs     1
-param_3             .rs     1
-param_4             .rs     1
-param_5             .rs     1
-param_6             .rs     1
-param_7             .rs     1
-param_8             .rs     1
+param_1                 .rs     1
+param_2                 .rs     1
+param_3                 .rs     1
+param_4                 .rs     1
+param_5                 .rs     1
+param_6                 .rs     1
+param_7                 .rs     1
+param_8                 .rs     1
 
 ;return values used for functions that have an output / multiple outputs
-rt_val_1            .rs     1
-rt_val_2            .rs     1
-rt_val_3            .rs     1
-rt_val_4            .rs     1
+rt_val_1                .rs     1
+rt_val_2                .rs     1
+rt_val_3                .rs     1
+rt_val_4                .rs     1
 
 ;temporary value that can be modified at any time
-temp                .rs     6
+temp                    .rs     6
 
 	;store game variables in zero page with a 16 byte offset
 	.rsset $0010
@@ -91,7 +89,7 @@ scroll_x_type       	.rs     1
 player_spawn        	.rs     2
 
 ani_frames 				.rs 	16 		;store hi + lo byte pointer to pre-built animation, 2 bytes per animation
-ani_nt_pointer 			.rs 	16 		;stores hi + lo byte pointers to a nametable which tile animations will use, 2 bytes per animation
+ani_VRAM_pointer 		.rs 	16 		;stores hi + lo byte pointers to a nametable which tile animations will use, 2 bytes per animation
 
 	;store animation array with a 256 byte offset with a max amount of 8 running animations
 	.rsset $0100
@@ -313,7 +311,7 @@ init_sprites:
     LDA #$01
     STA scroll_x_type
 	
-	CREATE_TILE_ANIMATION SPRING_ANI, SPRING_FRAMES, #$09, #$00, #$10, #$04, current_VRAM
+	CREATE_TILE_ANIMATION SPRING_ANI, SPRING_FRAMES, #$09, #$00, #$10, #$08, current_VRAM
 
     JMP game_loop
 
@@ -656,17 +654,36 @@ NMI:
     LDA #HIGH(OAM_RAM_ADDR)
     STA OAM_DMA                    ;stores OAM_RAM_ADDR to high byte of OAM_DMA
     ;CPU is now suspended and transfer begins
-	
-    LDA scroll_x
-    STA $2005
-    LDA scroll_y
-    STA $2005
 
     ;pseudo
     ;loop through animations here
     ;can check if animation is updated or not by setting a value on the next animation frame change
     ;animation nt pointers are set to the nt position in VRAM + tile offset position
     ;change tile to the animation frames pointer + current frame
+
+    LDA ani_num_running
+    ASL a
+    TAY
+    ani_render_loop:
+        ;decreases y by 2 and lazily checks if it has overflowed, if it has go to the end of the render loop
+        DEY
+        DEY
+        CPY #$FE
+        BEQ ani_render_loop_end
+
+        SET_POINTER_HI_LO ani_VRAM_pointer, PPU_ADDR, PPU_ADDR
+        DEBUG_BRK
+        LDA [ani_frames], y
+        STA PPU_DATA
+
+        JMP ani_render_loop
+    ani_render_loop_end:
+    SET_POINTER_TO_LABEL VRAM_NT_0, PPU_ADDR, PPU_ADDR
+
+    LDA scroll_x
+    STA $2005
+    LDA scroll_y
+    STA $2005
 
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 	
