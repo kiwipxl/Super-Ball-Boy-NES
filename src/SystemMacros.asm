@@ -233,29 +233,36 @@ CALL .macro
 ;------------------------------------------------------------------------------------;
 ;pointer macros
 
-;todo: merge both of these
-
-;macro to set a 16 bit LABel or PPU register into two separate bytes
-;input - (point_address = PPU register or LABel, high_byte_store, low_byte_store)
-SET_POINTER_TO_LABEL .macro
-    LDA #HIGH(\1)                   ;gets the high byte of point_address
-    STA \2                          ;store in high_byte_store
-    LDA #LOW(\1)                    ;gets the low byte of point_address
-    STA \3                          ;store in low_byte_store
-
-    .endm
-
-;macro to set a pointer to the specified high byte start plus the following low byte (+1)
-;in memory and then store into two separate bytes
-;input - (point_address = hi_byte_start, high_byte_store, low_byte_store)
-SET_POINTER_HI_LO .macro
+;macro to set a hi and lo byte address into two specified separate bytes
+;input - (hi_address, lo_address, high_byte_store, low_byte_store)
+SET_POINTER .macro
     LDA \1                          ;gets the first byte of point_address (high byte)
-    STA \2                          ;store in high_byte_store
-    LDA \1 + 1                      ;gets the second byte of point_address (low byte)
-    STA \3                          ;store in low_byte_store
+    STA \3                          ;store in high_byte_store
+    LDA \2                          ;gets the second byte of point_address (low byte)
+    STA \4                          ;store in low_byte_store
 
     .endm
 
+;macro to set a pointer to a 16 bit address stored into two separate bytes
+;input - (address, store_hi, store_lo)
+SET_POINTER_TO_ADDR .macro
+    LDA #HIGH(\1)                   ;gets the high byte of the specified address
+    STA \2                          ;store in store_hi
+    LDA #LOW(\1)                    ;gets the low byte of the specified address
+    STA \3                          ;store in store_lo
+
+    .endm
+
+;macro to set a pointer to a specified high byte plus the following low byte (+1)
+;in memory and then store into two separate bytes
+;input - (point_hi, store_hi, store_lo)
+SET_POINTER_TO_VAL .macro
+    LDA \1                          ;gets the high byte
+    STA \2                          ;store in store_hi
+    LDA \1 + 1                      ;gets the low byte following the high byte in memory
+    STA \3                          ;store in store_lo
+    
+    .endm
 ;------------------------------------------------------------------------------------;
 ;if branching macros
 

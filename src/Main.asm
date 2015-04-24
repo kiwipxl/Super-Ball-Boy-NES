@@ -90,24 +90,24 @@ current_VRAM            .rs     2
 scroll_x_type       	.rs     1
 player_spawn        	.rs     2
 
-ani_frames 				.rs 	16 		;store hi + lo byte pointer to pre-built animation, 2 bytes per animation
-ani_VRAM_pointer 		.rs 	16 		;stores hi + lo byte pointers to a nametable which tile animations will use, 2 bytes per animation
+ani_frames 				.rs 	16      ;store hi + lo byte pointer to pre-built animation, 2 bytes per animation
+ani_VRAM_pointer 		.rs 	16      ;stores hi + lo byte pointers to a nametable which tile animations will use, 2 bytes per animation
 
 	;store animation array with a 256 byte offset with a max amount of 8 running animations
 	.rsset $0100
 	
-ani_rate 				.rs 	8 		;frame rate byte that defines how often the animation will run per frame, 1 byte per animatio
-ani_frame_counter 		.rs 	8 		;frame counter that increases every frame, 1 byte per animation
-ani_current_frame 		.rs 	8 		;byte that defines the current frame of the animation, 1 byte per animation
-ani_loop 				.rs 	8 		;defines whether the animation will loop or not, 1 byte per animation
-ani_num_frames 			.rs 	8 		;the amount of frames in the current animation, 1 byte per animation
-ani_active              .rs     8       ;defines whether the animation is currently playing or not, 1 byte per animation
+ani_rate 				.rs     8 	     ;frame rate byte that defines how often the animation will run per frame, 1 byte per animatio
+ani_frame_counter 		.rs 	8 	     ;frame counter that increases every frame, 1 byte per animation
+ani_current_frame 		.rs 	8 	     ;byte that defines the current frame of the animation, 1 byte per animation
+ani_loop 				.rs 	8 	     ;defines whether the animation will loop or not, 1 byte per animation
+ani_num_frames 			.rs 	8 	     ;the amount of frames in the current animation, 1 byte per animation
+ani_active              .rs     8        ;defines whether the animation is currently playing or not, 1 byte per animation
 ani_max:
     .db $08
 
 SPRING_ANI:
-	.db $08
-	.db $0A, $1A, $2A, $3A, $3A, $2A, $1A, $0A
+	.db $08                                                            ;number of frames
+	.db $0A, $1A, $2A, $3A, $3A, $2A, $1A, $0A                         ;tile index frame animation
 
 	.include "src/SystemConstants.asm"
     .include "src/SystemMacros.asm"
@@ -122,9 +122,11 @@ SPRING_ANI:
 ;(nametable_address (including attributes), PPU_nametable_address)
 LOAD_MAP .macro
     BIT PPU_STATUS                  ;read PPU_STATUS to reset high/low latch so low byte can be stored then high byte (little endian)
-    SET_POINTER_TO_LABEL \2, PPU_ADDR, PPU_ADDR
-    SET_POINTER_TO_LABEL \1, nt_pointer + 1, nt_pointer
-    JSR load_nametable
+    SET_POINTER_TO_ADDR \2, PPU_ADDR, PPU_ADDR
+    SET_POINTER_TO_ADDR \1, nt_pointer + 1, nt_pointer
+
+    DEBUG_BRK
+    CALL load_nametable
 
     .endm
 
@@ -159,7 +161,7 @@ RESET:
     ;    DEBUG_BRK
     ;    LDY #$02
 
-    JSR vblank_wait                 ;first vblank wait to make sure the PPU is warming up
+    CALL vblank_wait                 ;first vblank wait to make sure the PPU is warming up
 
 ;------------------------------------------------------------------------------------;
 ;wait for the PPU to be ready and clear all mem from 0000 to 0800
@@ -184,7 +186,7 @@ clr_mem_loop:
     CPX #$00                        ;check if x has overflowed into 0
     BNE clr_mem_loop                ;continue clearing memory if x is not equal to 0
 
-    JSR vblank_wait                 ;second vblank wait to make sure the PPU has properly warmed up
+    CALL vblank_wait                 ;second vblank wait to make sure the PPU has properly warmed up
 
 ;------------------------------------------------------------------------------------;
 
@@ -194,7 +196,7 @@ clr_mem_loop:
 ;although we start at the BG palette, we also continue writing into the sprite palette
 load_palettes:
     BIT PPU_STATUS                  ;read PPU_STATUS to reset high/low latch so low byte can be stored then high byte (little endian)
-    SET_POINTER_TO_LABEL VRAM_BG_PLT, PPU_ADDR, PPU_ADDR
+    SET_POINTER #HIGH(VRAM_BG_PLT), #LOW(VRAM_BG_PLT), PPU_ADDR, PPU_ADDR
 
     LDX #$00                        ;set x counter register to 0
     load_palettes_loop:
@@ -308,12 +310,12 @@ load_sprites:
         BNE load_sprites_loop       ;continue loop if x register is not equal to 0, otherwise move down
 
 init_sprites:
-    SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
-    SET_POINTER_TO_LABEL VRAM_NT_1, current_VRAM, current_VRAM + 1
-    LDA #$01
+    SET_POINTER_TO_ADDR LEVEL_1_MAP_0, current_room, current_room + 1
+    SET_POINTER_TO_ADDR VRAM_NT_0, current_VRAM, current_VRAM + 1
+    LDA #$00
     STA scroll_x_type
 
-    JSR init_animations
+    CALL init_animations
 
     JMP game_loop
 
@@ -354,8 +356,8 @@ game_loop:
     STA pos_y
     STA OAM_RAM_ADDR
 	
-	JSR read_controller
-	JSR update_animations
+	CALL read_controller
+	CALL update_animations
 	
     LDA pos_x
     LSR a
@@ -386,41 +388,31 @@ game_loop:
     STA coord_y
 
     LDX OAM_RAM_ADDR
+    INX
+    INX
+    INX
+    INX
     TXA
     LSR a
     LSR a
     LSR a
     STA coord_y + 1
 
-    LDX OAM_RAM_ADDR
-    INX
-    INX
-    INX
-    INX
-    TXA
-    LSR a
-    LSR a
-    LSR a
-    STA coord_y + 2
-	
-    SET_POINTER_HI_LO current_room, leftc_pointer + 1, leftc_pointer
-    CALL mul_short, leftc_pointer + 1, coord_y + 2, #$20
+    SET_POINTER_TO_VAL current_room, leftc_pointer + 1, leftc_pointer
+    CALL mul_short, leftc_pointer + 1, coord_y + 1, #$20
     ST_RT_VAL_IN leftc_pointer + 1, leftc_pointer
     ST_RT_VAL_IN rightc_pointer + 1, rightc_pointer
 
-    SET_POINTER_HI_LO current_room, downc_pointer + 1, downc_pointer
+    SET_POINTER_TO_VAL current_room, downc_pointer + 1, downc_pointer
     CALL mul_short, downc_pointer + 1, coord_y, #$20
     ST_RT_VAL_IN downc_pointer + 1, downc_pointer
-
-    SET_POINTER_HI_LO current_room, upc_pointer + 1, upc_pointer
-    CALL mul_short, upc_pointer + 1, coord_y + 1, #$20
     ST_RT_VAL_IN upc_pointer + 1, upc_pointer
 
     CALL add_short, gravity, gravity + 1, #$40
     ST_RT_VAL_IN gravity, gravity + 1
 
     IF_UNSIGNED_GT pos_x, #$05, scleft
-    JSR check_collide_left
+    CALL check_collide_left
     CMP #$00
     BNE nscleftelse
         scleft:
@@ -445,7 +437,7 @@ game_loop:
     nscleftendif:
 
     IF_UNSIGNED_LT pos_x, #$F8, scright
-    JSR check_collide_right
+    CALL check_collide_right
     CMP #$00
     BNE nscrightelse
         scright:
@@ -468,8 +460,7 @@ game_loop:
                 STA speed_x
     nscrightendif:
 
-    JSR check_collide_down
-    CMP #$00
+    CALL check_collide_down
     BNE nscdownelse
         DOWN_BUTTON_DOWN dbnotdown
 
@@ -500,30 +491,11 @@ game_loop:
                     STA gravity
                     LDA #$00
                     STA gravity + 1
-				
-				;respawn
-                LDA rt_val_1
-                CMP #$0B
-                BNE welseif
-                    SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
-                    LDA #$01
-                    STA scroll_x_type
-					
-                    LDA player_spawn
-                    STA OAM_RAM_ADDR + 3
-                    STA pos_x
 
-                    SEC
-                    SBC #$7F
-                    STA scroll_x
-
-                    LDA player_spawn + 1
-                    STA OAM_RAM_ADDR + 3
-                    STA pos_y
-                welseif:
+                CALL respawn
     nscdownendif:
 
-    JSR check_collide_up
+    CALL check_collide_up
     CMP #$00
     BNE nscupelse
         UP_BUTTON_DOWN ubnotdown
@@ -550,81 +522,10 @@ game_loop:
 	
 	LDA pos_y
     STA OAM_RAM_ADDR
-	
-    LDA scroll_x_type
-    BNE right_scroll_map
-        IF_UNSIGNED_GT_OR_EQU pos_x, #$7F, scrleftstartelse
-            ADD scroll_x, speed_x
-            STA scroll_x
-            ADD pos_x, speed_x
-            STA pos_x
-            LDA #$7F
-            STA OAM_RAM_ADDR + 3
-            IF_SIGNED_LT_OR_EQU scroll_x, #$00, scroll_x_endif
-                IF_SIGNED_GT scroll_x, #$F8, scroll_x_endif
-                    LDA #$00
-                    STA scroll_x
-					JMP scroll_x_endif
-        scrleftstartelse:
-            ADD pos_x, speed_x
-            STA pos_x
-            STA OAM_RAM_ADDR + 3
-            LDA #$00
-            STA scroll_x
-            JMP scroll_x_endif
-    right_scroll_map:
-        IF_UNSIGNED_LT_OR_EQU pos_x, #$7F, scrrightstartelse
-            ADD scroll_x, speed_x
-            STA scroll_x
-            ADD pos_x, speed_x
-            STA pos_x
-            LDA #$7F
-            STA OAM_RAM_ADDR + 3
-            IF_SIGNED_GT_OR_EQU scroll_x, #$FF, scroll_x_endif
-                IF_SIGNED_LT scroll_x, #$08, scroll_x_endif
-                    LDA #$FF
-                    STA scroll_x
-					JMP scroll_x_endif
-        scrrightstartelse:
-            ADD pos_x, speed_x
-            STA pos_x
-            STA OAM_RAM_ADDR + 3
-            LDA #$FF
-            STA scroll_x
-    scroll_x_endif:
-	
-    IF_NOT_EQU scroll_x_type, #$00, ntransleft
-    IF_SIGNED_LT speed_x, #$00, ntransleft
-        IF_SIGNED_GT speed_x, #$80, ntransleft
-            IF_UNSIGNED_GT_OR_EQU pos_x, #$F8, ntransleft
-                SET_POINTER_TO_LABEL LEVEL_1_MAP_0, current_room, current_room + 1
-				
-                LDA #$FF
-                STA pos_x
 
-                LDA #$7F
-                STA scroll_x
-
-                LDA #$00
-                STA scroll_x_type
-                JMP ntransright
-    ntransleft:
-
-    IF_SIGNED_GT speed_x, #$00, ntransright
-        IF_SIGNED_LT speed_x, #$7F, ntransright
-            IF_UNSIGNED_GT_OR_EQU pos_x, #$F8, ntransright
-                SET_POINTER_TO_LABEL LEVEL_1_MAP_1, current_room, current_room + 1
-				
-                LDA #$00
-                STA pos_x
-
-                LDA #$80
-                STA scroll_x
-
-                LDA #$01
-                STA scroll_x_type
-    ntransright:
-	
+    CALL handle_camera_scroll
+    CALL handle_room_intersect
+    
     JMP game_loop                   ;jump back to game_loop, infinite loop
 
 ;------------------------------------------------------------------------------------;
@@ -690,7 +591,7 @@ NMI:
         BEQ ani_render_loop_end
         JMP ani_render_loop
     ani_render_loop_end:
-    SET_POINTER_TO_LABEL VRAM_NT_0, PPU_ADDR, PPU_ADDR
+    SET_POINTER_TO_ADDR VRAM_NT_0, PPU_ADDR, PPU_ADDR
 
     LDA scroll_x
     STA $2005
