@@ -96,31 +96,6 @@ create_tile_animation:
 	LDA rt_val_2
 	STA ani_VRAM_pointer + 1, x
 
-	;----------
-
-	;debugging stuff
-	;DEBUG_BRK
-	;LDA ani_frames
-	;LDA ani_frames + 1
-	;LDA [ani_frames], y
-	;LDY #$01
-	;LDA current_VRAM
-	;LDA current_VRAM + 1
-	;LDA ani_VRAM_pointer
-	;LDA ani_VRAM_pointer + 1
-	;LDY #$02
-	;LDA ani_rate
-	;LDY #$04
-	;LDA ani_frame_counter
-	;LDY #$08
-	;LDA ani_current_frame
-	;LDY #$10
-	;LDA ani_loop
-	;LDY #$20
-	;LDA ani_num_frames
-	;LDY #$40
-	;LDA temp + 2
-
 	RTS
 
 update_animations:
@@ -162,3 +137,7 @@ update_animations:
 	ani_update_loop_end:
 	
     RTS
+
+play_spring_animation:
+	CALL create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$02, #$00, c_coord_x, c_coord_y
+	RTS

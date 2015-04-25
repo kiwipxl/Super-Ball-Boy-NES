@@ -334,7 +334,7 @@ game_loop:
     STA speed_x
 
     ;clamp gravity
-    CALL clamp_signed, gravity, #$FB, #$07
+    CALL clamp_signed, gravity, #$FB, #$04
     LDA rt_val_1
     STA gravity
 	
@@ -358,7 +358,21 @@ game_loop:
 	
 	CALL read_controller
 	CALL update_animations
-	
+
+    LDA scroll_x_type
+    BEQ test
+        IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, lol
+            lda #$00
+            sta pos_x
+        lol:
+        jmp test2
+    test:
+        IF_UNSIGNED_LT_OR_EQU pos_x, #$04, lol2
+            lda #$ff
+            sta pos_x
+        lol2:
+    test2:
+
     LDA pos_x
     LSR a
     LSR a
@@ -367,11 +381,19 @@ game_loop:
 
     LDX pos_x
     DEX
+    DEX
+    DEX
+    DEX
     TXA
     LSR a
     LSR a
     LSR a
     STA coord_x + 1
+
+    IF_EQU coord_x + 1, #$FF, ncx1overflow
+        LDA #$00
+        STA coord_x + 1
+    ncx1overflow:
 
     LDX pos_x
     INX
@@ -381,40 +403,124 @@ game_loop:
     LSR a
     STA coord_x + 2
 
-    LDA OAM_RAM_ADDR
+    IF_EQU coord_x + 2, #$20, ncx2overflow
+        LDA #$1F
+        STA coord_x + 2
+    ncx2overflow:
+
+    LDA pos_y
     LSR a
     LSR a
     LSR a
     STA coord_y
 
-    LDX OAM_RAM_ADDR
-    INX
-    INX
-    INX
-    INX
-    TXA
+    LDA pos_y
+    CLC
+    ADC #$04
     LSR a
     LSR a
     LSR a
     STA coord_y + 1
 
+    LDA pos_y
+    SEC
+    SBC #$04
+    LSR a
+    LSR a
+    LSR a
+    STA coord_y + 2
+
     SET_POINTER_TO_VAL current_room, leftc_pointer + 1, leftc_pointer
-    CALL mul_short, leftc_pointer + 1, coord_y + 1, #$20
+    CALL mul_short, leftc_pointer + 1, coord_y, #$20
     ST_RT_VAL_IN leftc_pointer + 1, leftc_pointer
     ST_RT_VAL_IN rightc_pointer + 1, rightc_pointer
 
     SET_POINTER_TO_VAL current_room, downc_pointer + 1, downc_pointer
-    CALL mul_short, downc_pointer + 1, coord_y, #$20
+    CALL mul_short, downc_pointer + 1, coord_y + 1, #$20
     ST_RT_VAL_IN downc_pointer + 1, downc_pointer
+
+    SET_POINTER_TO_VAL current_room, upc_pointer + 1, upc_pointer
+    CALL mul_short, upc_pointer + 1, coord_y + 2, #$20
     ST_RT_VAL_IN upc_pointer + 1, upc_pointer
 
-    CALL add_short, gravity, gravity + 1, #$40
-    ST_RT_VAL_IN gravity, gravity + 1
+    CALL check_collide_down
+    LDA c_coord_y
+    ASL a
+    ASL a
+    ASL a
+    CLC
+    ADC #$02
+    STA temp
+    LDA rt_val_1
+    IS_SOLID_TILE nscdownelse
+        DOWN_BUTTON_DOWN dbnotdown
+
+        dbnotdown:
+
+        INC c_coord_y
+        IF_SIGNED_GT_OR_EQU gravity, #$00, notmovingdowncollide
+            LDA rt_val_1
+            CMP #$0A
+            BNE spring_no_collide
+                LDA temp
+                STA pos_y
+
+                LDA #$FA
+                STA gravity
+                LDA #$00
+                STA gravity + 1
+
+                CALL play_spring_animation
+
+                JMP nscdownendif
+            spring_no_collide:
+        notmovingdowncollide:
+
+        CALL add_short, gravity, gravity + 1, #$40
+        ST_RT_VAL_IN gravity, gravity + 1
+
+        JMP nscdownendif
+    nscdownelse:
+        IF_SIGNED_GT_OR_EQU gravity, #$00, nscdownendif
+            LDA temp
+            STA pos_y
+
+            LDA rt_val_1
+            CMP #$0A
+            BNE elseif
+            elseif:
+                LDA #$FD
+                STA gravity
+                LDA #$00
+                STA gravity + 1
+
+            CALL handle_respawn
+    nscdownendif:
+
+    CALL check_collide_up
+    IS_SOLID_TILE nscupelse
+        UP_BUTTON_DOWN ubnotdown
+
+        ubnotdown:
+        JMP nscupendif
+    nscupelse:
+        IF_SIGNED_LT_OR_EQU gravity, #$00, nscupendif
+            IF_SIGNED_GT gravity, #$80, nscupendif
+                LDA c_coord_y
+                ASL a
+                ASL a
+                ASL a
+                SEC
+                SBC #$01
+                STA pos_y
+
+                LDA #$01
+                STA gravity
+    nscupendif:
 
     IF_UNSIGNED_GT pos_x, #$05, scleft
     CALL check_collide_left
-    CMP #$00
-    BNE nscleftelse
+    IS_SOLID_TILE nscleftelse
         scleft:
         LEFT_BUTTON_DOWN lbnotdown
             CALL sub_short, speed_x, speed_x + 1, #$80
@@ -424,7 +530,7 @@ game_loop:
     nscleftelse:
         IF_SIGNED_LT_OR_EQU speed_x, #$00, nscleftendif
             IF_SIGNED_GT speed_x, #$80, nscleftendif
-                LDX coord_x + 1
+                LDX c_coord_x
                 INX
                 TXA
                 ASL a
@@ -438,8 +544,7 @@ game_loop:
 
     IF_UNSIGNED_LT pos_x, #$F8, scright
     CALL check_collide_right
-    CMP #$00
-    BNE nscrightelse
+    IS_SOLID_TILE nscrightelse
         scright:
         RIGHT_BUTTON_DOWN rbnotdown
             CALL add_short, speed_x, speed_x + 1, #$80
@@ -449,7 +554,8 @@ game_loop:
     nscrightelse:
         IF_SIGNED_GT_OR_EQU speed_x, #$00, nscrightendif
             IF_SIGNED_LT speed_x, #$7F, nscrightendif
-                LDX coord_x
+                LDX c_coord_x
+                DEX
                 TXA
                 ASL a
                 ASL a
@@ -460,72 +566,18 @@ game_loop:
                 STA speed_x
     nscrightendif:
 
-    CALL check_collide_down
-    BNE nscdownelse
-        DOWN_BUTTON_DOWN dbnotdown
+    ADD pos_x, speed_x
+    STA pos_x
 
-        dbnotdown:
-        JMP nscdownendif
-    nscdownelse:
-        IF_SIGNED_GT_OR_EQU gravity, #$00, nscdownendif
-            IF_SIGNED_LT gravity, #$7F, nscdownendif
-                LDA coord_y
-                ASL a
-                ASL a
-                ASL a
-                STA pos_y
-				
-                LDA rt_val_1
-                CMP #$0A
-                BNE elseif
-                    LDA #$FA
-                    STA gravity
-                    LDA #$00
-                    STA gravity + 1
-
-                    CALL create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$02, #$00, c_coord_x, c_coord_y
-
-                    JMP nscdownendif
-                elseif:
-                    LDA #$FD
-                    STA gravity
-                    LDA #$00
-                    STA gravity + 1
-
-                CALL respawn
-    nscdownendif:
-
-    CALL check_collide_up
-    CMP #$00
-    BNE nscupelse
-        UP_BUTTON_DOWN ubnotdown
-
-        ubnotdown:
-        JMP nscupendif
-    nscupelse:
-        IF_SIGNED_LT_OR_EQU gravity, #$00, nscupendif
-            IF_SIGNED_GT gravity, #$80, nscupendif
-                LDX coord_y
-                INX
-                TXA
-                ASL a
-                ASL a
-                ASL a
-                STA pos_y
-
-                LDA #$01
-                STA gravity
-    nscupendif:
+	;LDA pos_x
+	;STA OAM_RAM_ADDR + 3
 	
-	LDA pos_x
-	STA OAM_RAM_ADDR + 3
-	
-	LDA pos_y
-    STA OAM_RAM_ADDR
+	;LDA pos_y
+    ;STA OAM_RAM_ADDR
 
     CALL handle_camera_scroll
     CALL handle_room_intersect
-    
+
     JMP game_loop                   ;jump back to game_loop, infinite loop
 
 ;------------------------------------------------------------------------------------;
