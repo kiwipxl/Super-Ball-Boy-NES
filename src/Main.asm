@@ -26,9 +26,9 @@
 
     .org $e000                        ;place all program code at the third quarter of ROM (e000 - fffa, offset: 24kb)
 
-LEVEL_1_MAP_0:
+CHAMBER_1_ROOM_0:
 	.incbin "assets/level-1/chamber1_room1.nam"
-LEVEL_1_MAP_1:
+CHAMBER_1_ROOM_1:
 	.incbin "assets/level-1/chamber1_room2.nam"
 
 PALETTE:
@@ -105,30 +105,24 @@ ani_active              .rs     8        ;defines whether the animation is curre
 ani_max:
     .db $08
 
+enemy_type              .rs     8
+enemy_pos_x             .rs     8
+enemy_pos_y             .rs     8
+enemy_active            .rs     8
+enemy_max               .rs     1
+
 SPRING_ANI:
-	.db $08                                                            ;number of frames
-	.db $0A, $1A, $2A, $3A, $3A, $2A, $1A, $0A                         ;tile index frame animation
+    ;number of frames
+	.db $0B
+    ;tile index frame animation
+	.db $0A, $1A, $2A, $3A, $3A, $3A, $3A, $3A, $2A, $1A, $0A
 
 	.include "src/SystemConstants.asm"
     .include "src/SystemMacros.asm"
     .include "src/Math.asm"
     .include "src/Map.asm"
 	.include "src/Animation.asm"
-	
-;------------------------------------------------------------------------------------;
-;map loading macros
-
-;macro to load a nametable + attributes into specified PPU addressess
-;(nametable_address (including attributes), PPU_nametable_address)
-LOAD_MAP .macro
-    BIT PPU_STATUS                  ;read PPU_STATUS to reset high/low latch so low byte can be stored then high byte (little endian)
-    SET_POINTER_TO_ADDR \2, PPU_ADDR, PPU_ADDR
-    SET_POINTER_TO_ADDR \1, nt_pointer + 1, nt_pointer
-
-    DEBUG_BRK
-    CALL load_nametable
-
-    .endm
+    .include "src/Enemy.asm"
 
 ;------------------------------------------------------------------------------------;
 
@@ -207,83 +201,20 @@ load_palettes:
         CPX #$20                    ;check if x is equal to 32
         BNE load_palettes_loop      ;keep looping if x is not equal to 32, otherwise continue
 
-load_level_1:
-    LOAD_MAP LEVEL_1_MAP_0, VRAM_NT_0
-    LOAD_MAP LEVEL_1_MAP_1, VRAM_NT_1
+init:
+    CALL load_chamber_1
+    CALL init_animations
+    CALL init_enemies
 
-    JMP init_PPU
-
-;> writes nametable 0 into PPU VRAM
-;write the PPU nametable address VRAM_NT_0 to the PPU register PPU_ADDR
-;so whenever we write data to PPU_DATA, it will map to the VRAM_NT_0 + write offset address in the PPU VRAM
-load_nametable:
-    LDY #$00
-    LDX #$00
     LDA #$00
-    STA temp
-    STA temp + 1
-    nt_loop:
-        nt_loop_nested:
-            CPY #$C0
-            BCC lt960
-                CPX #$03
-                BNE lt960
-                    LDA [nt_pointer], y     ;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
-                    JMP ntcmpendif
-            lt960:
-                LDA [nt_pointer], y         ;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
-                CMP #$07
-                BNE ntcmpendif
-                    LDA temp
-                    STA player_spawn
-                    ASL a
-                    ASL a
-                    ASL a
-                    STA OAM_RAM_ADDR + 3
-                    STA pos_x
+    STA speed_x
+    STA speed_x + 1
+    STA gravity
 
-                    SEC
-                    SBC #$7F
-                    STA scroll_x
-
-                    LDA temp + 1
-                    STA player_spawn + 1
-                    ASL a
-                    ASL a
-                    ASL a
-                    STA OAM_RAM_ADDR + 3
-                    STA pos_y
-
-                    LDA #$00
-            ntcmpendif:
-
-            STA PPU_DATA                ;write byte to the PPU nametable address
-            INY                         ;add by 1 to move to the next byte
-
-            ADD temp, #$01
-            STA temp
-            IF_UNSIGNED_GT_OR_EQU temp, #$20, nrowreset
-                LDA #$00
-                STA temp
-
-                ADD temp + 1, #$01
-                STA temp + 1
-            nrowreset:
-
-            CPY #$00                    ;check if y is equal to 0 (it has overflowed)
-            BNE nt_loop_nested          ;keep looping if y not equal to 0, otherwise continue
-
-            INC nt_pointer + 1          ;increase the high byte of nt_pointer by 1 ((#$FF + 1) low bytes)
-            INX                         ;increase x by 1
-
-            CPX #$04                    ;check if x has looped and overflowed 4 times (1kb, #$04FF)
-            BNE nt_loop                 ;go to the start of the loop if x is not equal to 0, otherwise continue
-    RTS
-
-;------------------------------------------------------------------------------------;
+    CALL respawn
 
 ;initialises PPU settings
-init_PPU:
+configure_PPU:
     ;setup PPU_CTRL bits
     LDA #%10000000                  ;enable NMI calling and set sprite pattern table to $0000 (0)
     STA PPU_CTRL
@@ -291,11 +222,6 @@ init_PPU:
     ;setup PPU_MASK bits
     LDA #%00011110                  ;enable sprite rendering
     STA PPU_MASK
-
-    LDA #$00
-    STA speed_x
-    STA speed_x + 1
-    STA gravity
 
 ;loads all sprite attribs into OAM_RAM_ADDR
 load_sprites:
@@ -308,16 +234,6 @@ load_sprites:
 
         CPX #SPRITES_DATA_LEN       ;check if all attribs have been stored by comparing x to the data length of all sprites
         BNE load_sprites_loop       ;continue loop if x register is not equal to 0, otherwise move down
-
-init_sprites:
-    SET_POINTER_TO_ADDR LEVEL_1_MAP_1, current_room, current_room + 1
-    SET_POINTER_TO_ADDR VRAM_NT_1, current_VRAM, current_VRAM + 1
-    LDA #$01
-    STA scroll_x_type
-
-    CALL init_animations
-
-    JMP game_loop
 
 ;------------------------------------------------------------------------------------;
 
@@ -403,9 +319,13 @@ game_loop:
 
                 JMP nscdownendif
             spring_no_collide:
-        notmovingdowncollide:
 
-        CALL handle_respawn
+            CMP #$0B
+            BNE respawn_endif
+                CALL respawn
+                JMP nscdownendif
+            respawn_endif:
+        notmovingdowncollide:
 
         JMP nscdownendif
     nscdownelse:

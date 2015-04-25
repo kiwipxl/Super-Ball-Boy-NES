@@ -33,7 +33,7 @@ create_tile_animation:
 		DEX
 		BNE ani_active_check_loop
 	ani_active_check_loop_end:
-	
+
 	LDX temp + 2
 	LDY #$00
 
@@ -139,5 +139,5 @@ update_animations:
     RTS
 
 play_spring_animation:
-	CALL create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$02, #$00, c_coord_x, c_coord_y
+	CALL create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$01, #$00, c_coord_x, c_coord_y
 	RTS
