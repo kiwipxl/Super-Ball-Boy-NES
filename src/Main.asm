@@ -74,9 +74,6 @@ vblank_counter      	.rs     1
 ;input variables
 button_bits         	.rs     1
 
-;nametable variables
-nt_pointer          	.rs     2
-
 ;player movement variables
 pos_x               	.rs     1
 pos_y               	.rs     1
@@ -100,13 +97,16 @@ scroll_x_type       	.rs     1
 
 ;room variables
 current_room            .rs     2
-current_VRAM            .rs     2
+current_VRAM_room       .rs     2
 room_1                  .rs     2
+VRAM_room_1             .rs     2
 room_2                  .rs     2
+VRAM_room_2             .rs     2
 
 ;respawn variables
 player_spawn            .rs     2
 respawn_room            .rs     2
+respawn_VRAM_room       .rs     2
 
 ;animation pointer variables
 ani_frames 				.rs 	16       ;store hi + lo byte pointer to pre-built animation, 2 bytes per animation

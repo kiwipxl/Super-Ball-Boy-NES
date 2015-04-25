@@ -78,13 +78,13 @@ create_tile_animation:
 
 	;----------
 	
-	LDA current_VRAM
+	LDA current_VRAM_room
 	STA ani_VRAM_pointer, x
 
-	LDA current_VRAM + 1
+	LDA current_VRAM_room + 1
 	STA ani_VRAM_pointer + 1, x
 
-	CALL mul_short, current_VRAM, param_6, #$20
+	CALL mul_short, current_VRAM_room, param_6, #$20
 	CALL add_short, rt_val_1, rt_val_2, param_5
 
 	LDA temp + 2

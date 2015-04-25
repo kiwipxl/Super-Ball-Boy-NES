@@ -4,9 +4,9 @@
 ;macro to load a nametable + attributes into a specified PPU VRAM address
 ;input - (nametable_address (including attributes), PPU_nametable_address)
 LOAD_ROOM .macro
-    ;BIT PPU_STATUS                  ;read PPU_STATUS to reset high/low latch so low byte can be stored then high byte (little endian)
     SET_POINTER_TO_ADDR \2, PPU_ADDR, PPU_ADDR
-    SET_POINTER_TO_ADDR \1, nt_pointer + 1, nt_pointer
+    SET_POINTER_TO_ADDR \1, current_room + 1, current_room
+    SET_POINTER_TO_ADDR \2, current_VRAM_room, current_VRAM_room + 1
 
     CALL load_nametable
 
@@ -34,7 +34,29 @@ load_chamber_1:
 
     RTS
 
-;writes nametable bytes pointing from nt_pointer into PPU VRAM
+set_respawn:
+    LDA param_1
+    STA player_spawn
+    DIV8 temp
+    STA OAM_RAM_ADDR + 3
+    STA pos_x
+
+    SEC
+    SBC #$7F
+    STA scroll_x
+
+    LDA param_2
+    STA player_spawn + 1
+    DIV8 temp + 1
+    STA OAM_RAM_ADDR + 3
+    STA pos_y
+
+    SET_POINTER_TO_VAL current_room, respawn_room, respawn_room + 1
+    SET_POINTER_TO_VAL current_VRAM_room, respawn_VRAM_room, respawn_VRAM_room + 1
+
+    RTS
+
+;writes nametable bytes pointing from current_room into PPU VRAM
 ;before this function is called, the VRAM_NT_ID address must be written to PPU_ADDR
 ;so whenever we write data to PPU_DATA, it will map to the VRAM_NT_ID + write offset address in the PPU VRAM
 load_nametable:
@@ -49,27 +71,13 @@ load_nametable:
             BCC lt960
                 CPX #$03
                 BNE lt960
-                    LDA [nt_pointer], y     ;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
+                    LDA [current_room], y     ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
                     JMP ntcmpendif
             lt960:
-                LDA [nt_pointer], y         ;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
+                LDA [current_room], y         ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
                 CMP #$07
                 BNE ntcmpendif
-                    LDA temp
-                    STA player_spawn
-                    DIV8 temp
-                    STA OAM_RAM_ADDR + 3
-                    STA pos_x
-
-                    SEC
-                    SBC #$7F
-                    STA scroll_x
-
-                    LDA temp + 1
-                    STA player_spawn + 1
-                    DIV8 temp + 1
-                    STA OAM_RAM_ADDR + 3
-                    STA pos_y
+                    CALL set_respawn, temp, temp + 1
 
                     LDA #$00
             ntcmpendif:
@@ -90,7 +98,7 @@ load_nametable:
             CPY #$00                    ;check if y is equal to 0 (it has overflowed)
             BNE nt_loop_nested          ;keep looping if y not equal to 0, otherwise continue
 
-            INC nt_pointer + 1          ;increase the high byte of nt_pointer by 1 ((#$FF + 1) low bytes)
+            INC current_room + 1          ;increase the high byte of current_room by 1 ((#$FF + 1) low bytes)
             INX                         ;increase x by 1
 
             CPX #$04                    ;check if x has looped and overflowed 4 times (1kb, #$04FF)
@@ -145,7 +153,7 @@ handle_room_intersect:
         IF_SIGNED_LT speed_x, #$00, ntransleft
             IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, ntransleft
                 SET_POINTER_TO_ADDR CHAMBER_1_ROOM_0, current_room, current_room + 1
-                SET_POINTER_TO_ADDR VRAM_NT_0, current_VRAM, current_VRAM + 1
+                SET_POINTER_TO_ADDR VRAM_NT_0, current_VRAM_room, current_VRAM_room + 1
 
                 LDA #$FB
                 STA pos_x
@@ -157,7 +165,7 @@ handle_room_intersect:
         IF_SIGNED_GT speed_x, #$00, ntransright
             IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, ntransright
                 SET_POINTER_TO_ADDR CHAMBER_1_ROOM_1, current_room, current_room + 1
-                SET_POINTER_TO_ADDR VRAM_NT_1, current_VRAM, current_VRAM + 1
+                SET_POINTER_TO_ADDR VRAM_NT_1, current_VRAM_room, current_VRAM_room + 1
 
                 LDA #$00
                 STA pos_x
@@ -169,7 +177,7 @@ handle_room_intersect:
 
 respawn:
     SET_POINTER_TO_ADDR CHAMBER_1_ROOM_1, current_room, current_room + 1
-    SET_POINTER_TO_ADDR VRAM_NT_1, current_VRAM, current_VRAM + 1
+    SET_POINTER_TO_ADDR VRAM_NT_1, current_VRAM_room, current_VRAM_room + 1
     LDA #$01
     STA scroll_x_type
 
