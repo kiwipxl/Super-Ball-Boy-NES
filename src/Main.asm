@@ -310,9 +310,9 @@ load_sprites:
         BNE load_sprites_loop       ;continue loop if x register is not equal to 0, otherwise move down
 
 init_sprites:
-    SET_POINTER_TO_ADDR LEVEL_1_MAP_0, current_room, current_room + 1
-    SET_POINTER_TO_ADDR VRAM_NT_0, current_VRAM, current_VRAM + 1
-    LDA #$00
+    SET_POINTER_TO_ADDR LEVEL_1_MAP_1, current_room, current_room + 1
+    SET_POINTER_TO_ADDR VRAM_NT_1, current_VRAM, current_VRAM + 1
+    LDA #$01
     STA scroll_x_type
 
     CALL init_animations
@@ -350,28 +350,9 @@ game_loop:
         CALL add_short, speed_x, speed_x + 1, #$40
         ST_RT_VAL_IN speed_x, speed_x + 1
     posxltelse:
-	
-	;add gravity to pos_y and set it as the player's y sprite position
-	ADD pos_y, gravity
-    STA pos_y
-    STA OAM_RAM_ADDR
-	
+
 	CALL read_controller
 	CALL update_animations
-
-    LDA scroll_x_type
-    BEQ test
-        IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, lol
-            lda #$00
-            sta pos_x
-        lol:
-        jmp test2
-    test:
-        IF_UNSIGNED_LT_OR_EQU pos_x, #$04, lol2
-            lda #$ff
-            sta pos_x
-        lol2:
-    test2:
 
     LDA pos_x
     LSR a
@@ -379,34 +360,21 @@ game_loop:
     LSR a
     STA coord_x
 
-    LDX pos_x
-    DEX
-    DEX
-    DEX
-    DEX
-    TXA
+    LDA pos_x
+    SEC
+    SBC #$04
     LSR a
     LSR a
     LSR a
     STA coord_x + 1
 
-    IF_EQU coord_x + 1, #$FF, ncx1overflow
-        LDA #$00
-        STA coord_x + 1
-    ncx1overflow:
-
-    LDX pos_x
-    INX
-    TXA
+    LDA pos_x
+    CLC
+    ADC #$04
     LSR a
     LSR a
     LSR a
     STA coord_x + 2
-
-    IF_EQU coord_x + 2, #$20, ncx2overflow
-        LDA #$1F
-        STA coord_x + 2
-    ncx2overflow:
 
     LDA pos_y
     LSR a
@@ -476,23 +444,16 @@ game_loop:
             spring_no_collide:
         notmovingdowncollide:
 
-        CALL add_short, gravity, gravity + 1, #$40
-        ST_RT_VAL_IN gravity, gravity + 1
-
         JMP nscdownendif
     nscdownelse:
         IF_SIGNED_GT_OR_EQU gravity, #$00, nscdownendif
             LDA temp
             STA pos_y
 
-            LDA rt_val_1
-            CMP #$0A
-            BNE elseif
-            elseif:
-                LDA #$FD
-                STA gravity
-                LDA #$00
-                STA gravity + 1
+            LDA #$FC
+            STA gravity
+            LDA #$7F
+            STA gravity + 1
 
             CALL handle_respawn
     nscdownendif:
@@ -566,17 +527,19 @@ game_loop:
                 STA speed_x
     nscrightendif:
 
+    CALL add_short, gravity, gravity + 1, #$40
+    ST_RT_VAL_IN gravity, gravity + 1
+
+    ;add gravity to pos_y and set it as the player's y sprite position
+    ADD pos_y, gravity
+    STA pos_y
+    STA OAM_RAM_ADDR
+
     ADD pos_x, speed_x
     STA pos_x
 
-	;LDA pos_x
-	;STA OAM_RAM_ADDR + 3
-	
-	;LDA pos_y
-    ;STA OAM_RAM_ADDR
-
-    CALL handle_camera_scroll
     CALL handle_room_intersect
+    CALL handle_camera_scroll
 
     JMP game_loop                   ;jump back to game_loop, infinite loop
 

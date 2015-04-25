@@ -23,11 +23,7 @@ handle_camera_scroll:
             LDA #$7F
             STA OAM_RAM_ADDR + 3
 
-            IF_SIGNED_LT_OR_EQU scroll_x, #$00, scroll_x_endif
-                IF_SIGNED_GT scroll_x, #$F8, scroll_x_endif
-                    LDA #$00
-                    STA scroll_x
-                    JMP scroll_x_endif
+            JMP scroll_x_endif
         scrleftstartelse:
             LDA pos_x
             STA OAM_RAM_ADDR + 3
@@ -40,17 +36,13 @@ handle_camera_scroll:
         IF_UNSIGNED_LT_OR_EQU pos_x, #$7F, scrrightstartelse
             LDA pos_x
             SEC
-            SBC #$7F
+            SBC #$80
             STA scroll_x
 
-            LDA #$7F
+            LDA #$80
             STA OAM_RAM_ADDR + 3
 
-            IF_SIGNED_GT_OR_EQU scroll_x, #$FF, scroll_x_endif
-                IF_SIGNED_LT scroll_x, #$08, scroll_x_endif
-                    LDA #$FF
-                    STA scroll_x
-                    JMP scroll_x_endif
+            JMP scroll_x_endif
         scrrightstartelse:
             LDA pos_x
             STA OAM_RAM_ADDR + 3
@@ -69,11 +61,8 @@ handle_room_intersect:
                     SET_POINTER_TO_ADDR LEVEL_1_MAP_0, current_room, current_room + 1
                     SET_POINTER_TO_ADDR VRAM_NT_0, current_VRAM, current_VRAM + 1
 
-                    LDA #$FF
+                    LDA #$FB
                     STA pos_x
-
-                    LDA #$7F
-                    STA scroll_x
 
                     LDA #$00
                     STA scroll_x_type
@@ -87,9 +76,6 @@ handle_room_intersect:
 
                     LDA #$00
                     STA pos_x
-
-                    LDA #$80
-                    STA scroll_x
 
                     LDA #$01
                     STA scroll_x_type
@@ -163,8 +149,7 @@ check_collide_down:
     CALL add_short, downc_pointer + 1, downc_pointer, #$20
     ST_RT_VAL_IN downc_pointer + 1, downc_pointer
 
-    LDY coord_y + 2
-    INY
+    LDY coord_y + 1
     STY c_coord_y
 
     LDY coord_x
@@ -172,9 +157,9 @@ check_collide_down:
     BNE ncdown
         LDY coord_x + 1
         INY
-        CPY #$FF
+        CPY #$20
         BNE cdnoob
-            LDY #$00
+            LDY coord_x
         cdnoob:
         LDA [downc_pointer], y
     ncdown:
@@ -191,7 +176,7 @@ check_collide_up:
     BNE ncup
         LDY coord_x + 1
         INY
-        CPY #$FF
+        CPY #$20
         BNE cunoob
             LDY #$00
         cunoob:
