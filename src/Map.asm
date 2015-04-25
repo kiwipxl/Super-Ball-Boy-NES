@@ -90,15 +90,15 @@ handle_respawn:
         LDA #$01
         STA scroll_x_type
 
-        LDA player_spawn
+        MUL8 player_spawn
         STA OAM_RAM_ADDR + 3
         STA pos_x
 
         SEC
         SBC #$7F
         STA scroll_x
-
-        LDA player_spawn + 1
+        
+        MUL8 player_spawn + 1
         STA OAM_RAM_ADDR + 3
         STA pos_y
     respawn_endif:

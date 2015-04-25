@@ -235,24 +235,24 @@ load_nametable:
                 CMP #$07
                 BNE ntcmpendif
                     LDA temp
+                    STA player_spawn
                     ASL a
                     ASL a
                     ASL a
                     STA OAM_RAM_ADDR + 3
                     STA pos_x
-                    STA player_spawn
 
                     SEC
                     SBC #$7F
                     STA scroll_x
 
                     LDA temp + 1
+                    STA player_spawn + 1
                     ASL a
                     ASL a
                     ASL a
                     STA OAM_RAM_ADDR + 3
                     STA pos_y
-                    STA player_spawn + 1
 
                     LDA #$00
             ntcmpendif:
@@ -354,49 +354,13 @@ game_loop:
 	CALL read_controller
 	CALL update_animations
 
-    LDA pos_x
-    LSR a
-    LSR a
-    LSR a
-    STA coord_x
+    DIV8 pos_x, #$00, #$00, coord_x
+    DIV8 pos_x, #$00, #$04, coord_x + 1
+    DIV8 pos_x, #$04, #$00, coord_x + 2
 
-    LDA pos_x
-    SEC
-    SBC #$04
-    LSR a
-    LSR a
-    LSR a
-    STA coord_x + 1
-
-    LDA pos_x
-    CLC
-    ADC #$04
-    LSR a
-    LSR a
-    LSR a
-    STA coord_x + 2
-
-    LDA pos_y
-    LSR a
-    LSR a
-    LSR a
-    STA coord_y
-
-    LDA pos_y
-    CLC
-    ADC #$04
-    LSR a
-    LSR a
-    LSR a
-    STA coord_y + 1
-
-    LDA pos_y
-    SEC
-    SBC #$04
-    LSR a
-    LSR a
-    LSR a
-    STA coord_y + 2
+    DIV8 pos_y, #$00, #$00, coord_y
+    DIV8 pos_y, #$04, #$00, coord_y + 1
+    DIV8 pos_y, #$00, #$04, coord_y + 2
 
     SET_POINTER_TO_VAL current_room, leftc_pointer + 1, leftc_pointer
     CALL mul_short, leftc_pointer + 1, coord_y, #$20
@@ -412,10 +376,7 @@ game_loop:
     ST_RT_VAL_IN upc_pointer + 1, upc_pointer
 
     CALL check_collide_down
-    LDA c_coord_y
-    ASL a
-    ASL a
-    ASL a
+    MUL8 c_coord_y
     CLC
     ADC #$02
     STA temp
@@ -444,6 +405,8 @@ game_loop:
             spring_no_collide:
         notmovingdowncollide:
 
+        CALL handle_respawn
+
         JMP nscdownendif
     nscdownelse:
         IF_SIGNED_GT_OR_EQU gravity, #$00, nscdownendif
@@ -454,8 +417,6 @@ game_loop:
             STA gravity
             LDA #$7F
             STA gravity + 1
-
-            CALL handle_respawn
     nscdownendif:
 
     CALL check_collide_up
@@ -466,20 +427,16 @@ game_loop:
         JMP nscupendif
     nscupelse:
         IF_SIGNED_LT_OR_EQU gravity, #$00, nscupendif
-            IF_SIGNED_GT gravity, #$80, nscupendif
-                LDA c_coord_y
-                ASL a
-                ASL a
-                ASL a
-                SEC
-                SBC #$01
-                STA pos_y
+            MUL8 c_coord_y
+            SEC
+            SBC #$01
+            STA pos_y
 
-                LDA #$01
-                STA gravity
+            LDA #$01
+            STA gravity
     nscupendif:
 
-    IF_UNSIGNED_GT pos_x, #$05, scleft
+    IF_UNSIGNED_GT pos_x, #$04, scleft
     CALL check_collide_left
     IS_SOLID_TILE nscleftelse
         scleft:
@@ -490,20 +447,13 @@ game_loop:
         JMP nscleftendif
     nscleftelse:
         IF_SIGNED_LT_OR_EQU speed_x, #$00, nscleftendif
-            IF_SIGNED_GT speed_x, #$80, nscleftendif
-                LDX c_coord_x
-                INX
-                TXA
-                ASL a
-                ASL a
-                ASL a
-                STA pos_x
+            MUL8 c_coord_x, #$01, #$00, pos_x
 
-                LDA #$00
-                STA speed_x
+            LDA #$00
+            STA speed_x
     nscleftendif:
 
-    IF_UNSIGNED_LT pos_x, #$F8, scright
+    IF_UNSIGNED_LT pos_x, #$FB, scright
     CALL check_collide_right
     IS_SOLID_TILE nscrightelse
         scright:
@@ -514,17 +464,10 @@ game_loop:
         JMP nscrightendif
     nscrightelse:
         IF_SIGNED_GT_OR_EQU speed_x, #$00, nscrightendif
-            IF_SIGNED_LT speed_x, #$7F, nscrightendif
-                LDX c_coord_x
-                DEX
-                TXA
-                ASL a
-                ASL a
-                ASL a
-                STA pos_x
+            MUL8 c_coord_x, #$00, #$01, pos_x
 
-                LDA #$00
-                STA speed_x
+            LDA #$00
+            STA speed_x
     nscrightendif:
 
     CALL add_short, gravity, gravity + 1, #$40

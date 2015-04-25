@@ -397,6 +397,58 @@ SUB .macro
 
     .endm
 
+;macro to shift a specified value to the right by 3 (or divide by 8) as well as adding and/or
+;subtracting an offset before shifting
+;input - (val_to_shift, [add_offset], [sub_offset], [store_result_in]) [] = optional
+DIV8 .macro
+    LDA \1
+    .IF \?2
+        .IF \2 != 0
+            CLC
+            ADC \2
+        .ENDIF
+    .ENDIF
+    .IF \?3
+        .IF \3 != 0
+            SEC
+            SBC \3
+        .ENDIF
+    .ENDIF
+    LSR a
+    LSR a
+    LSR a
+    .IF \?4
+        STA \4
+    .ENDIF
+
+    .endm
+
+;macro to shift a specified value to the left by 3 (or multiply by 8) as well as adding and/or
+;subtracting an offset before shifting
+;input - (val_to_shift, [add_offset], [sub_offset], [store_result_in]) [] = optional
+MUL8 .macro
+    LDA \1
+    .IF \?2
+        .IF \2 != 0
+            CLC
+            ADC \2
+        .ENDIF
+    .ENDIF
+    .IF \?3
+        .IF \3 != 0
+            SEC
+            SBC \3
+        .ENDIF
+    .ENDIF
+    ASL a
+    ASL a
+    ASL a
+    .IF \?4
+        STA \4
+    .ENDIF
+
+    .endm
+
 ;------------------------------------------------------------------------------------;
 ;input macros
 
