@@ -5,10 +5,19 @@
 ;input - (nametable_address (including attributes), PPU_nametable_address)
 LOAD_ROOM .macro
     SET_POINTER_TO_ADDR \2, PPU_ADDR, PPU_ADDR
+    SET_POINTER_TO_ADDR \2, current_VRAM_room + 1, current_VRAM_room
     SET_POINTER_TO_ADDR \1, current_room + 1, current_room
-    SET_POINTER_TO_ADDR \2, current_VRAM_room, current_VRAM_room + 1
 
     CALL load_nametable
+
+    .IF \2 = VRAM_NT_0
+        SET_POINTER_TO_ADDR \1, room_1, room_1 + 1
+        SET_POINTER_TO_ADDR \2, VRAM_room_1, VRAM_room_1 + 1
+    .ENDIF
+    .IF \2 = VRAM_NT_1
+        SET_POINTER_TO_ADDR \1, room_2, room_2 + 1
+        SET_POINTER_TO_ADDR \2, VRAM_room_2, VRAM_room_2 + 1
+    .ENDIF
 
     .endm
 
@@ -37,7 +46,7 @@ load_chamber_1:
 set_respawn:
     LDA param_1
     STA player_spawn
-    DIV8 temp
+    DIV8 param_1
     STA OAM_RAM_ADDR + 3
     STA pos_x
 
@@ -47,12 +56,12 @@ set_respawn:
 
     LDA param_2
     STA player_spawn + 1
-    DIV8 temp + 1
+    DIV8 param_2
     STA OAM_RAM_ADDR + 3
     STA pos_y
 
-    SET_POINTER_TO_VAL current_room, respawn_room, respawn_room + 1
-    SET_POINTER_TO_VAL current_VRAM_room, respawn_VRAM_room, respawn_VRAM_room + 1
+    SET_POINTER_TO_VAL current_room, respawn_room + 1, respawn_room
+    SET_POINTER_TO_VAL current_VRAM_room, respawn_VRAM_room + 1, respawn_VRAM_room
 
     RTS
 
@@ -152,8 +161,8 @@ handle_room_intersect:
     IF_NOT_EQU scroll_x_type, #$00, ntransleft
         IF_SIGNED_LT speed_x, #$00, ntransleft
             IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, ntransleft
-                SET_POINTER_TO_ADDR CHAMBER_1_ROOM_0, current_room, current_room + 1
-                SET_POINTER_TO_ADDR VRAM_NT_0, current_VRAM_room, current_VRAM_room + 1
+                SET_POINTER_TO_VAL room_1, current_room, current_room + 1
+                SET_POINTER_TO_VAL VRAM_room_1, current_VRAM_room, current_VRAM_room + 1
 
                 LDA #$FB
                 STA pos_x
@@ -164,8 +173,8 @@ handle_room_intersect:
     ntransleft:
         IF_SIGNED_GT speed_x, #$00, ntransright
             IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, ntransright
-                SET_POINTER_TO_ADDR CHAMBER_1_ROOM_1, current_room, current_room + 1
-                SET_POINTER_TO_ADDR VRAM_NT_1, current_VRAM_room, current_VRAM_room + 1
+                SET_POINTER_TO_VAL room_2, current_room, current_room + 1
+                SET_POINTER_TO_VAL VRAM_room_2, current_VRAM_room, current_VRAM_room + 1
 
                 LDA #$00
                 STA pos_x
@@ -176,8 +185,8 @@ handle_room_intersect:
     RTS
 
 respawn:
-    SET_POINTER_TO_ADDR CHAMBER_1_ROOM_1, current_room, current_room + 1
-    SET_POINTER_TO_ADDR VRAM_NT_1, current_VRAM_room, current_VRAM_room + 1
+    SET_POINTER_TO_VAL respawn_room, current_room, current_room + 1
+    SET_POINTER_TO_VAL respawn_VRAM_room, current_VRAM_room, current_VRAM_room + 1
     LDA #$01
     STA scroll_x_type
 
