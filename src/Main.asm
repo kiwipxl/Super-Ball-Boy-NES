@@ -26,10 +26,11 @@
 
     .org $e000                        ;place all program code at the third quarter of ROM (e000 - fffa, offset: 24kb)
 
-CHAMBER_1_ROOM_0:
-	.incbin "assets/level-1/chamber1_room1.nam"
-CHAMBER_1_ROOM_1:
-	.incbin "assets/level-1/chamber1_room2.nam"
+CHAMBER_1:
+    CHAMBER_1_ROOM_0:
+    	.incbin "assets/level-1/chamber1_room1.nam"
+    CHAMBER_1_ROOM_1:
+    	.incbin "assets/level-1/chamber1_room2.nam"
 
 PALETTE:
 	.incbin "assets/level-palette.pal"
@@ -66,37 +67,55 @@ temp                    .rs     6
 
 	;store game variables in zero page with a 16 byte offset
 	.rsset $0010
-	
+
+;PPU variables
 vblank_counter      	.rs     1
+
+;input variables
 button_bits         	.rs     1
+
+;nametable variables
 nt_pointer          	.rs     2
-leftc_pointer       	.rs     2
-rightc_pointer      	.rs     2
-downc_pointer       	.rs     2
-upc_pointer         	.rs     2
+
+;player movement variables
 pos_x               	.rs     1
 pos_y               	.rs     1
 speed_x             	.rs     2
 gravity             	.rs     2
+
+;player collision variables
+leftc_pointer           .rs     2
+rightc_pointer          .rs     2
+downc_pointer           .rs     2
+upc_pointer             .rs     2
 coord_x             	.rs     3
 coord_y             	.rs     3
 c_coord_x               .rs     1
 c_coord_y               .rs     1
-current_tile        	.rs     1
+
+;chamber scroll variables
 scroll_x            	.rs     1
 scroll_y            	.rs     1
-current_room        	.rs     2
-current_VRAM            .rs     2
 scroll_x_type       	.rs     1
-player_spawn        	.rs     2
 
-ani_frames 				.rs 	16      ;store hi + lo byte pointer to pre-built animation, 2 bytes per animation
-ani_VRAM_pointer 		.rs 	16      ;stores hi + lo byte pointers to a nametable which tile animations will use, 2 bytes per animation
+;room variables
+current_room            .rs     2
+current_VRAM            .rs     2
+room_1                  .rs     2
+room_2                  .rs     2
+
+;respawn variables
+player_spawn            .rs     2
+respawn_room            .rs     2
+
+;animation pointer variables
+ani_frames 				.rs 	16       ;store hi + lo byte pointer to pre-built animation, 2 bytes per animation
+ani_VRAM_pointer 		.rs 	16       ;stores hi + lo byte pointers to a nametable which tile animations will use, 2 bytes per animation
 
 	;store animation array with a 256 byte offset with a max amount of 8 running animations
 	.rsset $0100
 	
-ani_rate 				.rs     8 	     ;frame rate byte that defines how often the animation will run per frame, 1 byte per animatio
+ani_rate 				.rs     8 	     ;frame rate byte that defines how often the animation will run per frame, 1 byte per animation
 ani_frame_counter 		.rs 	8 	     ;frame counter that increases every frame, 1 byte per animation
 ani_current_frame 		.rs 	8 	     ;byte that defines the current frame of the animation, 1 byte per animation
 ani_loop 				.rs 	8 	     ;defines whether the animation will loop or not, 1 byte per animation

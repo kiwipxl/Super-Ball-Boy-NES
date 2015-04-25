@@ -23,6 +23,7 @@ nscrightelse                     = $C351
 mul_end_add_loop                 = $E87C
 enemy_active_check_loop          = $ED98
 read_controller                  = $C3AB
+CHAMBER_1                        = $E000
 init_animations                  = $EC6B
 mul_divadd_loop                  = $E997
 cfgtnf                           = $ED47
