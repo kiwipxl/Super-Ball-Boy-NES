@@ -435,9 +435,9 @@ NMI:
     ;CPU is now suspended and transfer begins
 
     LDX ani_max
-    BEQ arle_
     arl_:
         DEX
+        CPX #$FF
         BEQ arle_
 
         LDA ani_active, x
@@ -447,7 +447,7 @@ NMI:
         ASL a
         TAY
         SET_POINTER ani_VRAM_pointer, y, ani_VRAM_pointer + 1, y, PPU_ADDR, PPU_ADDR
-        
+
         SET_POINTER ani_frames, y, ani_frames + 1, y, temp, temp + 1
         LDY ani_current_frame, x
         LDA [temp], y

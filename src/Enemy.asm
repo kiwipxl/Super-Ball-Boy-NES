@@ -1,16 +1,15 @@
 init_enemies:
 	LDX enemy_max
-	BEQ enemy_init_loop_end
-	enemy_init_loop:
+	BEQ eacle_
+	eil_:
 		DEX
+		BEQ eile_
 
 		LDA #$00
 		STA enemy_active, x
-		INX
-		DEX
-		BEQ enemy_init_loop_end
-		JMP enemy_init_loop
-	enemy_init_loop_end:
+
+		JMP eil_
+	eile_:
 
 	RTS
 
@@ -19,37 +18,55 @@ init_enemies:
 create_slime:
 	;loops through all enemies to find a non active enemy
 	LDX enemy_len
-	BEQ enemy_active_check_loop_end
-	enemy_active_check_loop:
+	eacl_:
 		DEX
+		CPX #$FF
+		BEQ eacle_
 
 		LDA enemy_active, x
-		BNE enemy_is_active
-			STX temp + 2
-			JMP enemy_active_check_loop_end
-		enemy_is_active:
+		BEQ eaclfe_
 
-		INX
-		DEX
-		BNE enemy_active_check_loop
-	enemy_active_check_loop_end:
+		JMP eacl_
+	eacle_:
+		RTS
+	eaclfe_:
+
+	STX temp + 2
+	LDY #$00
 	
+	MUL8 param_1
+	STA enemy_pos_x, x
+
+	LDA #$0C
+	STA OAM_RAM_ADDR + 5
+
+	LDA #$03
+	STA OAM_RAM_ADDR + 6
+
+	MUL8 param_2
+	STA enemy_pos_y, x
+
+	LDA #$01
+	STA enemy_active, x
+
 	RTS
 
 update_enemies:
 	LDX enemy_len
-	BEQ enemy_update_loop_end
-	enemy_update_loop:
+	BEQ eule_
+	eul_:
 		DEX
+		BEQ eule_
 
 		LDA enemy_active, x
-		BEQ enemy_update_chk_if_zero
-		
-		enemy_update_chk_if_zero:
-		INX
-		DEX
-		BEQ enemy_update_loop_end
-		JMP enemy_update_loop
-	enemy_update_loop_end:
-	
+		BEQ eul_
+
+		LDA enemy_pos_x, x
+		STA OAM_RAM_ADDR + 4
+		LDA enemy_pos_y, x
+		STA OAM_RAM_ADDR + 7
+
+		JMP eul_
+	eule_:
+
     RTS
