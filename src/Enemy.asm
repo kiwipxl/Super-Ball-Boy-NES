@@ -33,7 +33,7 @@ create_slime:
 
 	STX temp + 2
 	LDY #$00
-	
+
 	MUL8 param_1
 	STA enemy_pos_x, x
 
@@ -53,17 +53,19 @@ create_slime:
 
 update_enemies:
 	LDX enemy_len
-	BEQ eule_
 	eul_:
 		DEX
+		CPX #$FF
 		BEQ eule_
 
 		LDA enemy_active, x
 		BEQ eul_
 
-		LDA enemy_pos_x, x
-		STA OAM_RAM_ADDR + 4
 		LDA enemy_pos_y, x
+		STA OAM_RAM_ADDR + 4
+		LDA enemy_pos_x, x
+		SEC
+		SBC scroll_x
 		STA OAM_RAM_ADDR + 7
 
 		JMP eul_

@@ -262,8 +262,6 @@ game_loop:
     posxltelse:
 
 	CALL read_controller
-	CALL update_animations
-    CALL update_enemies
 
     DIV8 pos_x, #$00, #$00, coord_x
     DIV8 pos_x, #$00, #$01, coord_x + 1
@@ -398,6 +396,9 @@ game_loop:
 
     CALL handle_room_intersect
     CALL handle_camera_scroll
+
+    CALL update_animations
+    CALL update_enemies
 
     JMP game_loop                   ;jump back to game_loop, infinite loop
 
