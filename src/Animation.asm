@@ -98,42 +98,31 @@ create_tile_animation:
 
 update_animations:
 	LDX ani_max
-	BEQ ani_update_loop_end
-	ani_update_loop:
+	BEQ aule_
+	aul_:
 		DEX
+		BEQ aule_
 
 		LDA ani_active, x
-		BEQ ani_update_chk_if_zero
+		BEQ aul_
 
 		INC ani_frame_counter, x
-		LDA ani_frame_counter, x
-		CMP ani_rate, x              		;sets carry flag if val_1 >= val_2
-		BEQ fcgtrate     					;success if val_1 = val_2
-		BCC nfcgtrate              			;fail if no carry flag set
-		fcgtrate:
+		IF_UNSIGNED_GT_OR_EQU ani_frame_counter, x, ani_rate, x, aulngt_
 			LDA #$00
 			STA ani_frame_counter, x
 
 			INC ani_current_frame, x
-			LDA ani_current_frame, x
-			CMP ani_num_frames, x       	;sets carry flag if val_1 >= val_2
-			BEQ cfgtnf     					;success if val_1 = val_2
-			BCC nfcgtrate              		;fail if no carry flag set
-			cfgtnf:
-				LDA ani_loop, x
+			IF_UNSIGNED_GT_OR_EQU ani_current_frame, x, ani_num_frames, x, aulngt_
 				LDA #$00
 				STA ani_current_frame, x
-				BNE nfcgtrate
+				LDA ani_loop, x
+				BNE aulngt_
 					STA ani_active, x
-		nfcgtrate:
+		aulngt_:
 
-		ani_update_chk_if_zero:
-		INX
-		DEX
-		BEQ ani_update_loop_end
-		JMP ani_update_loop
-	ani_update_loop_end:
-	
+		JMP aul_
+	aule_:
+
     RTS
 
 play_spring_animation:
