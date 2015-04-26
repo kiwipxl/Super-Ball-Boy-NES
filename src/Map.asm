@@ -83,8 +83,25 @@ set_respawn:
 ;-----------------------------------------------------------------------------------;
 
 load_chamber_1:
+    LDA #$00
+    STA enemy_len
+    CALL init_enemies
+    CALL init_animations
+
     LOAD_ROOM CHAMBER_1_ROOM_0, VRAM_NT_0
     LOAD_ROOM CHAMBER_1_ROOM_1, VRAM_NT_1
+
+    LDA #$00
+    STA speed_x
+    STA speed_x + 1
+    STA gravity
+
+    LDA #$07
+    STA OAM_RAM_ADDR + 1
+    LDA #$03
+    STA OAM_RAM_ADDR + 2
+
+    CALL respawn
 
     RTS
 
@@ -108,9 +125,19 @@ load_nametable:
             lt960:
                 LDA [nt_pointer], y         ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
                 CMP #$07
-                BNE ntcmpendif
+                BNE nt____
                     CALL set_respawn, temp, temp + 1
-
+                    LDA #$00
+                    JMP ntcmpendif
+                nt____:
+                CMP #$0C
+                BNE ntcmpendif
+                    INC enemy_len
+                    STY temp + 3
+                    STX temp + 4
+                    CALL create_slime, temp, temp + 1
+                    LDY temp + 3
+                    LDX temp + 4
                     LDA #$00
             ntcmpendif:
 

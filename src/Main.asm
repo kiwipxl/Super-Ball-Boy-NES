@@ -36,13 +36,6 @@ PALETTE:
 	.incbin "assets/level-palette.pal"
 	.incbin "assets/sprite-palette.pal"
 
-SPRITES:
-	;y, tile index, attribs (palette 4 to 7, priority, flip), x
-	.db $2a, $07, %00000000, $80
-
-NUM_SPRITES         = 1
-SPRITES_DATA_LEN    = NUM_SPRITES * 4
-
 	;store function params, return values and temporary values in the first 16 bytes of zero page
     .rsset $0000
 	
@@ -129,7 +122,9 @@ enemy_type              .rs     8
 enemy_pos_x             .rs     8
 enemy_pos_y             .rs     8
 enemy_active            .rs     8
-enemy_max               .rs     1
+enemy_len               .rs     1
+enemy_max:
+    .db $08
 
 SPRING_ANI:
     ;number of frames
@@ -223,16 +218,7 @@ load_palettes:
 
 init:
     CALL load_chamber_1
-    CALL init_animations
-    CALL init_enemies
-
-    LDA #$00
-    STA speed_x
-    STA speed_x + 1
-    STA gravity
-
-    CALL respawn
-
+    
 ;initialises PPU settings
 configure_PPU:
     ;setup PPU_CTRL bits
@@ -242,18 +228,6 @@ configure_PPU:
     ;setup PPU_MASK bits
     LDA #%00011110                  ;enable sprite rendering
     STA PPU_MASK
-
-;loads all sprite attribs into OAM_RAM_ADDR
-load_sprites:
-    LDX #$00                        ;start x register counter at 0
-    
-    load_sprites_loop:
-        LDA SPRITES, x              ;load sprite attrib into register a (sprite + x)
-        STA OAM_RAM_ADDR, x         ;store attrib in OAM on RAM(address + x)
-        INX
-
-        CPX #SPRITES_DATA_LEN       ;check if all attribs have been stored by comparing x to the data length of all sprites
-        BNE load_sprites_loop       ;continue loop if x register is not equal to 0, otherwise move down
 
 ;------------------------------------------------------------------------------------;
 
@@ -289,10 +263,11 @@ game_loop:
 
 	CALL read_controller
 	CALL update_animations
+    CALL update_enemies
 
     DIV8 pos_x, #$00, #$00, coord_x
-    DIV8 pos_x, #$00, #$04, coord_x + 1
-    DIV8 pos_x, #$04, #$00, coord_x + 2
+    DIV8 pos_x, #$00, #$01, coord_x + 1
+    DIV8 pos_x, #$01, #$00, coord_x + 2
 
     DIV8 pos_y, #$00, #$00, coord_y
     DIV8 pos_y, #$04, #$00, coord_y + 1

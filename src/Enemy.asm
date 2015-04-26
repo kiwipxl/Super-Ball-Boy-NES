@@ -18,7 +18,7 @@ init_enemies:
 ;input - (enemy_label_hi, enemy_label_lo, enemy rate, loop (0 or > 0), tile_x, tile_y)
 create_slime:
 	;loops through all enemies to find a non active enemy
-	LDX enemy_max
+	LDX enemy_len
 	BEQ enemy_active_check_loop_end
 	enemy_active_check_loop:
 		DEX
@@ -37,7 +37,7 @@ create_slime:
 	RTS
 
 update_enemies:
-	LDX enemy_max
+	LDX enemy_len
 	BEQ enemy_update_loop_end
 	enemy_update_loop:
 		DEX
