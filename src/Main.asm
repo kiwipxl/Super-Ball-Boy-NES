@@ -308,28 +308,14 @@ game_loop:
     ST_RT_VAL_IN upc_pointer + 1, upc_pointer
 
     CALL check_collide_down
-    MUL8 c_coord_y
-    CLC
-    ADC #$03
-    STA temp
     LDA rt_val_1
-    IS_SOLID_TILE nscdownelse
-        IF_SIGNED_GT_OR_EQU gravity, #$00, nscdownendif
-                LDA temp
-                STA pos_y
-
-                LDA #$FC
-                STA gravity
-                LDA #$7F
-                STA gravity + 1
-        JMP nscdownendif
-    nscdownelse:
-        INC c_coord_y
+    BEQ cte0_
+        STA current_tile
         IF_SIGNED_GT_OR_EQU gravity, #$00, notmovingdowncollide
-            LDA rt_val_1
+            LDA current_tile
             CMP #$0A
             BNE spring_no_collide
-                LDA temp
+                MUL8 c_coord_y
                 STA pos_y
 
                 LDA #$FA
@@ -339,15 +325,32 @@ game_loop:
 
                 CALL play_spring_animation
 
-                JMP nscdownendif
+                JMP notmovingdowncollide
             spring_no_collide:
 
             CMP #$0B
             BNE respawn_endif
                 CALL respawn
-                JMP nscdownendif
+                JMP notmovingdowncollide
             respawn_endif:
         notmovingdowncollide:
+    cte0_:
+
+    CALL add_short, downc_pointer + 1, downc_pointer, #$20
+    ST_RT_VAL_IN downc_pointer + 1, downc_pointer
+    CALL check_collide_down
+    LDA rt_val_1
+    IS_SOLID_TILE nscdownendif
+        IF_SIGNED_GT_OR_EQU gravity, #$00, nscdownendif
+            MUL8 c_coord_y
+            CLC
+            ADC #$03
+            STA pos_y
+
+            LDA #$FC
+            STA gravity
+            LDA #$7F
+            STA gravity + 1
     nscdownendif:
 
     CALL check_collide_up

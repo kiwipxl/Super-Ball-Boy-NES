@@ -288,9 +288,6 @@ check_collide_right:
     RTS
 
 check_collide_down:
-    CALL add_short, downc_pointer + 1, downc_pointer, #$20
-    ST_RT_VAL_IN downc_pointer + 1, downc_pointer
-
     LDY coord_y + 1
     STY c_coord_y
 

@@ -150,6 +150,19 @@ handle_enemy_movement:
     LDA rt_val_1
     STA enemy_gravity, x
 
+    LDA on_floor
+    BNE hemnof_
+		LDX temp + 4
+		LDA #$0C
+		STA OAM_RAM_ADDR + 5, x
+
+	    LDX temp + 2
+	    IF_SIGNED_LT enemy_speed_x, x, #$00, hemnof_
+	    	LDX temp + 4
+	    	LDA #$10
+			STA OAM_RAM_ADDR + 5, x
+	hemnof_:
+
     LDX temp + 2
     ADD enemy_pos_y, x, enemy_gravity, x
     STA enemy_pos_y, x
@@ -168,7 +181,7 @@ handle_enemy_collision:
 	LDX temp + 2
 
 	DIV8 enemy_pos_x, x, #$00, #$00, coord_x
-    DIV8 enemy_pos_x, x, #$00, #$04, coord_x + 1
+    DIV8 enemy_pos_x, x, #$00, #$01, coord_x + 1
     DIV8 enemy_pos_x, x, #$04, #$00, coord_x + 2
 
     DIV8 enemy_pos_y, x, #$00, #$00, coord_y
@@ -190,53 +203,52 @@ handle_enemy_collision:
     CALL mul_short, upc_pointer + 1, coord_y + 2, #$20
     ST_RT_VAL_IN upc_pointer + 1, upc_pointer
 
-    LDA coord_y + 1
-    STA c_coord_y
-    LDY coord_x
-    STY c_coord_x
-    LDA [downc_pointer], y
-    STA current_tile
-
-    IF_SIGNED_GT_OR_EQU enemy_gravity, x, #$00, heclt0_
-    	LDA current_tile
-        CMP #$0A
-        BNE heclt0_
-        	DEBUG_BRK
-        	LDX temp + 2
-        	MUL8 c_coord_y
-            STA enemy_pos_y, x
-
-            LDA #$FA
-            STA enemy_gravity, x
-            LDA #$00
-            STA enemy_gravity + 1, x
-
-            CALL play_spring_animation
-    heclt0_:
-
-    CALL check_collide_down
-    LDX temp + 2
-    MUL8 c_coord_y
-    STA temp
-
     LDA #$00
     STA on_floor
 
+    CALL check_collide_down
     LDA rt_val_1
-    IS_SOLID_TILE enscdownelse
+    BEQ heclt0_
+        STA current_tile
+	    IF_SIGNED_GT_OR_EQU enemy_gravity, x, #$00, heclt0_
+	    	LDA current_tile
+	        CMP #$0A
+	        BNE heclt0_
+	        	LDX temp + 2
+	        	MUL8 c_coord_y
+	            STA enemy_pos_y, x
+
+	            LDA #$FA
+	            STA enemy_gravity, x
+	            LDA #$00
+	            STA enemy_gravity + 1, x
+
+	            LDA #$01
+            	STA on_floor
+            	
+	            CALL play_spring_animation
+	    heclt0_:
+
+    CALL add_short, downc_pointer + 1, downc_pointer, #$20
+    ST_RT_VAL_IN downc_pointer + 1, downc_pointer
+
+    CALL check_collide_down
+    LDA rt_val_1
+    LDX temp + 2
+    IS_SOLID_TILE enscdownendif
     	IF_SIGNED_GT_OR_EQU enemy_gravity, x, #$00, enscdownendif
-            LDA temp
+    		MUL8 c_coord_y
             STA enemy_pos_y, x
 
             LDA #$00
             STA enemy_gravity, x
+            STA enemy_speed_x, x
             LDA #$00
             STA enemy_gravity + 1, x
+            STA enemy_speed_x + 1, x
 
             LDA #$01
             STA on_floor
-        JMP enscdownendif
-    enscdownelse:
     enscdownendif:
 
     CALL check_collide_up
@@ -260,6 +272,7 @@ handle_enemy_collision:
 
             LDA #$00
             STA enemy_speed_x, x
+            STA enemy_speed_x + 1, x
     enscleftendif:
 
     CALL check_collide_right
@@ -270,6 +283,7 @@ handle_enemy_collision:
 
             LDA #$00
             STA enemy_speed_x, x
+            STA enemy_speed_x + 1, x
     enscrightendif:
 
     RTS
@@ -304,7 +318,7 @@ handle_slime_AI:
 
 	    	LDA #$FD
 	        STA enemy_gravity, x
-	        LDA #$FF
+	        LDA #$7F
 	        STA enemy_gravity + 1, x
 
 	        CALL check_lr_solids
@@ -317,18 +331,21 @@ handle_slime_AI:
 	        hsail_:
 	        	LDA temp
 	        	BEQ hsair_
+
 	        	LDA #$00
 	    		STA enemy_speed_x, x
 	        	LDA #$BE
 	    		STA enemy_speed_x + 1, x
+
 	        	JMP hsaiei_
 	        hsair_:
 	        	LDA temp + 1
 	        	BEQ hsail_
+
 	        	LDA #$FF
 	    		STA enemy_speed_x, x
 	        	LDA #$3F
-	    		STA enemy_speed_x + 1, x
+	        	STA enemy_speed_x + 1, x
 
 	    	JMP hsaiei_
     hsait1ngtt2_:
