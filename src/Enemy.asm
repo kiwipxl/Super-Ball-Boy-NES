@@ -34,12 +34,6 @@ create_slime:
 	STX temp + 2
 	LDY #$00
 
-	MUL8 param_1
-	STA enemy_pos_x, x
-
-	MUL8 param_2
-	STA enemy_pos_y, x
-
 	LDA #$01
 	STA enemy_active, x
 
@@ -48,12 +42,30 @@ create_slime:
 	STA enemy_gravity, x
 	STA enemy_type, x
 
+	LDA #$00
+	STA enemy_temp_1, x
+	STA enemy_temp_3, x
+	STA enemy_temp_4, x
+
+	LDA #$7F
+	STA enemy_temp_2, x
+
 	SET_POINTER_TO_VAL current_room, enemy_room + 1, x, enemy_room, x
 
 	LDA temp + 2
 	ASL a
 	ASL a
 	TAX
+
+	MUL8 param_1
+	STA enemy_pos_x, x
+	LDA #$00
+	STA enemy_pos_x + 1, x
+
+	MUL8 param_2
+	STA enemy_pos_y, x
+	LDA #$00
+	STA enemy_pos_y + 1, x
 
 	LDA #$0C
 	STA OAM_RAM_ADDR + 5, x
@@ -81,6 +93,7 @@ update_enemies:
 
 		CALL handle_enemy_movement
 	    CALL handle_enemy_collision
+	    CALL handle_enemy_AI
 
 	    LDX temp + 3
 		IF_EQU room_1, enemy_room, x, eulei_
@@ -123,28 +136,31 @@ update_enemies:
 
 handle_enemy_movement:
 	LDX temp + 2
-	
+    CALL add_short, enemy_gravity, x, enemy_gravity + 1, x, #$40
+    LDX temp + 2
+    ST_RT_VAL_IN enemy_gravity, x, enemy_gravity + 1, x
+
 	;clamp enemy_speed_x
     CALL clamp_signed, enemy_speed_x, x, #$FE, #$02
     LDA rt_val_1
     STA enemy_speed_x, x
 
     ;clamp enemy_gravity
-    CALL clamp_signed, enemy_gravity, x, #$FB, #$00
+    CALL clamp_signed, enemy_gravity, x, #$FB, #$04
     LDA rt_val_1
     STA enemy_gravity, x
 
-	;if enemy_speed_x is >= 1, then apply friction and slow it down by 64
-    IF_SIGNED_GT_OR_EQU enemy_speed_x, x, #$01, eposxgtelse
-        CALL sub_short, enemy_speed_x, x, enemy_speed_x + 1, x, #$40
-        ST_RT_VAL_IN enemy_speed_x, x, enemy_speed_x + 1, x
-    eposxgtelse:
-	
-	;if enemy_speed_x is <= 255, then apply friction and slow it down by 64
-    IF_SIGNED_LT_OR_EQU enemy_speed_x, x, #$FF, eposxltelse
-        CALL add_short, enemy_speed_x, x, enemy_speed_x + 1, x, #$40
-        ST_RT_VAL_IN enemy_speed_x, x, enemy_speed_x + 1, x
-    eposxltelse:
+    LDX temp + 2
+    ADD enemy_pos_y, x, enemy_gravity, x
+    STA enemy_pos_y, x
+
+    ADD enemy_pos_x, x, enemy_speed_x, x
+    STA enemy_pos_x, x
+
+    LDX temp + 3
+    CALL add_short, enemy_pos_x, x, enemy_pos_x + 1, x, enemy_speed_x + 1, x
+    LDX temp + 3
+    ST_RT_VAL_IN enemy_pos_x, x, enemy_pos_x + 1, x
 
     RTS
 
@@ -178,6 +194,10 @@ handle_enemy_collision:
     LDX temp + 2
     MUL8 c_coord_y
     STA temp
+
+    LDA #$00
+    STA on_floor
+
     LDA rt_val_1
     IS_SOLID_TILE enscdownelse
     	INC c_coord_y
@@ -209,6 +229,9 @@ handle_enemy_collision:
             STA enemy_gravity, x
             LDA #$00
             STA enemy_gravity + 1, x
+
+            LDA #$01
+            STA on_floor
     enscdownendif:
 
     CALL check_collide_up
@@ -250,16 +273,61 @@ handle_enemy_collision:
             STA enemy_speed_x, x
     enscrightendif:
 
-    LDX temp + 2
-    CALL add_short, enemy_gravity, x, enemy_gravity + 1, x, #$40
-    LDX temp + 2
-    ST_RT_VAL_IN enemy_gravity, x, enemy_gravity + 1, x
+    RTS
 
-    LDX temp + 2
-    ADD enemy_pos_y, x, enemy_gravity, x
-    STA enemy_pos_y, x
-
-    ADD enemy_pos_x, x, enemy_speed_x, x
-    STA enemy_pos_x, x
+handle_enemy_AI:
+	LDA enemy_type
+    CMP #$00
+    BNE heainequ0_
+	    CALL handle_slime_AI
+	    JMP heaieet_
+    heainequ0_:
+    CMP #$01
+    BNE heainequ1_
+    	CALL handle_bat_AI
+	    JMP heaieet_
+	heainequ1_:
+    heaieet_:
 
     RTS
+
+handle_slime_AI:
+	LDX temp + 2
+    IF_UNSIGNED_GT_OR_EQU enemy_temp_1, x, enemy_temp_2, x, hsait1ngtt2_
+    	IF_EQU on_floor, #$01, hsaiei_
+	    	LDA #$00
+	    	STA enemy_temp_1, x
+	    	CALL rand
+	    	LSR a
+	    	CLC
+	    	ADC #$10
+	    	STA enemy_temp_2, x
+
+	    	LDA #$FD
+	        STA enemy_gravity, x
+	        LDA #$BE
+	        STA enemy_gravity + 1, x
+
+	        CALL rand
+	        IF_SIGNED_GT rt_val_1, #$00, hsair_
+	        	LDA #$00
+	    		STA enemy_speed_x, x
+	        	LDA #$BE
+	    		STA enemy_speed_x + 1, x
+	        	JMP hsaie_
+	        hsair_:
+	        	LDA #$FF
+	    		STA enemy_speed_x, x
+	        	LDA #$3F
+	    		STA enemy_speed_x + 1, x
+	        hsaie_:
+
+	    	JMP hsaiei_
+    hsait1ngtt2_:
+    	INC enemy_temp_1, x
+    hsaiei_:
+
+    RTS
+
+handle_bat_AI:
+	RTS

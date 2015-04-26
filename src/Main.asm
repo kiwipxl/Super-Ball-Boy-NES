@@ -85,6 +85,7 @@ coord_x             	.rs     3
 coord_y             	.rs     3
 c_coord_x               .rs     1
 c_coord_y               .rs     1
+on_floor                .rs     1
 
 ;chamber scroll variables
 scroll_x            	.rs     1
@@ -124,11 +125,15 @@ ani_max:
     .db $08
 
 enemy_type              .rs     8
-enemy_pos_x             .rs     8
-enemy_pos_y             .rs     8
+enemy_pos_x             .rs     16
+enemy_pos_y             .rs     16
 enemy_speed_x           .rs     8
 enemy_gravity           .rs     8
 enemy_active            .rs     8
+enemy_temp_1            .rs     8
+enemy_temp_2            .rs     8
+enemy_temp_3            .rs     8
+enemy_temp_4            .rs     8
 enemy_len               .rs     1
 enemy_max:
     .db $08
