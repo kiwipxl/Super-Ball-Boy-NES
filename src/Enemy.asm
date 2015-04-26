@@ -266,13 +266,6 @@ handle_enemy_collision:
             STA enemy_speed_x, x
     enscrightendif:
 
-    LDY coord_x
-    INY
-    INY
-    LDA [downc_pointer], y
-    IS_SOLID_TILE is_solid
-    is_solid:
-
     RTS
 
 handle_enemy_AI:
@@ -305,27 +298,64 @@ handle_slime_AI:
 
 	    	LDA #$FD
 	        STA enemy_gravity, x
-	        LDA #$BE
+	        LDA #$FF
 	        STA enemy_gravity + 1, x
+
+	        CALL check_lr_solids
+	        LDA rt_val_1
+	        BEQ hsaiei_
+	        LDX temp + 2
 
 	        CALL rand
 	        IF_SIGNED_GT rt_val_1, #$00, hsair_
+	        hsail_:
+	        	LDA temp
+	        	BEQ hsair_
+	        	DEBUG_BRK
 	        	LDA #$00
 	    		STA enemy_speed_x, x
 	        	LDA #$BE
 	    		STA enemy_speed_x + 1, x
-	        	JMP hsaie_
+	        	JMP hsaiei_
 	        hsair_:
+	        	LDA temp + 1
+	        	BEQ hsail_
+	        	DEBUG_BRK
 	        	LDA #$FF
 	    		STA enemy_speed_x, x
 	        	LDA #$3F
 	    		STA enemy_speed_x + 1, x
-	        hsaie_:
 
 	    	JMP hsaiei_
     hsait1ngtt2_:
     	INC enemy_temp_1, x
     hsaiei_:
+
+    RTS
+
+check_lr_solids:
+	LDA #$00
+	STA rt_val_1
+    STA temp
+    STA temp + 1
+
+    LDY coord_x
+    INY
+    INY
+    LDA [downc_pointer], y
+    IS_SOLID_TILE clrsnsrt_
+    	STA temp
+    	STA rt_val_1
+    clrsnsrt_:
+
+    LDY coord_x
+    DEX
+    DEX
+    LDA [downc_pointer], y
+    IS_SOLID_TILE clrsnslt_
+   		STA temp + 1
+   		STA rt_val_1
+    clrsnslt_:
 
     RTS
 

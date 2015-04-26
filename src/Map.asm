@@ -33,6 +33,14 @@ IS_SOLID_TILE .macro
     BEQ .success\@
     CMP #$16
     BEQ .success\@
+    CMP #$0F
+    BEQ .success\@
+    CMP #$1F
+    BEQ .success\@
+    CMP #$1D
+    BEQ .success\@
+    CMP #$1C
+    BEQ .success\@
 
     JMP \1
     .success\@:
