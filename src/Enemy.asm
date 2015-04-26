@@ -47,7 +47,7 @@ create_slime:
 	STA enemy_temp_3, x
 	STA enemy_temp_4, x
 
-	LDA #$7F
+	LDA #$3F
 	STA enemy_temp_2, x
 
 	SET_POINTER_TO_VAL current_room, enemy_room + 1, x, enemy_room, x
@@ -225,7 +225,7 @@ handle_enemy_collision:
 
 	            LDA #$01
             	STA on_floor
-            	
+
 	            CALL play_spring_animation
 	    heclt0_:
 
@@ -312,13 +312,14 @@ handle_slime_AI:
 	    	STA enemy_temp_1, x
 	    	CALL rand
 	    	LSR a
+	    	LSR a
 	    	CLC
 	    	ADC #$10
 	    	STA enemy_temp_2, x
 
 	    	LDA #$FD
 	        STA enemy_gravity, x
-	        LDA #$7F
+	        LDA #$BE
 	        STA enemy_gravity + 1, x
 
 	        CALL check_lr_solids
@@ -327,10 +328,10 @@ handle_slime_AI:
 	        LDX temp + 2
 
 	        CALL rand
-	        IF_SIGNED_GT rt_val_1, #$00, hsair_
-	        hsail_:
+	        IF_SIGNED_GT rt_val_1, #$00, hsail_
+	        hsair_:
 	        	LDA temp
-	        	BEQ hsair_
+	        	BEQ hsail_
 
 	        	LDA #$00
 	    		STA enemy_speed_x, x
@@ -338,9 +339,9 @@ handle_slime_AI:
 	    		STA enemy_speed_x + 1, x
 
 	        	JMP hsaiei_
-	        hsair_:
+	        hsail_:
 	        	LDA temp + 1
-	        	BEQ hsail_
+	        	BEQ hsair_
 
 	        	LDA #$FF
 	    		STA enemy_speed_x, x
@@ -370,8 +371,8 @@ check_lr_solids:
     clrsnsrt_:
 
     LDY coord_x
-    DEX
-    DEX
+    DEY
+    DEY
     LDA [downc_pointer], y
     IS_SOLID_TILE clrsnslt_
    		STA temp + 1

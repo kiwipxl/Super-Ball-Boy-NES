@@ -287,8 +287,8 @@ game_loop:
 	CALL read_controller
 
     DIV8 pos_x, #$00, #$00, coord_x
-    DIV8 pos_x, #$00, #$04, coord_x + 1
-    DIV8 pos_x, #$04, #$00, coord_x + 2
+    DIV8 pos_x, #$00, #$02, coord_x + 1
+    DIV8 pos_x, #$02, #$00, coord_x + 2
 
     DIV8 pos_y, #$00, #$00, coord_y
     DIV8 pos_y, #$04, #$00, coord_y + 1
@@ -318,7 +318,7 @@ game_loop:
                 MUL8 c_coord_y
                 STA pos_y
 
-                LDA #$FA
+                LDA #$EF
                 STA gravity
                 LDA #$00
                 STA gravity + 1
@@ -338,6 +338,7 @@ game_loop:
 
     CALL add_short, downc_pointer + 1, downc_pointer, #$20
     ST_RT_VAL_IN downc_pointer + 1, downc_pointer
+
     CALL check_collide_down
     LDA rt_val_1
     IS_SOLID_TILE nscdownendif

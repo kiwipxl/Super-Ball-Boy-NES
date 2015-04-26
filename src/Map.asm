@@ -52,7 +52,7 @@ IS_SOLID_TILE .macro
 respawn:
     SET_POINTER_TO_VAL respawn_room, current_room, current_room + 1
     SET_POINTER_TO_VAL respawn_VRAM_room, current_VRAM_room, current_VRAM_room + 1
-    LDA #$01
+    LDA #$00
     STA scroll_x_type
 
     MUL8 player_spawn
