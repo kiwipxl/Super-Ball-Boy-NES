@@ -209,7 +209,7 @@ clr_mem_loop:
 ;although we start at the BG palette, we also continue writing into the sprite palette
 load_palettes:
     BIT PPU_STATUS                  ;read PPU_STATUS to reset high/low latch so low byte can be stored then high byte (little endian)
-    SET_POINTER #HIGH(VRAM_BG_PLT), #LOW(VRAM_BG_PLT), PPU_ADDR, PPU_ADDR
+    SET_POINTER_TO_ADDR VRAM_BG_PLT, PPU_ADDR, PPU_ADDR
 
     LDX #$00                        ;set x counter register to 0
     load_palettes_loop:

@@ -147,6 +147,9 @@ handle_enemy_movement:
     RTS
 
 handle_enemy_collision:
+	lda #$ff
+	sta enemy_speed_x, x
+
 	LDX temp + 2
 
 	DIV8 enemy_pos_x, x, #$00, #$00, coord_x
@@ -172,15 +175,33 @@ handle_enemy_collision:
     CALL mul_short, upc_pointer + 1, coord_y + 2, #$20
     ST_RT_VAL_IN upc_pointer + 1, upc_pointer
 
-    LDX temp + 2
-
     CALL check_collide_down
+    LDX temp + 2
     MUL8 c_coord_y
     CLC
     ADC #$02
     STA temp
     LDA rt_val_1
     IS_SOLID_TILE enscdownelse
+    	INC c_coord_y
+        IF_SIGNED_GT_OR_EQU enemy_gravity, x, #$00, notmovingdowncollide2
+            LDA rt_val_1
+            CMP #$0A
+            BNE spring_no_collide2
+                LDA temp
+                STA enemy_pos_y, x
+
+                LDA #$FA
+                STA enemy_gravity, x
+                LDA #$00
+                STA enemy_gravity + 1, x
+                
+                CALL play_spring_animation
+
+                JMP nscdownendif
+            spring_no_collide2:
+        notmovingdowncollide2:
+
         JMP enscdownendif
     enscdownelse:
         IF_SIGNED_GT_OR_EQU enemy_gravity, x, #$00, enscdownendif
@@ -194,6 +215,7 @@ handle_enemy_collision:
     enscdownendif:
 
     CALL check_collide_up
+    LDX temp + 2
     IS_SOLID_TILE enscupelse
         JMP enscupendif
     enscupelse:
@@ -208,6 +230,7 @@ handle_enemy_collision:
     enscupendif:
 
     CALL check_collide_left
+    LDX temp + 2
     IS_SOLID_TILE enscleftelse
         JMP enscleftendif
     enscleftelse:
@@ -219,8 +242,9 @@ handle_enemy_collision:
     enscleftendif:
 
     CALL check_collide_right
+    LDX temp + 2
     IS_SOLID_TILE enscrightelse
-        JMP nscrightendif
+        JMP enscrightendif
     enscrightelse:
         IF_SIGNED_GT_OR_EQU enemy_speed_x, x, #$00, enscrightendif
             MUL8 c_coord_x, #$00, #$01, enemy_pos_x, x
@@ -230,8 +254,8 @@ handle_enemy_collision:
     enscrightendif:
 
     LDX temp + 2
-
     CALL add_short, enemy_gravity, x, enemy_gravity + 1, x, #$40
+    LDX temp + 2
     ST_RT_VAL_IN enemy_gravity, x, enemy_gravity + 1, x
 
     LDX temp + 2
