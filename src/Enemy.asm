@@ -32,6 +32,13 @@ create_slime:
 	eaclfe_:
 
 	STX temp + 2
+	TXA
+    ASL a
+    STA temp + 3
+	ASL a
+	STA temp + 4
+
+	LDA enemy_len
 	LDY #$00
 
 	LDA #$01
@@ -50,12 +57,8 @@ create_slime:
 	LDA #$3F
 	STA enemy_temp_2, x
 
+	LDX temp + 3
 	SET_POINTER_TO_VAL current_room, enemy_room + 1, x, enemy_room, x
-
-	LDA temp + 2
-	ASL a
-	ASL a
-	TAX
 
 	MUL8 param_1
 	STA enemy_pos_x, x
@@ -67,14 +70,22 @@ create_slime:
 	LDA #$00
 	STA enemy_pos_y + 1, x
 
+	LDX temp + 4
 	LDA #$0C
 	STA OAM_RAM_ADDR + 5, x
-	LDA #$03
+	CALL rand
+	LSR a
+	LSR a
+	LSR a
+	LSR a
+	LSR a
+	LSR a
 	STA OAM_RAM_ADDR + 6, x
-
+	
 	RTS
 
 update_enemies:
+	DEBUG_BRK
 	LDX enemy_len
 	eul_:
 		DEX
@@ -97,22 +108,20 @@ update_enemies:
 
 	    LDX temp + 3
 		IF_EQU room_1, enemy_room, x, eulei_
-			LDX temp + 2
 			IF_UNSIGNED_LT_OR_EQU scroll_x, enemy_pos_x, x, eulhe_
 			JMP eulns_
 		eulei_:
-			LDX temp + 2
 			IF_UNSIGNED_GT_OR_EQU scroll_x, enemy_pos_x, x, eulhe_
 		eulns_:
 
-		LDX temp + 2
+		LDX temp + 3
 		LDA enemy_pos_y, x
 		SEC
 		SBC #$01
 		LDX temp + 4
 		STA OAM_RAM_ADDR + 4, x
 
-		LDX temp + 2
+		LDX temp + 3
 		LDA enemy_pos_x, x
 		SEC
 		SBC scroll_x
@@ -135,9 +144,9 @@ update_enemies:
     RTS
 
 handle_enemy_movement:
-	LDX temp + 2
+	LDX temp + 3
     CALL add_short, enemy_gravity, x, enemy_gravity + 1, x, #$40
-    LDX temp + 2
+    LDX temp + 3
     ST_RT_VAL_IN enemy_gravity, x, enemy_gravity + 1, x
 
 	;clamp enemy_speed_x
@@ -156,14 +165,14 @@ handle_enemy_movement:
 		LDA #$0C
 		STA OAM_RAM_ADDR + 5, x
 
-	    LDX temp + 2
+		LDX temp + 3
 	    IF_SIGNED_LT enemy_speed_x, x, #$00, hemnof_
 	    	LDX temp + 4
 	    	LDA #$10
 			STA OAM_RAM_ADDR + 5, x
 	hemnof_:
 
-    LDX temp + 2
+	LDX temp + 3
     ADD enemy_pos_y, x, enemy_gravity, x
     STA enemy_pos_y, x
 
@@ -178,7 +187,7 @@ handle_enemy_movement:
     RTS
 
 handle_enemy_collision:
-	LDX temp + 2
+	LDX temp + 3
 
 	DIV8 enemy_pos_x, x, #$00, #$00, coord_x
     DIV8 enemy_pos_x, x, #$00, #$01, coord_x + 1
@@ -187,8 +196,6 @@ handle_enemy_collision:
     DIV8 enemy_pos_y, x, #$00, #$00, coord_y
     DIV8 enemy_pos_y, x, #$04, #$00, coord_y + 1
     DIV8 enemy_pos_y, x, #$00, #$04, coord_y + 2
-
-    LDX temp + 3
 
     SET_POINTER enemy_room, x, enemy_room + 1, x, leftc_pointer + 1, leftc_pointer
     CALL mul_short, leftc_pointer + 1, coord_y, #$20
@@ -234,7 +241,7 @@ handle_enemy_collision:
 
     CALL check_collide_down
     LDA rt_val_1
-    LDX temp + 2
+    LDX temp + 3
     IS_SOLID_TILE enscdownendif
     	IF_SIGNED_GT_OR_EQU enemy_gravity, x, #$00, enscdownendif
     		MUL8 c_coord_y
@@ -252,7 +259,7 @@ handle_enemy_collision:
     enscdownendif:
 
     CALL check_collide_up
-    LDX temp + 2
+    LDX temp + 3
     IS_SOLID_TILE enscupendif
     	IF_SIGNED_LT_OR_EQU enemy_gravity, x, #$00, enscupendif
             MUL8 c_coord_y
@@ -265,7 +272,7 @@ handle_enemy_collision:
     enscupendif:
 
     CALL check_collide_left
-    LDX temp + 2
+    LDX temp + 3
     IS_SOLID_TILE enscleftendif
     	IF_SIGNED_LT_OR_EQU enemy_speed_x, x, #$00, enscleftendif
             MUL8 c_coord_x, #$01, #$00, enemy_pos_x, x
@@ -276,7 +283,7 @@ handle_enemy_collision:
     enscleftendif:
 
     CALL check_collide_right
-    LDX temp + 2
+    LDX temp + 3
     IS_SOLID_TILE enscrightendif
         IF_SIGNED_GT_OR_EQU enemy_speed_x, x, #$00, enscrightendif
             MUL8 c_coord_x, #$00, #$01, enemy_pos_x, x
@@ -289,7 +296,8 @@ handle_enemy_collision:
     RTS
 
 handle_enemy_AI:
-	LDA enemy_type
+	LDX temp + 2
+	LDA enemy_type, x
     CMP #$00
     BNE heainequ0_
 	    CALL handle_slime_AI
@@ -317,6 +325,7 @@ handle_slime_AI:
 	    	ADC #$10
 	    	STA enemy_temp_2, x
 
+	    	LDX temp + 3
 	    	LDA #$FD
 	        STA enemy_gravity, x
 	        LDA #$BE
@@ -325,7 +334,7 @@ handle_slime_AI:
 	        CALL check_lr_solids
 	        LDA rt_val_1
 	        BEQ hsaiei_
-	        LDX temp + 2
+	        LDX temp + 3
 
 	        CALL rand
 	        IF_SIGNED_GT rt_val_1, #$00, hsail_
@@ -335,7 +344,7 @@ handle_slime_AI:
 
 	        	LDA #$00
 	    		STA enemy_speed_x, x
-	        	LDA #$BE
+	        	LDA #$A0
 	    		STA enemy_speed_x + 1, x
 
 	        	JMP hsaiei_
@@ -345,7 +354,7 @@ handle_slime_AI:
 
 	        	LDA #$FF
 	    		STA enemy_speed_x, x
-	        	LDA #$3F
+	        	LDA #$20
 	        	STA enemy_speed_x + 1, x
 
 	    	JMP hsaiei_

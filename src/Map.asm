@@ -126,53 +126,52 @@ load_nametable:
     STA temp
     STA temp + 1
     nt_loop:
-        nt_loop_nested:
-            CPY #$C0
-            BCC lt960
-                CPX #$03
-                BNE lt960
-                    LDA [nt_pointer], y     ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
-                    JMP ntcmpendif
-            lt960:
-                LDA [nt_pointer], y         ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
-                CMP #$07
-                BNE nt____
-                    CALL set_respawn, temp, temp + 1
-                    LDA #$00
-                    JMP ntcmpendif
-                nt____:
-                CMP #$0C
-                BNE ntcmpendif
-                    INC enemy_len
-                    STY temp + 3
-                    STX temp + 4
-                    CALL create_slime, temp, temp + 1
-                    LDY temp + 3
-                    LDX temp + 4
-                    LDA #$00
-            ntcmpendif:
-
-            STA PPU_DATA                ;write byte to the PPU nametable address
-            INY                         ;add by 1 to move to the next byte
-
-            ADD temp, #$01
-            STA temp
-            IF_UNSIGNED_GT_OR_EQU temp, #$20, nrowreset
+        CPY #$C0
+        BCC lt960
+            CPX #$03
+            BNE lt960
+                LDA [nt_pointer], y     ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
+                JMP ntcmpendif
+        lt960:
+            LDA [nt_pointer], y         ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
+            CMP #$07
+            BNE nt____
+                CALL set_respawn, temp, temp + 1
                 LDA #$00
-                STA temp
+                JMP ntcmpendif
+            nt____:
+            CMP #$0C
+            BNE ntcmpendif
+                INC enemy_len
+                STY temp + 5
+                STX temp + 6
+                CALL create_slime, temp, temp + 1
+                LDY temp + 5
+                LDX temp + 6
+                LDA #$00
+        ntcmpendif:
 
-                ADD temp + 1, #$01
-                STA temp + 1
-            nrowreset:
+        STA PPU_DATA                ;write byte to the PPU nametable address
+        INY                         ;add by 1 to move to the next byte
 
-            CPY #$00                    ;check if y is equal to 0 (it has overflowed)
-            BNE nt_loop_nested          ;keep looping if y not equal to 0, otherwise continue
+        ADD temp, #$01
+        STA temp
+        IF_UNSIGNED_GT_OR_EQU temp, #$20, nrowreset
+            LDA #$00
+            STA temp
 
-            INC nt_pointer + 1        ;increase the high byte of current_room by 1 ((#$FF + 1) low bytes)
-            INX                         ;increase x by 1
+            ADD temp + 1, #$01
+            STA temp + 1
+        nrowreset:
 
-            CPX #$04                    ;check if x has looped and overflowed 4 times (1kb, #$04FF)
-            BNE nt_loop                 ;go to the start of the loop if x is not equal to 0, otherwise continue
+        CPY #$00                    ;check if y is equal to 0 (it has overflowed)
+        BNE nt_loop                 ;keep looping if y not equal to 0, otherwise continue
+
+        INC nt_pointer + 1          ;increase the high byte of current_room by 1 ((#$FF + 1) low bytes)
+        INX                         ;increase x by 1
+
+        CPX #$04                    ;check if x has looped and overflowed 4 times (1kb, #$04FF)
+        BNE nt_loop                 ;go to the start of the loop if x is not equal to 0, otherwise continue
     RTS
 
 ;------------------------------------------------------------------------------------;

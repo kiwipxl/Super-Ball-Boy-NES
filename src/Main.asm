@@ -58,8 +58,8 @@ rt_val_4                .rs     1
 ;temporary value that can be modified at any time
 temp                    .rs     6
 
-	;store game variables in zero page with a 16 byte offset
-	.rsset $0010
+	;store game variables in zero page with a 18 byte offset
+	.rsset $0012
 
 ;PPU variables
 vblank_counter      	.rs     1
@@ -128,8 +128,8 @@ ani_max:
 enemy_type              .rs     8
 enemy_pos_x             .rs     16
 enemy_pos_y             .rs     16
-enemy_speed_x           .rs     8
-enemy_gravity           .rs     8
+enemy_speed_x           .rs     16
+enemy_gravity           .rs     16
 enemy_active            .rs     8
 enemy_temp_1            .rs     8
 enemy_temp_2            .rs     8
