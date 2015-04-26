@@ -86,6 +86,7 @@ coord_y             	.rs     3
 c_coord_x               .rs     1
 c_coord_y               .rs     1
 on_floor                .rs     1
+current_tile            .rs     1
 
 ;chamber scroll variables
 scroll_x            	.rs     1

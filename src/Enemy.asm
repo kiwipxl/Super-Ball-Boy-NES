@@ -190,6 +190,30 @@ handle_enemy_collision:
     CALL mul_short, upc_pointer + 1, coord_y + 2, #$20
     ST_RT_VAL_IN upc_pointer + 1, upc_pointer
 
+    LDA coord_y + 1
+    STA c_coord_y
+    LDY coord_x
+    STY c_coord_x
+    LDA [downc_pointer], y
+    STA current_tile
+
+    IF_SIGNED_GT_OR_EQU enemy_gravity, x, #$00, heclt0_
+    	LDA current_tile
+        CMP #$0A
+        BNE heclt0_
+        	DEBUG_BRK
+        	LDX temp + 2
+        	MUL8 c_coord_y
+            STA enemy_pos_y, x
+
+            LDA #$FA
+            STA enemy_gravity, x
+            LDA #$00
+            STA enemy_gravity + 1, x
+
+            CALL play_spring_animation
+    heclt0_:
+
     CALL check_collide_down
     LDX temp + 2
     MUL8 c_coord_y
@@ -213,24 +237,6 @@ handle_enemy_collision:
             STA on_floor
         JMP enscdownendif
     enscdownelse:
-    	INC c_coord_y
-        IF_SIGNED_GT_OR_EQU enemy_gravity, x, #$00, notmovingdowncollide2
-            LDA rt_val_1
-            CMP #$0A
-            BNE spring_no_collide2
-            	MUL8 c_coord_y
-                STA enemy_pos_y, x
-
-                LDA #$FA
-                STA enemy_gravity, x
-                LDA #$00
-                STA enemy_gravity + 1, x
-
-                CALL play_spring_animation
-
-                JMP nscdownendif
-            spring_no_collide2:
-        notmovingdowncollide2:
     enscdownendif:
 
     CALL check_collide_up
@@ -311,7 +317,6 @@ handle_slime_AI:
 	        hsail_:
 	        	LDA temp
 	        	BEQ hsair_
-	        	DEBUG_BRK
 	        	LDA #$00
 	    		STA enemy_speed_x, x
 	        	LDA #$BE
@@ -320,7 +325,6 @@ handle_slime_AI:
 	        hsair_:
 	        	LDA temp + 1
 	        	BEQ hsail_
-	        	DEBUG_BRK
 	        	LDA #$FF
 	    		STA enemy_speed_x, x
 	        	LDA #$3F
