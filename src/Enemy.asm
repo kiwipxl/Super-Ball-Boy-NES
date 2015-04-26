@@ -94,6 +94,8 @@ update_enemies:
 
 		LDX temp + 2
 		LDA enemy_pos_y, x
+		SEC
+		SBC #$01
 		LDX temp + 4
 		STA OAM_RAM_ADDR + 4, x
 
@@ -121,14 +123,14 @@ update_enemies:
 
 handle_enemy_movement:
 	LDX temp + 2
-
+	
 	;clamp enemy_speed_x
     CALL clamp_signed, enemy_speed_x, x, #$FE, #$02
     LDA rt_val_1
     STA enemy_speed_x, x
 
     ;clamp enemy_gravity
-    CALL clamp_signed, enemy_gravity, x, #$FB, #$04
+    CALL clamp_signed, enemy_gravity, x, #$FB, #$00
     LDA rt_val_1
     STA enemy_gravity, x
 
@@ -147,9 +149,6 @@ handle_enemy_movement:
     RTS
 
 handle_enemy_collision:
-	lda #$ff
-	sta enemy_speed_x, x
-
 	LDX temp + 2
 
 	DIV8 enemy_pos_x, x, #$00, #$00, coord_x
@@ -178,8 +177,6 @@ handle_enemy_collision:
     CALL check_collide_down
     LDX temp + 2
     MUL8 c_coord_y
-    CLC
-    ADC #$02
     STA temp
     LDA rt_val_1
     IS_SOLID_TILE enscdownelse
@@ -195,7 +192,7 @@ handle_enemy_collision:
                 STA enemy_gravity, x
                 LDA #$00
                 STA enemy_gravity + 1, x
-                
+
                 CALL play_spring_animation
 
                 JMP nscdownendif
@@ -208,9 +205,9 @@ handle_enemy_collision:
             LDA temp
             STA enemy_pos_y, x
 
-            LDA #$FC
+            LDA #$00
             STA enemy_gravity, x
-            LDA #$7F
+            LDA #$00
             STA enemy_gravity + 1, x
     enscdownendif:
 

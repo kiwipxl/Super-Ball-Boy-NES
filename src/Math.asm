@@ -281,3 +281,17 @@ clamp_signed:
     STA rt_val_1
 
     RTS
+
+rand:
+    LDA rand_seed
+    BEQ doeor_
+        ASL a
+        BEQ noeor_ ;if the input was $80, skip the EOR
+        BCC noeor_
+    doeor_:
+        EOR #$1d
+    noeor_:
+        STA rand_seed
+    STA rt_val_1
+
+    RTS

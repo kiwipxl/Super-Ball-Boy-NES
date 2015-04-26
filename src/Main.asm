@@ -67,6 +67,9 @@ vblank_counter      	.rs     1
 ;input variables
 button_bits         	.rs     1
 
+;random variables
+rand_seed               .rs     1
+
 ;player movement variables
 pos_x               	.rs     1
 pos_y               	.rs     1
@@ -301,7 +304,7 @@ game_loop:
     CALL check_collide_down
     MUL8 c_coord_y
     CLC
-    ADC #$02
+    ADC #$03
     STA temp
     LDA rt_val_1
     IS_SOLID_TILE nscdownelse
