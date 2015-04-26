@@ -1,16 +1,15 @@
 init_animations:
 	LDX ani_max
-	BEQ ani_init_loop_end
-	ani_init_loop:
+	BEQ aacle_
+	ail_:
 		DEX
+		BEQ aile_
 
 		LDA #$00
 		STA ani_active, x
-		INX
-		DEX
-		BEQ ani_init_loop_end
-		JMP ani_init_loop
-	ani_init_loop_end:
+
+		JMP ail_
+	aile_:
 
 	RTS
 
@@ -19,20 +18,19 @@ init_animations:
 create_tile_animation:
 	;loops through all animations to find a non active animation
 	LDX ani_max
-	BEQ ani_active_check_loop_end
-	ani_active_check_loop:
+	BEQ aacle_
+	aacl_:
 		DEX
+		BEQ aacle_
 
 		LDA ani_active, x
-		BNE ani_is_active
+		BNE aia_
 			STX temp + 2
-			JMP ani_active_check_loop_end
-		ani_is_active:
+			JMP aacle_
+		aia_:
 
-		INX
-		DEX
-		BNE ani_active_check_loop
-	ani_active_check_loop_end:
+		JMP aacl_
+	aacle_:
 
 	LDX temp + 2
 	LDY #$00

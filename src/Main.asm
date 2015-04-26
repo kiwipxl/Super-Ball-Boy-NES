@@ -218,7 +218,7 @@ load_palettes:
 
 init:
     CALL load_chamber_1
-    
+
 ;initialises PPU settings
 configure_PPU:
     ;setup PPU_CTRL bits
@@ -435,35 +435,26 @@ NMI:
     ;CPU is now suspended and transfer begins
 
     LDX ani_max
-    BEQ ani_render_loop_end
-    ani_render_loop:
+    BEQ arle_
+    arl_:
         DEX
+        BEQ arle_
 
         LDA ani_active, x
-        BEQ ani_chk_if_zero
+        BEQ arl_
 
         TXA
         ASL a
         TAY
-        LDA ani_VRAM_pointer, y                     ;gets the first byte of point_address (high byte)
-        STA PPU_ADDR                                ;store in high_byte_store
-        LDA ani_VRAM_pointer + 1, y                 ;gets the second byte of point_address (low byte)
-        STA PPU_ADDR                                ;store in low_byte_store
-
-        LDA ani_frames, y
-        STA temp
-        LDA ani_frames + 1, y
-        STA temp + 1
+        SET_POINTER ani_VRAM_pointer, y, ani_VRAM_pointer + 1, y, PPU_ADDR, PPU_ADDR
+        
+        SET_POINTER ani_frames, y, ani_frames + 1, y, temp, temp + 1
         LDY ani_current_frame, x
         LDA [temp], y
         STA PPU_DATA
 
-        ani_chk_if_zero:
-        INX
-        DEX
-        BEQ ani_render_loop_end
-        JMP ani_render_loop
-    ani_render_loop_end:
+        JMP arl_
+    arle_:
     SET_POINTER_TO_ADDR VRAM_NT_0, PPU_ADDR, PPU_ADDR
 
     LDA scroll_x

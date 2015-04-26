@@ -33,7 +33,7 @@ create_slime:
 		DEX
 		BNE enemy_active_check_loop
 	enemy_active_check_loop_end:
-
+	
 	RTS
 
 update_enemies:
