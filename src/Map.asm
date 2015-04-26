@@ -7,6 +7,7 @@ LOAD_ROOM .macro
     SET_POINTER_TO_ADDR \2, PPU_ADDR, PPU_ADDR
     SET_POINTER_TO_ADDR \2, current_VRAM_room + 1, current_VRAM_room
     SET_POINTER_TO_ADDR \1, current_room + 1, current_room
+    SET_POINTER_TO_ADDR \1, nt_pointer + 1, nt_pointer
 
     CALL load_nametable
 
@@ -37,9 +38,23 @@ IS_SOLID_TILE .macro
 
 ;-----------------------------------------------------------------------------------;
 
-load_chamber_1:
-    LOAD_ROOM CHAMBER_1_ROOM_0, VRAM_NT_0
-    LOAD_ROOM CHAMBER_1_ROOM_1, VRAM_NT_1
+respawn:
+    SET_POINTER_TO_VAL respawn_room, current_room, current_room + 1
+    SET_POINTER_TO_VAL respawn_VRAM_room, current_VRAM_room, current_VRAM_room + 1
+    LDA #$01
+    STA scroll_x_type
+
+    MUL8 player_spawn
+    STA OAM_RAM_ADDR
+    STA pos_x
+
+    SEC
+    SBC #$7F
+    STA scroll_x
+
+    MUL8 player_spawn + 1
+    STA OAM_RAM_ADDR + 3
+    STA pos_y
 
     RTS
 
@@ -65,6 +80,14 @@ set_respawn:
 
     RTS
 
+;-----------------------------------------------------------------------------------;
+
+load_chamber_1:
+    LOAD_ROOM CHAMBER_1_ROOM_0, VRAM_NT_0
+    LOAD_ROOM CHAMBER_1_ROOM_1, VRAM_NT_1
+
+    RTS
+
 ;writes nametable bytes pointing from current_room into PPU VRAM
 ;before this function is called, the VRAM_NT_ID address must be written to PPU_ADDR
 ;so whenever we write data to PPU_DATA, it will map to the VRAM_NT_ID + write offset address in the PPU VRAM
@@ -80,10 +103,10 @@ load_nametable:
             BCC lt960
                 CPX #$03
                 BNE lt960
-                    LDA [current_room], y     ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
+                    LDA [nt_pointer], y     ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
                     JMP ntcmpendif
             lt960:
-                LDA [current_room], y         ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
+                LDA [nt_pointer], y         ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
                 CMP #$07
                 BNE ntcmpendif
                     CALL set_respawn, temp, temp + 1
@@ -107,7 +130,7 @@ load_nametable:
             CPY #$00                    ;check if y is equal to 0 (it has overflowed)
             BNE nt_loop_nested          ;keep looping if y not equal to 0, otherwise continue
 
-            INC current_room + 1          ;increase the high byte of current_room by 1 ((#$FF + 1) low bytes)
+            INC nt_pointer + 1        ;increase the high byte of current_room by 1 ((#$FF + 1) low bytes)
             INX                         ;increase x by 1
 
             CPX #$04                    ;check if x has looped and overflowed 4 times (1kb, #$04FF)
@@ -184,25 +207,7 @@ handle_room_intersect:
     ntransright:
     RTS
 
-respawn:
-    SET_POINTER_TO_VAL respawn_room, current_room, current_room + 1
-    SET_POINTER_TO_VAL respawn_VRAM_room, current_VRAM_room, current_VRAM_room + 1
-    LDA #$01
-    STA scroll_x_type
-
-    MUL8 player_spawn
-    STA OAM_RAM_ADDR + 3
-    STA pos_x
-
-    SEC
-    SBC #$7F
-    STA scroll_x
-
-    MUL8 player_spawn + 1
-    STA OAM_RAM_ADDR + 3
-    STA pos_y
-
-    RTS
+;------------------------------------------------------------------------------------;
 
 check_collide_left:
     LDY coord_y

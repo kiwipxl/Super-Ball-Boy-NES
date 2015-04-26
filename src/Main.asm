@@ -96,6 +96,7 @@ scroll_y            	.rs     1
 scroll_x_type       	.rs     1
 
 ;room variables
+nt_pointer              .rs     2
 current_room            .rs     2
 current_VRAM_room       .rs     2
 room_1                  .rs     2
