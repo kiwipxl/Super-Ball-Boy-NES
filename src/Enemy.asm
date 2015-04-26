@@ -200,12 +200,25 @@ handle_enemy_collision:
 
     LDA rt_val_1
     IS_SOLID_TILE enscdownelse
+    	IF_SIGNED_GT_OR_EQU enemy_gravity, x, #$00, enscdownendif
+            LDA temp
+            STA enemy_pos_y, x
+
+            LDA #$00
+            STA enemy_gravity, x
+            LDA #$00
+            STA enemy_gravity + 1, x
+
+            LDA #$01
+            STA on_floor
+        JMP enscdownendif
+    enscdownelse:
     	INC c_coord_y
         IF_SIGNED_GT_OR_EQU enemy_gravity, x, #$00, notmovingdowncollide2
             LDA rt_val_1
             CMP #$0A
             BNE spring_no_collide2
-                LDA temp
+            	MUL8 c_coord_y
                 STA enemy_pos_y, x
 
                 LDA #$FA
@@ -218,28 +231,12 @@ handle_enemy_collision:
                 JMP nscdownendif
             spring_no_collide2:
         notmovingdowncollide2:
-
-        JMP enscdownendif
-    enscdownelse:
-        IF_SIGNED_GT_OR_EQU enemy_gravity, x, #$00, enscdownendif
-            LDA temp
-            STA enemy_pos_y, x
-
-            LDA #$00
-            STA enemy_gravity, x
-            LDA #$00
-            STA enemy_gravity + 1, x
-
-            LDA #$01
-            STA on_floor
     enscdownendif:
 
     CALL check_collide_up
     LDX temp + 2
-    IS_SOLID_TILE enscupelse
-        JMP enscupendif
-    enscupelse:
-        IF_SIGNED_LT_OR_EQU enemy_gravity, x, #$00, enscupendif
+    IS_SOLID_TILE enscupendif
+    	IF_SIGNED_LT_OR_EQU enemy_gravity, x, #$00, enscupendif
             MUL8 c_coord_y
             SEC
             SBC #$01
@@ -251,10 +248,8 @@ handle_enemy_collision:
 
     CALL check_collide_left
     LDX temp + 2
-    IS_SOLID_TILE enscleftelse
-        JMP enscleftendif
-    enscleftelse:
-        IF_SIGNED_LT_OR_EQU enemy_speed_x, x, #$00, enscleftendif
+    IS_SOLID_TILE enscleftendif
+    	IF_SIGNED_LT_OR_EQU enemy_speed_x, x, #$00, enscleftendif
             MUL8 c_coord_x, #$01, #$00, enemy_pos_x, x
 
             LDA #$00
@@ -263,15 +258,20 @@ handle_enemy_collision:
 
     CALL check_collide_right
     LDX temp + 2
-    IS_SOLID_TILE enscrightelse
-        JMP enscrightendif
-    enscrightelse:
+    IS_SOLID_TILE enscrightendif
         IF_SIGNED_GT_OR_EQU enemy_speed_x, x, #$00, enscrightendif
             MUL8 c_coord_x, #$00, #$01, enemy_pos_x, x
 
             LDA #$00
             STA enemy_speed_x, x
     enscrightendif:
+
+    LDY coord_x
+    INY
+    INY
+    LDA [downc_pointer], y
+    IS_SOLID_TILE is_solid
+    is_solid:
 
     RTS
 

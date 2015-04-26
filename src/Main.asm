@@ -313,6 +313,16 @@ game_loop:
     STA temp
     LDA rt_val_1
     IS_SOLID_TILE nscdownelse
+        IF_SIGNED_GT_OR_EQU gravity, #$00, nscdownendif
+                LDA temp
+                STA pos_y
+
+                LDA #$FC
+                STA gravity
+                LDA #$7F
+                STA gravity + 1
+        JMP nscdownendif
+    nscdownelse:
         INC c_coord_y
         IF_SIGNED_GT_OR_EQU gravity, #$00, notmovingdowncollide
             LDA rt_val_1
@@ -337,23 +347,10 @@ game_loop:
                 JMP nscdownendif
             respawn_endif:
         notmovingdowncollide:
-
-        JMP nscdownendif
-    nscdownelse:
-        IF_SIGNED_GT_OR_EQU gravity, #$00, nscdownendif
-            LDA temp
-            STA pos_y
-
-            LDA #$FC
-            STA gravity
-            LDA #$7F
-            STA gravity + 1
     nscdownendif:
 
     CALL check_collide_up
-    IS_SOLID_TILE nscupelse
-        JMP nscupendif
-    nscupelse:
+    IS_SOLID_TILE nscupendif
         IF_SIGNED_LT_OR_EQU gravity, #$00, nscupendif
             MUL8 c_coord_y
             SEC
@@ -364,12 +361,9 @@ game_loop:
             STA gravity
     nscupendif:
 
-    IF_UNSIGNED_GT pos_x, #$04, scleft
+    IF_UNSIGNED_GT pos_x, #$04, nscleftendif
     CALL check_collide_left
-    IS_SOLID_TILE nscleftelse
-        scleft:
-        JMP nscleftendif
-    nscleftelse:
+    IS_SOLID_TILE nscleftendif
         IF_SIGNED_LT_OR_EQU speed_x, #$00, nscleftendif
             MUL8 c_coord_x, #$01, #$00, pos_x
 
@@ -377,12 +371,9 @@ game_loop:
             STA speed_x
     nscleftendif:
 
-    IF_UNSIGNED_LT pos_x, #$FB, scright
+    IF_UNSIGNED_LT pos_x, #$FB, nscrightendif
     CALL check_collide_right
-    IS_SOLID_TILE nscrightelse
-        scright:
-        JMP nscrightendif
-    nscrightelse:
+    IS_SOLID_TILE nscrightendif
         IF_SIGNED_GT_OR_EQU speed_x, #$00, nscrightendif
             MUL8 c_coord_x, #$00, #$01, pos_x
 

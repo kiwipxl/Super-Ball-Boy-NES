@@ -24,15 +24,18 @@ LOAD_ROOM .macro
 
 IS_SOLID_TILE .macro
     CMP #$02
-    BEQ \1
+    BEQ .success\@
     CMP #$05
-    BEQ \1
+    BEQ .success\@
     CMP #$06
-    BEQ \1
+    BEQ .success\@
     CMP #$15
-    BEQ \1
+    BEQ .success\@
     CMP #$16
-    BEQ \1
+    BEQ .success\@
+
+    JMP \1
+    .success\@:
 
     .endm
 
