@@ -49,6 +49,8 @@ create_slime:
 	LDA #$01
 	STA enemy_active, x
 
+	SET_POINTER_TO_VAL current_room, enemy_room + 1, x, enemy_room, x
+
 	RTS
 
 update_enemies:
@@ -61,6 +63,13 @@ update_enemies:
 		LDA enemy_active, x
 		BEQ eul_
 
+		IF_EQU room_1, enemy_room, x, eulei_
+			IF_UNSIGNED_LT_OR_EQU scroll_x, enemy_pos_x, x, eulhe_
+			JMP eulns_
+		eulei_:
+			IF_UNSIGNED_GT_OR_EQU scroll_x, enemy_pos_x, x, eulhe_
+		eulns_:
+
 		LDA enemy_pos_y, x
 		STA OAM_RAM_ADDR + 4
 		LDA enemy_pos_x, x
@@ -69,6 +78,13 @@ update_enemies:
 		STA OAM_RAM_ADDR + 7
 
 		JMP eul_
+
+		eulhe_:
+			LDA #$FF
+			STA OAM_RAM_ADDR + 4
+			LDA #$FF
+			STA OAM_RAM_ADDR + 7
+			JMP eul_
 	eule_:
 
     RTS

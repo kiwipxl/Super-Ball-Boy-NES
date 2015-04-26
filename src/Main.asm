@@ -106,6 +106,8 @@ respawn_VRAM_room       .rs     2
 ani_frames 				.rs 	16       ;store hi + lo byte pointer to pre-built animation, 2 bytes per animation
 ani_VRAM_pointer 		.rs 	16       ;stores hi + lo byte pointers to a nametable which tile animations will use, 2 bytes per animation
 
+enemy_room              .rs     16
+
 	;store animation array with a 256 byte offset with a max amount of 8 running animations
 	.rsset $0100
 	
@@ -264,8 +266,8 @@ game_loop:
 	CALL read_controller
 
     DIV8 pos_x, #$00, #$00, coord_x
-    DIV8 pos_x, #$00, #$01, coord_x + 1
-    DIV8 pos_x, #$01, #$00, coord_x + 2
+    DIV8 pos_x, #$00, #$04, coord_x + 1
+    DIV8 pos_x, #$04, #$00, coord_x + 2
 
     DIV8 pos_y, #$00, #$00, coord_y
     DIV8 pos_y, #$04, #$00, coord_y + 1
