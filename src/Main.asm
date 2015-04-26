@@ -123,6 +123,8 @@ ani_max:
 enemy_type              .rs     8
 enemy_pos_x             .rs     8
 enemy_pos_y             .rs     8
+enemy_speed_x           .rs     8
+enemy_gravity           .rs     8
 enemy_active            .rs     8
 enemy_len               .rs     1
 enemy_max:
@@ -263,6 +265,16 @@ game_loop:
         ST_RT_VAL_IN speed_x, speed_x + 1
     posxltelse:
 
+    LEFT_BUTTON_DOWN lbnotdown
+        CALL sub_short, speed_x, speed_x + 1, #$80
+        ST_RT_VAL_IN speed_x, speed_x + 1
+    lbnotdown:
+
+    RIGHT_BUTTON_DOWN rbnotdown
+        CALL add_short, speed_x, speed_x + 1, #$80
+        ST_RT_VAL_IN speed_x, speed_x + 1
+    rbnotdown:
+
 	CALL read_controller
 
     DIV8 pos_x, #$00, #$00, coord_x
@@ -293,10 +305,6 @@ game_loop:
     STA temp
     LDA rt_val_1
     IS_SOLID_TILE nscdownelse
-        DOWN_BUTTON_DOWN dbnotdown
-
-        dbnotdown:
-
         INC c_coord_y
         IF_SIGNED_GT_OR_EQU gravity, #$00, notmovingdowncollide
             LDA rt_val_1
@@ -336,9 +344,6 @@ game_loop:
 
     CALL check_collide_up
     IS_SOLID_TILE nscupelse
-        UP_BUTTON_DOWN ubnotdown
-
-        ubnotdown:
         JMP nscupendif
     nscupelse:
         IF_SIGNED_LT_OR_EQU gravity, #$00, nscupendif
@@ -355,10 +360,6 @@ game_loop:
     CALL check_collide_left
     IS_SOLID_TILE nscleftelse
         scleft:
-        LEFT_BUTTON_DOWN lbnotdown
-            CALL sub_short, speed_x, speed_x + 1, #$80
-            ST_RT_VAL_IN speed_x, speed_x + 1
-        lbnotdown:
         JMP nscleftendif
     nscleftelse:
         IF_SIGNED_LT_OR_EQU speed_x, #$00, nscleftendif
@@ -372,10 +373,6 @@ game_loop:
     CALL check_collide_right
     IS_SOLID_TILE nscrightelse
         scright:
-        RIGHT_BUTTON_DOWN rbnotdown
-            CALL add_short, speed_x, speed_x + 1, #$80
-            ST_RT_VAL_IN speed_x, speed_x + 1
-        rbnotdown:
         JMP nscrightendif
     nscrightelse:
         IF_SIGNED_GT_OR_EQU speed_x, #$00, nscrightendif
