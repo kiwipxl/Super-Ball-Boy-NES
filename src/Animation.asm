@@ -14,7 +14,7 @@ init_animations:
 	RTS
 
 ;creates a tile animation set with specified animation parameters
-;input - (ani_label_hi, ani_label_lo, animation rate, loop (0 or > 0), tile_x, tile_y)
+;input - (ani_label_hi, ani_label_lo, animation rate, loop (0 or > 0), tile_x, tile_y, VRAM_id_hi, VRAM_id_lo)
 create_tile_animation:
 	;loops through all animations to find a non active animation
 	LDX ani_max
@@ -75,13 +75,14 @@ create_tile_animation:
 
 	;----------
 	
-	LDA current_VRAM_room
+	LDA param_7
 	STA ani_VRAM_pointer, x
 
-	LDA current_VRAM_room + 1
+	LDA param_8
 	STA ani_VRAM_pointer + 1, x
 
-	CALL mul_short, current_VRAM_room, param_6, #$20
+	CALL mul_short, param_7, param_6, #$20
+	CALL mul_short, param_7, param_6, #$20
 	CALL add_short, rt_val_1, rt_val_2, param_5
 
 	LDA temp + 2
@@ -123,7 +124,4 @@ update_animations:
 	aule_:
 
     RTS
-
-play_spring_animation:
-	CALL create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$01, #$00, c_coord_x, c_coord_y
-	RTS
+	

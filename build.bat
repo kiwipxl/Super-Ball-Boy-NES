@@ -1,6 +1,4 @@
-C:\assemblers\ASM\NESASM\NESASM3 src\main.asm
-
-rem C:\Users\rstewart\Desktop\nes-game-tools\NESASM\NESASM3 src\main.asm
+C:\assemblers\ASM\NESASM\NESASM3 src\main.asmrem C:\Users\rstewart\Desktop\nes-game-tools\NESASM\NESASM3 src\main.asm
 
 move src\main.nes output\main.nes
 

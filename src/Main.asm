@@ -96,22 +96,25 @@ scroll_x_type       	.rs     1
 ;room variables
 nt_pointer              .rs     2
 current_room            .rs     2
-current_VRAM_room       .rs     2
+current_VRAM_addr      	.rs     2
 room_1                  .rs     2
-VRAM_room_1             .rs     2
+VRAM_room_addr_1	   	.rs     2
 room_2                  .rs     2
-VRAM_room_2             .rs     2
+VRAM_room_addr_2       	.rs     2
+room_load_id 			.rs 	1
 
 ;respawn variables
 player_spawn            .rs     2
 respawn_room            .rs     2
-respawn_VRAM_room       .rs     2
+respawn_VRAM_addr       .rs     2
+respawn_scroll_x_type 	.rs 	1
 
 ;animation pointer variables
 ani_frames 				.rs 	16       ;store hi + lo byte pointer to pre-built animation, 2 bytes per animation
 ani_VRAM_pointer 		.rs 	16       ;stores hi + lo byte pointers to a nametable which tile animations will use, 2 bytes per animation
 
 enemy_room              .rs     16
+enemy_VRAM_addr 	 	.rs 	16
 
 	;store animation array with a 256 byte offset with a max amount of 8 running animations
 	.rsset $0100
@@ -145,6 +148,12 @@ SPRING_ANI:
     ;tile index frame animation
 	.db $0A, $1A, $2A, $3A, $3A, $3A, $3A, $3A, $2A, $1A, $0A
 
+PPU_CTRL_CONFIG:
+    .db %10000000                  ;enable NMI calling and set sprite pattern table to $0000 (0)
+
+PPU_MASK_CONFIG:
+    .db %00011110                  ;enable sprite rendering
+
 	.include "src/SystemConstants.asm"
     .include "src/SystemMacros.asm"
     .include "src/Math.asm"
@@ -175,13 +184,6 @@ RESET:
 
     INX                             ;add 1 to the x register and overflow it which results in 0
     STX $4010                       ;disable DMC IRQ (APU memory access and interrupts) by writing 0 to the APU DMC register
-
-    ;IF_SIGNED_LT #$01, #$01, t
-    ;    DEBUG_BRK
-    ;    LDY #$01
-    ;t:
-    ;    DEBUG_BRK
-    ;    LDY #$02
 
     CALL vblank_wait                 ;first vblank wait to make sure the PPU is warming up
 
@@ -231,16 +233,7 @@ load_palettes:
 
 init:
     CALL load_chamber_1
-
-;initialises PPU settings
-configure_PPU:
-    ;setup PPU_CTRL bits
-    LDA #%10000000                  ;enable NMI calling and set sprite pattern table to $0000 (0)
-    STA PPU_CTRL
-
-    ;setup PPU_MASK bits
-    LDA #%00011110                  ;enable sprite rendering
-    STA PPU_MASK
+    CONFIGURE_PPU
 
 ;------------------------------------------------------------------------------------;
 
@@ -322,9 +315,9 @@ game_loop:
                 STA gravity
                 LDA #$00
                 STA gravity + 1
-
-                CALL play_spring_animation
-
+				
+				CALL create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$01, #$00, c_coord_x, c_coord_y, current_VRAM_addr, current_VRAM_addr + 1
+				
                 JMP notmovingdowncollide
             spring_no_collide:
 
@@ -427,6 +420,12 @@ read_controller:
 ;NMI interrupts the cpu and is called once per video frame
 ;PPU is starting vblank time and is available for graphics updates
 NMI:
+    PHA
+    TXA
+    PHA
+    TYA
+    PHA
+
     ;copies 256 bytes of OAM data in RAM (OAM_RAM_ADDR - OAM_RAM_ADDR + $FF) to the PPU internal OAM
     ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
 
@@ -447,27 +446,37 @@ NMI:
         LDA ani_active, x
         BEQ arl_
 
+        STX temp + 2
         TXA
         ASL a
-        TAY
-        SET_POINTER ani_VRAM_pointer, y, ani_VRAM_pointer + 1, y, PPU_ADDR, PPU_ADDR
+        TAX
 
-        SET_POINTER ani_frames, y, ani_frames + 1, y, temp, temp + 1
+        SET_POINTER ani_VRAM_pointer, x, ani_VRAM_pointer + 1, x, PPU_ADDR, PPU_ADDR
+        SET_POINTER ani_frames, x, ani_frames + 1, x, temp, temp + 1
+
+        LDX temp + 2
         LDY ani_current_frame, x
         LDA [temp], y
         STA PPU_DATA
 
         JMP arl_
     arle_:
-    SET_POINTER_TO_ADDR VRAM_NT_0, PPU_ADDR, PPU_ADDR
-
+    CONFIGURE_PPU
+    
     LDA scroll_x
     STA $2005
     LDA scroll_y
     STA $2005
 
+    LDA vblank_counter
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
-	
+
+    PLA
+    TAY
+    PLA
+    TAX
+    PLA
+
     RTI                             ;returns from the interrupt
 
 IQR:

@@ -7,6 +7,19 @@ DEBUG_BRK .macro
     .endm
 
 ;------------------------------------------------------------------------------------;
+;PPU macros
+
+CONFIGURE_PPU .macro
+    ;load PPU_CTRL and PPU_MASK config and store
+    LDA PPU_CTRL_CONFIG
+    STA PPU_CTRL
+    LDA PPU_MASK_CONFIG
+    STA PPU_MASK
+    LDA PPU_STATUS
+
+    .endm
+
+;------------------------------------------------------------------------------------;
 ;stack and function macros
 
 ;macro to store parameters from the stack into the zero page param variables
