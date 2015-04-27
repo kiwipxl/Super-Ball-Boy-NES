@@ -462,7 +462,7 @@ NMI:
         JMP arl_
     arle_:
     CONFIGURE_PPU
-    
+
     LDA scroll_x
     STA $2005
     LDA scroll_y

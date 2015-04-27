@@ -75,13 +75,6 @@ create_tile_animation:
 
 	;----------
 	
-	LDA param_7
-	STA ani_VRAM_pointer, x
-
-	LDA param_8
-	STA ani_VRAM_pointer + 1, x
-
-	CALL mul_short, param_7, param_6, #$20
 	CALL mul_short, param_7, param_6, #$20
 	CALL add_short, rt_val_1, rt_val_2, param_5
 

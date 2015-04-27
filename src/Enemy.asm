@@ -111,7 +111,7 @@ update_enemies:
 		ASL a
 		;store n * 4 in x
 		STA temp + 4
-		
+
 		CALL handle_enemy_movement
 	    CALL handle_enemy_collision
 	    CALL handle_enemy_AI
@@ -278,7 +278,61 @@ handle_enemy_collision:
             STA enemy_speed_x, x
             STA enemy_speed_x + 1, x
     enscrightendif:
-	
+
+    LDX temp + 2
+    LDA enemy_temp_3, x
+    BEQ hecsnj_
+	    INC enemy_temp_3, x
+	    IF_UNSIGNED_GT enemy_temp_3, x, #$04, hecsnj_
+	    	LDA #$00
+	    	STA enemy_temp_3, x
+
+	    	LDA #$00
+	    	STA enemy_temp_1, x
+	    	CALL rand
+	    	LSR a
+	    	LSR a
+			LSR a
+	    	CLC
+	    	ADC #$10
+	    	STA enemy_temp_2, x
+
+	    	LDX temp + 3
+	    	LDA #$FD
+	        STA enemy_gravity, x
+	        LDA #$00
+	        STA enemy_gravity + 1, x
+
+	        CALL check_lr_solids
+			LDA temp
+			BNE hecein0_
+				LDA temp + 1
+				BEQ hecsnj_
+			hecein0_:
+			
+			LDX temp + 3
+	        CALL rand
+	        IF_SIGNED_GT rt_val_1, #$00, hecl_
+	        hecr_:
+	        	LDA temp
+	        	BEQ hecl_
+
+	        	LDA #$00
+	    		STA enemy_speed_x, x
+	        	LDA #$EB
+	    		STA enemy_speed_x + 1, x
+
+	        	JMP hecsnj_
+	        hecl_:
+	        	LDA temp + 1
+	        	BEQ hecr_
+
+	        	LDA #$FF
+	    		STA enemy_speed_x, x
+	        	LDA #12
+	        	STA enemy_speed_x + 1, x
+    hecsnj_:
+
     RTS
 
 handle_enemy_AI:
@@ -300,67 +354,28 @@ handle_enemy_AI:
 
 handle_slime_AI:
 	LDX temp + 2
-    IF_UNSIGNED_GT_OR_EQU enemy_temp_1, x, enemy_temp_2, x, hsait1ngtt2_
-    	IF_EQU on_floor, #$01, hsaiei_
-	    	LDA #$00
-	    	STA enemy_temp_1, x
-	    	CALL rand
-	    	LSR a
-	    	LSR a
-			LSR a
-	    	CLC
-	    	ADC #$10
-	    	STA enemy_temp_2, x
-
-	    	LDX temp + 3
-	    	LDA #$FD
-	        STA enemy_gravity, x
-	        LDA #$FF
-	        STA enemy_gravity + 1, x
-
-	        CALL check_lr_solids
-			LDA temp
-			BNE hsaiein0_
-				LDA temp + 1
-				BEQ hsaiei_
-			hsaiein0_:
-			
-			LDX temp + 3
-	        CALL rand
-	        IF_SIGNED_GT rt_val_1, #$00, hsail_
-	        hsair_:
-	        	LDA temp
-	        	BEQ hsail_
-
-	        	LDA #$00
-	    		STA enemy_speed_x, x
-	        	LDA #$A0
-	    		STA enemy_speed_x + 1, x
-
-	        	JMP hsaiei_
-	        hsail_:
-	        	LDA temp + 1
-	        	BEQ hsair_
-
-	        	LDA #$FF
-	    		STA enemy_speed_x, x
-	        	LDA #$20
-	        	STA enemy_speed_x + 1, x
-
-	    	JMP hsaiei_
-    hsait1ngtt2_:
-		LDX temp + 2
-    	INC enemy_temp_1, x
+	LDA enemy_temp_3, x
+	BNE hsaiei_
+	    IF_UNSIGNED_GT_OR_EQU enemy_temp_1, x, enemy_temp_2, x, hsait1ngtt2_
+	    	IF_EQU on_floor, #$01, hsaiei_
+	    		LDA #$01
+	    		STA enemy_temp_3, x
+	    		JMP hsaiei_
+	    hsait1ngtt2_:
+			LDX temp + 2
+	    	INC enemy_temp_1, x
     hsaiei_:
 
     RTS
 
 check_lr_solids:
+	DEBUG_BRK
 	LDA #$00
     STA temp
     STA temp + 1
 
     LDY coord_x
+    INY
     INY
     INY
     LDA [downc_pointer], y
@@ -372,6 +387,7 @@ check_lr_solids:
     clrsnsrt_:
 
     LDY coord_x
+    DEY
     DEY
     DEY
     LDA [downc_pointer], y
@@ -388,6 +404,7 @@ check_lr_solids:
 	LDY coord_x
     INY
     INY
+    INY
     LDA [downc_pointer], y
 	CMP #$0A
 	BEQ clrsrtl_
@@ -398,6 +415,7 @@ check_lr_solids:
     clrsnsrtu1_:
 
     LDY coord_x
+    DEY
     DEY
     DEY
     LDA [downc_pointer], y
