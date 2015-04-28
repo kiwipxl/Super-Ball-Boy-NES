@@ -46,17 +46,6 @@ handle_player_movement:
         ST_RT_VAL_IN speed_x, speed_x + 1
     rbnotdown:
 
-    CALL add_short, gravity, gravity + 1, #$40
-    ST_RT_VAL_IN gravity, gravity + 1
-
-    ;add gravity to pos_y and set it as the player's y sprite position
-    ADD pos_y, gravity
-    STA pos_y
-    STA OAM_RAM_ADDR
-
-    ADD pos_x, speed_x
-    STA pos_x
-
     RTS
 
 handle_player_collision:
@@ -106,10 +95,14 @@ handle_player_collision:
 	                CALL respawn
 	            hpcrei_:
     cte0_:
-    
-    CALL add_short, downc_pointer + 1, downc_pointer, #$20
-    ST_RT_VAL_IN downc_pointer + 1, downc_pointer
 
+    DIV8 pos_y, #$04, #$00, coord_y + 1
+
+    SET_POINTER_TO_VAL current_room, downc_pointer + 1, downc_pointer
+    CALL mul_short, downc_pointer + 1, coord_y + 1, #$20
+    CALL add_short, rt_val_1, rt_val_2, #$20
+    ST_RT_VAL_IN downc_pointer + 1, downc_pointer
+    
     CALL check_collide_down
     LDA rt_val_1
     IS_SOLID_TILE hpcdownendif_
@@ -156,5 +149,16 @@ handle_player_collision:
             LDA #$00
             STA speed_x
     hpcrightendif_:
+
+    CALL add_short, gravity, gravity + 1, #$40
+    ST_RT_VAL_IN gravity, gravity + 1
+
+    ;add gravity to pos_y and set it as the player's y sprite position
+    ADD pos_y, gravity
+    STA pos_y
+    STA OAM_RAM_ADDR
+
+    ADD pos_x, speed_x
+    STA pos_x
 
     RTS
