@@ -1,3 +1,5 @@
+;-----------------------------------------------------------------------------------;
+
 init_player:
 	LDA #$07
     STA OAM_RAM_ADDR + 1
@@ -6,11 +8,15 @@ init_player:
 
     RTS
 
+;-----------------------------------------------------------------------------------;
+
 update_player:
 	CALL handle_player_movement
 	CALL handle_player_collision
 
     RTS
+
+;-----------------------------------------------------------------------------------;
 
 handle_player_movement:
 	;clamp speed_x
@@ -46,7 +52,17 @@ handle_player_movement:
         ST_RT_VAL_IN speed_x, speed_x + 1
     rbnotdown:
 
+    CALL add_short, gravity, gravity + 1, #$40
+    ST_RT_VAL_IN gravity, gravity + 1
+
+    ;add gravity to pos_y and set it as the player's y sprite position
+    ADD pos_y, gravity
+    STA pos_y
+    STA OAM_RAM_ADDR
+
     RTS
+
+;-----------------------------------------------------------------------------------;
 
 handle_player_collision:
 	DIV8 pos_x, #$00, #$00, coord_x
@@ -93,6 +109,8 @@ handle_player_collision:
 	            CMP #$0B
 	            BNE hpcrei_
 	                CALL respawn
+
+                    RTS
 	            hpcrei_:
     cte0_:
 
@@ -150,15 +168,122 @@ handle_player_collision:
             STA speed_x
     hpcrightendif_:
 
-    CALL add_short, gravity, gravity + 1, #$40
-    ST_RT_VAL_IN gravity, gravity + 1
-
-    ;add gravity to pos_y and set it as the player's y sprite position
-    ADD pos_y, gravity
-    STA pos_y
-    STA OAM_RAM_ADDR
-
     ADD pos_x, speed_x
     STA pos_x
 
     RTS
+
+;-----------------------------------------------------------------------------------;
+
+respawn:
+    SET_POINTER_TO_VAL respawn_room, current_room, current_room + 1
+    SET_POINTER_TO_VAL respawn_VRAM_addr, current_VRAM_addr, current_VRAM_addr + 1
+    LDA respawn_scroll_x_type
+    STA scroll_x_type
+    
+    MUL8 player_spawn
+    STA OAM_RAM_ADDR
+    STA pos_x
+
+    SEC
+    SBC #$7F
+    STA scroll_x
+
+    MUL8 player_spawn + 1
+    STA OAM_RAM_ADDR + 3
+    STA pos_y
+
+    RTS
+
+set_respawn:
+    LDA param_1
+    STA player_spawn
+    DIV8 param_1
+    STA OAM_RAM_ADDR + 3
+    STA pos_x
+    
+    LDA param_2
+    STA player_spawn + 1
+    DIV8 param_2
+    STA OAM_RAM_ADDR + 3
+    STA pos_y
+
+    SET_POINTER_TO_VAL current_room, respawn_room + 1, respawn_room
+    SET_POINTER_TO_VAL current_VRAM_addr, respawn_VRAM_addr + 1, respawn_VRAM_addr
+    
+    LDA room_load_id
+    STA respawn_scroll_x_type
+    
+    RTS
+
+;-----------------------------------------------------------------------------------;
+
+handle_camera_scroll:
+    IF_EQU scroll_x_type, #$00, right_scroll_map
+        IF_UNSIGNED_GT_OR_EQU pos_x, #$7F, scrleftstartelse
+            LDA pos_x
+            SEC
+            SBC #$7F
+            STA scroll_x
+
+            LDA #$7F
+            STA OAM_RAM_ADDR + 3
+
+            JMP scroll_x_endif
+        scrleftstartelse:
+            LDA pos_x
+            STA OAM_RAM_ADDR + 3
+
+            LDA #$00
+            STA scroll_x
+
+            JMP scroll_x_endif
+    right_scroll_map:
+        IF_UNSIGNED_LT_OR_EQU pos_x, #$7F, scrrightstartelse
+            LDA pos_x
+            SEC
+            SBC #$80
+            STA scroll_x
+
+            LDA #$80
+            STA OAM_RAM_ADDR + 3
+
+            JMP scroll_x_endif
+        scrrightstartelse:
+            LDA pos_x
+            STA OAM_RAM_ADDR + 3
+
+            LDA #$FF
+            STA scroll_x
+    scroll_x_endif:
+
+    RTS
+
+handle_room_intersect:
+    IF_NOT_EQU scroll_x_type, #$00, ntransleft
+        IF_SIGNED_LT speed_x, #$00, ntransleft
+            IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, ntransleft
+                SET_POINTER_TO_VAL room_1, current_room, current_room + 1
+                SET_POINTER_TO_VAL VRAM_room_addr_1, current_VRAM_addr, current_VRAM_addr + 1
+
+                LDA #$FB
+                STA pos_x
+
+                LDA #$00
+                STA scroll_x_type
+                JMP ntransright
+    ntransleft:
+        IF_SIGNED_GT speed_x, #$00, ntransright
+            IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, ntransright
+                SET_POINTER_TO_VAL room_2, current_room, current_room + 1
+                SET_POINTER_TO_VAL VRAM_room_addr_2, current_VRAM_addr, current_VRAM_addr + 1
+
+                LDA #$00
+                STA pos_x
+
+                LDA #$01
+                STA scroll_x_type
+    ntransright:
+    RTS
+
+;------------------------------------------------------------------------------------;

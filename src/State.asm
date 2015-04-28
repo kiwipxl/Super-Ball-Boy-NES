@@ -43,13 +43,13 @@ update_state:
 	nustss_:
 
 	IF_EQU current_state, GAME_STATE, nusgs_
-		CALL handle_room_intersect
-	    CALL handle_camera_scroll
-
 	    CALL update_player
 	    CALL update_animations
 	    CALL update_enemies
 
+	    CALL handle_room_intersect
+	    CALL handle_camera_scroll
+	    
 	    RTS
 	nusgs_:
 
