@@ -38,6 +38,10 @@ remove_state:
 	RTS
 
 update_state:
+	IF_NOT_EQU vblank_wait_state, #$00, nusvws_
+		RTS
+	nusvws_:
+
 	IF_EQU current_state, TITLE_SCREEN_STATE, nustss_
 		ANY_BUTTON_DOWN usnabd_
 			CALL change_state, GAME_STATE
@@ -91,9 +95,6 @@ update_render_state:
 	IF_NOT_EQU vblank_wait_state, #$00, nursvws_
 		LDA vblank_wait_state
 		STA current_state
-
-		;LDA #$00
-		;STA vblank_wait_state
 
 		CALL create_state
 
