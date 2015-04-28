@@ -87,11 +87,7 @@ update_render_state:
 		SET_POINTER_TO_VAL VRAM_pointer, PPU_ADDR, PPU_ADDR
 		CALL load_room
 		CONFIGURE_PPU
-
-		IF_EQU row_index, #$04, ursrinl02_
-			DEBUG_BRK
-		ursrinl02_:
-
+		
 		RTS
 	nursntcls_:
 

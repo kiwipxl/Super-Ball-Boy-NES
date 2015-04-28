@@ -173,10 +173,8 @@ room_loading_complete:
 load_room:
     LDY #$00
     ntr_loop:
-        IF_UNSIGNED_GT_OR_EQU row_index, #$03, lrltne_
-            IF_UNSIGNED_GT_OR_EQU reg_y, #$00, lrltne_
-                DEBUG_BRK
-                LDY #$04
+        IF_UNSIGNED_LT nt_row_y, #$1F, lrltne_
+            IF_UNSIGNED_LT nt_row_x, #$1F, lrltne_
                 IF_EQU [nt_pointer], y, #$07, lrnsr_
                     CALL set_respawn, nt_row_x, nt_row_y
                     LDA #$00
