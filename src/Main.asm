@@ -36,6 +36,8 @@ CHAMBER_1:
     	.incbin "assets/level-1/chamber1_room2.nam"
     CHAMBER_1_ROOM_2:
         .incbin "assets/level-1/chamber1_room3.nam"
+    CHAMBER_1_ROOM_3:
+        .incbin "assets/level-1/chamber1_room4.nam"
 
 TITLE_SCREEN_NT:
     .incbin "assets/titlescreen.nam"
@@ -121,6 +123,8 @@ room_2                  .rs     2
 VRAM_room_addr_2       	.rs     2
 room_3                  .rs     2
 VRAM_room_addr_3        .rs     2
+room_4                  .rs     2
+VRAM_room_addr_4        .rs     2
 room_load_id 			.rs 	1
 
 ;respawn variables

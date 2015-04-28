@@ -59,13 +59,44 @@ IS_SOLID_TILE .macro
     .success\@:
 
     .endm
-    
+
+SET_ROOM_POINTERS .macro
+    .IF \?1 = 6                 ;if the param 2 is a label, set pointers, otherwise continue
+        SET_POINTER_TO_ADDR \1, room_1, room_1 + 1
+        SET_POINTER_TO_ADDR VRAM_NT_0, VRAM_room_addr_1, VRAM_room_addr_1 + 1
+    .ENDIF
+
+    .IF \?2 = 6                 ;if the param 1 is a label, set pointers, otherwise continue
+        SET_POINTER_TO_ADDR \2, room_2, room_2 + 1
+        SET_POINTER_TO_ADDR VRAM_NT_1, VRAM_room_addr_2, VRAM_room_addr_2 + 1
+    .ENDIF
+
+    .IF \?3 = 6                 ;if the param 3 is a label, set pointers, otherwise continue
+        SET_POINTER_TO_ADDR \3, room_3, room_3 + 1
+        SET_POINTER_TO_ADDR VRAM_NT_2, VRAM_room_addr_3, VRAM_room_addr_3 + 1
+    .ENDIF
+
+    .IF \?4 = 6                 ;if the param 4 is a label, set pointers, otherwise continue
+        SET_POINTER_TO_ADDR \4, room_4, room_4 + 1
+        SET_POINTER_TO_ADDR VRAM_NT_3, VRAM_room_addr_4, VRAM_room_addr_4 + 1
+    .ENDIF
+
+    .endm
+
 ;-----------------------------------------------------------------------------------;
 
 load_chamber_1:
+    CALL init_chamber
+
+    SET_ROOM_POINTERS CHAMBER_1_ROOM_0, CHAMBER_1_ROOM_1, CHAMBER_1_ROOM_2, CHAMBER_1_ROOM_3
+    CALL load_next_room
+
+    RTS
+
+init_chamber:
     LDA #$00
     STA enemy_len
-	STA room_load_id
+    STA room_load_id
     CALL init_enemies
     CALL init_animations
     CALL init_player
@@ -74,17 +105,6 @@ load_chamber_1:
     STA speed_x
     STA speed_x + 1
     STA gravity
-
-    SET_POINTER_TO_ADDR CHAMBER_1_ROOM_0, room_1, room_1 + 1
-    SET_POINTER_TO_ADDR VRAM_NT_0, VRAM_room_addr_1, VRAM_room_addr_1 + 1
-
-    SET_POINTER_TO_ADDR CHAMBER_1_ROOM_1, room_2, room_2 + 1
-    SET_POINTER_TO_ADDR VRAM_NT_1, VRAM_room_addr_2, VRAM_room_addr_2 + 1
-
-    SET_POINTER_TO_ADDR CHAMBER_1_ROOM_2, room_3, room_3+ 1
-    SET_POINTER_TO_ADDR VRAM_NT_2, VRAM_room_addr_3, VRAM_room_addr_3 + 1
-
-    CALL load_next_room
 
     RTS
 
@@ -107,6 +127,11 @@ load_next_room:
         LOAD_ROOM room_3, VRAM_room_addr_3
         JMP lnrlns_
     lnrne2_:
+
+    IF_EQU room_load_id, #$03, lnrne3_
+        LOAD_ROOM room_4, VRAM_room_addr_4
+        JMP lnrlns_
+    lnrne3_:
 
     ;no more rooms to load, so complete the loading process
     CALL room_loading_complete
