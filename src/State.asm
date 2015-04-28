@@ -6,7 +6,7 @@ create_state:
 
 	    LDA #$00
 	    STA row_index
-	    STA row_ovf_counter
+	    STA row_index + 1
 	    LDA NT_LOADING_STATE
 	    STA current_state
 
@@ -65,10 +65,6 @@ update_state:
 	nushs_:
 
 	IF_EQU current_state, NT_LOADING_STATE, nusnts_
-		DEBUG_BRK
-		SET_POINTER_TO_VAL VRAM_pointer, PPU_ADDR, PPU_ADDR
-		CALL load_nametable
-		CONFIGURE_PPU
 		RTS
 	nusnts_:
 
@@ -76,6 +72,19 @@ update_state:
 
 update_render_state:
 	IF_EQU current_state, NT_LOADING_STATE, nursnts_
+		IF_EQU row_index, #$04, ursrin0_
+			LDA vblank_wait_state
+			STA current_state
+
+			LDA #$00
+			STA vblank_wait_state
+
+			RTS
+		ursrin0_:
+
+		SET_POINTER_TO_VAL VRAM_pointer, PPU_ADDR, PPU_ADDR
+		CALL load_nametable
+		CONFIGURE_PPU
 		RTS
 	nursnts_:
 

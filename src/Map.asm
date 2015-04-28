@@ -184,20 +184,19 @@ load_room:
 ;before this function is called, the VRAM_NT_ID address must be written to PPU_ADDR
 ;so whenever we write data to PPU_DATA, it will map to the VRAM_NT_ID + write offset address in the PPU VRAM
 load_nametable:
+    LDY #$00
     nt_loop_:
         LDA [nt_pointer], y         ;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
         STA PPU_DATA                ;write byte to the PPU nametable address
         INY                         ;add by 1 to move to the next byte
         
-        CPY temp                    ;check if y is equal to 0 (it has overflowed)
+        CPY #$20                    ;check if y is equal to 0 (it has overflowed)
         BNE nt_loop_                ;keep looping if y not equal to 0, otherwise continue
-
-        STA row_index
     nt_loop_end_:
 
-    CALL add_short, row_index + 1, row_index, #$20
-    ST_RT_VAL_IN row_index + 1, row_index
-
+    CALL add_short, row_index, row_index + 1, #$20
+    ST_RT_VAL_IN row_index, row_index + 1
+    
     CALL add_short, nt_pointer + 1, nt_pointer, #$20
     ST_RT_VAL_IN nt_pointer + 1, nt_pointer
 
