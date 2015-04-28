@@ -35,6 +35,7 @@ remove_state:
 
 update_state:
 	IF_EQU current_state, TITLE_SCREEN_STATE, nustss_
+		INC rand_seed
 		ANY_BUTTON_DOWN usnabd_
 			CALL change_state, GAME_STATE
 		usnabd_:
@@ -87,7 +88,7 @@ update_render_state:
 		SET_POINTER_TO_VAL VRAM_pointer, PPU_ADDR, PPU_ADDR
 		CALL load_room
 		CONFIGURE_PPU
-		
+
 		RTS
 	nursntcls_:
 

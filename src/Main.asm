@@ -103,7 +103,7 @@ scroll_x_type       	.rs     1
 nt_pointer              .rs     2
 VRAM_pointer            .rs     2
 row_index               .rs     2
-NT_MAX_LOAD_TILES       .db     $20
+NT_MAX_LOAD_TILES       .db     $40
 nt_row_x                .rs     1
 nt_row_y                .rs     1
 
@@ -169,10 +169,11 @@ enemy_temp_4            .rs     8       ;temp4 variable used to save memory on e
 enemy_len               .rs     1       ;the amount of currently running enemies
 enemy_max               .db     $08
 
-reg_a                   .db     $00
-reg_x                   .db     $00
-reg_y                   .db     $00
-temp_cmp                .rs     1
+;if statement macro variables
+reg_a                   .db     $00     ;used to pass in the value of register a in if statement macros
+reg_x                   .db     $00     ;used to pass in the value of register x in if statement macros
+reg_y                   .db     $00     ;used to pass in the value of register y in if statement macros
+temp_cmp                .rs     1       ;used when a register is passed in if statement macros to prevent x, y registers from being changed
 
 ;------------------------------------------------------------------------------------;
 

@@ -88,11 +88,7 @@ set_respawn:
     DIV8 param_1
     STA OAM_RAM_ADDR + 3
     STA pos_x
-
-    SEC
-    SBC #$7F
-    STA scroll_x
-
+    
     LDA param_2
     STA player_spawn + 1
     DIV8 param_2
