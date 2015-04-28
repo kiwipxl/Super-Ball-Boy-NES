@@ -61,24 +61,36 @@ IS_SOLID_TILE .macro
     .endm
 
 SET_ROOM_POINTERS .macro
-    .IF \?1 = 6                 ;if the param 2 is a label, set pointers, otherwise continue
+    .IF \?1 = 6                 ;if the param 2 is a label, set pointers, otherwise set pointers to #$00
         SET_POINTER_TO_ADDR \1, room_1, room_1 + 1
         SET_POINTER_TO_ADDR VRAM_NT_0, VRAM_room_addr_1, VRAM_room_addr_1 + 1
+    .ELSE
+        SET_POINTER #$00, #$00, room_1, room_1 + 1
+        SET_POINTER #$00, #$00, VRAM_room_addr_1, VRAM_room_addr_1 + 1
     .ENDIF
 
-    .IF \?2 = 6                 ;if the param 1 is a label, set pointers, otherwise continue
+    .IF \?2 = 6                 ;if the param 1 is a label, set pointers, otherwise set pointers to #$00
         SET_POINTER_TO_ADDR \2, room_2, room_2 + 1
         SET_POINTER_TO_ADDR VRAM_NT_1, VRAM_room_addr_2, VRAM_room_addr_2 + 1
+    .ELSE
+        SET_POINTER #$00, #$00, room_2, room_2 + 1
+        SET_POINTER #$00, #$00, VRAM_room_addr_2, VRAM_room_addr_2 + 1
     .ENDIF
 
-    .IF \?3 = 6                 ;if the param 3 is a label, set pointers, otherwise continue
+    .IF \?3 = 6                 ;if the param 3 is a label, set pointers, otherwise set pointers to #$00
         SET_POINTER_TO_ADDR \3, room_3, room_3 + 1
         SET_POINTER_TO_ADDR VRAM_NT_2, VRAM_room_addr_3, VRAM_room_addr_3 + 1
+    .ELSE
+        SET_POINTER #$00, #$00, room_3, room_3 + 1
+        SET_POINTER #$00, #$00, VRAM_room_addr_3, VRAM_room_addr_3, + 1
     .ENDIF
 
-    .IF \?4 = 6                 ;if the param 4 is a label, set pointers, otherwise continue
+    .IF \?4 = 6                 ;if the param 4 is a label, set pointers, otherwise set pointers to #$00
         SET_POINTER_TO_ADDR \4, room_4, room_4 + 1
         SET_POINTER_TO_ADDR VRAM_NT_3, VRAM_room_addr_4, VRAM_room_addr_4 + 1
+    .ELSE
+        SET_POINTER #$00, #$00, room_4, room_4 + 1
+        SET_POINTER #$00, #$00, VRAM_room_addr_4, VRAM_room_addr_4, + 1
     .ENDIF
 
     .endm
