@@ -198,9 +198,8 @@ handle_enemy_collision:
 	LDX temp + 3
     LDA rt_val_1
     BEQ heclt0_
-        STA current_tile
 	    IF_SIGNED_GT_OR_EQU enemy_gravity, x, #$00, heclt0_
-	    	LDA current_tile
+	    	LDA rt_val_1
 	        CMP #$0A
 	        BNE heclt0_
 	        	LDX temp + 3

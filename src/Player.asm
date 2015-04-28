@@ -65,7 +65,7 @@ handle_player_collision:
     DIV8 pos_x, #$02, #$00, coord_x + 2
 
     DIV8 pos_y, #$00, #$00, coord_y
-    DIV8 pos_y, #$04, #$00, coord_y + 1
+    DIV8 pos_y, #$08, #$00, coord_y + 1
     DIV8 pos_y, #$00, #$04, coord_y + 2
 
     SET_POINTER_TO_VAL current_room, leftc_pointer + 1, leftc_pointer
@@ -84,39 +84,36 @@ handle_player_collision:
     CALL check_collide_down
     LDA rt_val_1
     BEQ cte0_
-        STA current_tile
-        IF_SIGNED_GT_OR_EQU gravity, #$00, notmovingdowncollide
-            LDA current_tile
-            CMP #$0A
-            BNE spring_no_collide
-                MUL8 c_coord_y
-                STA pos_y
+        IF_SIGNED_GT_OR_EQU gravity, #$00, cte0_
+        	IF_SIGNED_GT_OR_EQU gravity, #$00, cte0_
+	    		LDA rt_val_1
+	            CMP #$0A
+	            BNE hpcnsc_
+	                MUL8 c_coord_y
+	                STA pos_y
 
-                LDA #$EF
-                STA gravity
-                LDA #$00
-                STA gravity + 1
-				
-				CALL create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$01, #$00, c_coord_x, c_coord_y, current_VRAM_addr, current_VRAM_addr + 1
-				
-                JMP notmovingdowncollide
-            spring_no_collide:
+	                LDA #$EF
+	                STA gravity
+	                LDA #$00
+	                STA gravity + 1
+					
+					CALL create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$01, #$00, c_coord_x, c_coord_y, current_VRAM_addr, current_VRAM_addr + 1
 
-            CMP #$0B
-            BNE respawn_endif
-                CALL respawn
-                JMP notmovingdowncollide
-            respawn_endif:
-        notmovingdowncollide:
+				hpcnsc_:
+				LDA rt_val_1
+	            CMP #$0B
+	            BNE hpcrei_
+	                CALL respawn
+	            hpcrei_:
     cte0_:
-
+    
     CALL add_short, downc_pointer + 1, downc_pointer, #$20
     ST_RT_VAL_IN downc_pointer + 1, downc_pointer
 
     CALL check_collide_down
     LDA rt_val_1
-    IS_SOLID_TILE nscdownendif
-        IF_SIGNED_GT_OR_EQU gravity, #$00, nscdownendif
+    IS_SOLID_TILE hpcdownendif_
+        IF_SIGNED_GT_OR_EQU gravity, #$00, hpcdownendif_
             MUL8 c_coord_y
             CLC
             ADC #$03
@@ -126,11 +123,11 @@ handle_player_collision:
             STA gravity
             LDA #$7F
             STA gravity + 1
-    nscdownendif:
+    hpcdownendif_:
 
     CALL check_collide_up
-    IS_SOLID_TILE nscupendif
-        IF_SIGNED_LT_OR_EQU gravity, #$00, nscupendif
+    IS_SOLID_TILE hpcupendif_
+        IF_SIGNED_LT_OR_EQU gravity, #$00, hpcupendif_
             MUL8 c_coord_y
             SEC
             SBC #$01
@@ -138,26 +135,26 @@ handle_player_collision:
 
             LDA #$01
             STA gravity
-    nscupendif:
+    hpcupendif_:
 
-    IF_UNSIGNED_GT pos_x, #$04, nscleftendif
+    IF_UNSIGNED_GT pos_x, #$04, hpcleftendif_
     CALL check_collide_left
-    IS_SOLID_TILE nscleftendif
-        IF_SIGNED_LT_OR_EQU speed_x, #$00, nscleftendif
+    IS_SOLID_TILE hpcleftendif_
+        IF_SIGNED_LT_OR_EQU speed_x, #$00, hpcleftendif_
             MUL8 c_coord_x, #$01, #$00, pos_x
 
             LDA #$00
             STA speed_x
-    nscleftendif:
+    hpcleftendif_:
 
-    IF_UNSIGNED_LT pos_x, #$FB, nscrightendif
+    IF_UNSIGNED_LT pos_x, #$FB, hpcrightendif_
     CALL check_collide_right
-    IS_SOLID_TILE nscrightendif
-        IF_SIGNED_GT_OR_EQU speed_x, #$00, nscrightendif
+    IS_SOLID_TILE hpcrightendif_
+        IF_SIGNED_GT_OR_EQU speed_x, #$00, hpcrightendif_
             MUL8 c_coord_x, #$00, #$01, pos_x
 
             LDA #$00
             STA speed_x
-    nscrightendif:
+    hpcrightendif_:
 
     RTS
