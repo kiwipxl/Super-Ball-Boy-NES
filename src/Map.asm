@@ -4,24 +4,31 @@
 ;macro to load a nametable + attributes into a specified PPU VRAM address
 ;input - (nametable_address (including attributes), PPU_nametable_address)
 LOAD_ROOM .macro
-    SET_POINTER_TO_ADDR \2, PPU_ADDR, PPU_ADDR
-    SET_POINTER_TO_ADDR \2, current_VRAM_addr + 1, current_VRAM_addr
-    SET_POINTER_TO_ADDR \1, current_room + 1, current_room
-    SET_POINTER_TO_ADDR \1, nt_pointer + 1, nt_pointer
+    LDA \1
+    STA current_room + 1
+    STA nt_pointer + 1
+
+    LDA \1 + 1
+    STA current_room
+    STA nt_pointer
+
+    LDA \2
+    STA PPU_ADDR
+    STA VRAM_pointer
+    STA current_VRAM_addr + 1
+
+    LDA \2 + 1
+    STA PPU_ADDR
+    STA VRAM_pointer + 1
+    STA current_VRAM_addr
 
     CALL load_room
 
-    .IF \2 = VRAM_NT_0
-        SET_POINTER_TO_ADDR \1, room_1, room_1 + 1
-        SET_POINTER_TO_ADDR \2, VRAM_room_addr_1, VRAM_room_addr_1 + 1
-    .ENDIF
-    .IF \2 = VRAM_NT_1
-        SET_POINTER_TO_ADDR \1, room_2, room_2 + 1
-        SET_POINTER_TO_ADDR \2, VRAM_room_addr_2, VRAM_room_addr_2 + 1
-    .ENDIF
-	
 	INC room_load_id
-	
+
+    LDA NT_CHAMBER_LOADING_STATE
+    STA current_state
+
     .endm
 
 IS_SOLID_TILE .macro
@@ -106,14 +113,48 @@ load_chamber_1:
     CALL init_animations
     CALL init_player
 
-    LOAD_ROOM CHAMBER_1_ROOM_0, VRAM_NT_0
-    LOAD_ROOM CHAMBER_1_ROOM_1, VRAM_NT_1
-
     LDA #$00
     STA speed_x
     STA speed_x + 1
     STA gravity
 
+    SET_POINTER_TO_ADDR CHAMBER_1_ROOM_0, room_1, room_1 + 1
+    SET_POINTER_TO_ADDR VRAM_NT_0, VRAM_room_addr_1, VRAM_room_addr_1 + 1
+
+    SET_POINTER_TO_ADDR CHAMBER_1_ROOM_1, room_2, room_2 + 1
+    SET_POINTER_TO_ADDR VRAM_NT_1, VRAM_room_addr_2, VRAM_room_addr_2 + 1
+
+    CALL load_next_room
+
+    RTS
+
+load_next_room:
+    LDA #$00
+    STA row_index
+    STA row_index + 1
+
+    IF_EQU room_load_id, #$00, lnrne0_
+        LOAD_ROOM room_1, VRAM_room_addr_1
+        JMP lnrlns_
+    lnrne0_:
+
+    IF_EQU room_load_id, #$01, lnrne1_
+        LOAD_ROOM room_2, VRAM_room_addr_2
+        JMP lnrlns_
+    lnrne1_:
+
+    ;no more rooms to load, so complete the loading process
+    CALL room_loading_complete
+    RTS
+
+    lnrlns_:
+        ;LOAD_ROOM has been called so change the state to a chamber loading state
+        LDA NT_CHAMBER_LOADING_STATE
+        STA current_state
+
+        RTS
+
+room_loading_complete:
     CALL respawn
 
     RTS
@@ -127,7 +168,6 @@ load_chamber_1:
 ;slime tile - Creates a slime enemy at this position
 load_room:
     LDY #$00
-    LDX #$00
     LDA #$00
     STA temp
     STA temp + 1
@@ -170,14 +210,19 @@ load_room:
             STA temp + 1
         nrowreset:
 
-        CPY #$00                    ;check if y is equal to 0 (it has overflowed)
+        CPY NT_MAX_LOAD_TILES        ;check if y is equal to 0 (it has overflowed)
         BNE ntr_loop                 ;keep looping if y not equal to 0, otherwise continue
+    ntr_loop_end_:
 
-        INC nt_pointer + 1          ;increase the high byte of current_room by 1 ((#$FF + 1) low bytes)
-        INX                         ;increase x by 1
+    CALL add_short, row_index, row_index + 1, NT_MAX_LOAD_TILES
+    ST_RT_VAL_IN row_index, row_index + 1
 
-        CPX #$04                    ;check if x has looped and overflowed 4 times (1kb, #$04FF)
-        BNE ntr_loop                 ;go to the start of the loop if x is not equal to 0, otherwise continue
+    CALL add_short, nt_pointer + 1, nt_pointer, NT_MAX_LOAD_TILES
+    ST_RT_VAL_IN nt_pointer + 1, nt_pointer
+
+    CALL add_short, VRAM_pointer, VRAM_pointer + 1, NT_MAX_LOAD_TILES
+    ST_RT_VAL_IN VRAM_pointer, VRAM_pointer + 1
+
     RTS
 
 ;writes nametable bytes pointing from nt_pointer into PPU VRAM

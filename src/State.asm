@@ -16,7 +16,6 @@ create_state:
 
 	IF_EQU current_state, GAME_STATE, ncsgs_
 		CALL load_chamber_1
-		CONFIGURE_PPU
 
 		RTS
 	ncsgs_:
@@ -57,14 +56,10 @@ update_state:
 		RTS
 	nusws_:
 
-	IF_EQU current_state, NT_LOADING_STATE, nusnts_
-		RTS
-	nusnts_:
-
 	RTS
 
 update_render_state:
-	IF_EQU current_state, NT_LOADING_STATE, nursnts_
+	IF_EQU current_state, NT_LOADING_STATE, nursnls_
 		IF_EQU row_index, #$04, ursrin0_
 			LDA next_state
 			STA current_state
@@ -75,8 +70,26 @@ update_render_state:
 		SET_POINTER_TO_VAL VRAM_pointer, PPU_ADDR, PPU_ADDR
 		CALL load_nametable
 		CONFIGURE_PPU
+
 		RTS
-	nursnts_:
+	nursnls_:
+
+	IF_EQU current_state, NT_CHAMBER_LOADING_STATE, nursntcls_
+		IF_EQU row_index, #$04, ursrinl0_
+			LDA next_state
+        	STA current_state
+
+			CALL load_next_room
+
+			RTS
+		ursrinl0_:
+
+		SET_POINTER_TO_VAL VRAM_pointer, PPU_ADDR, PPU_ADDR
+		CALL load_room
+		CONFIGURE_PPU
+
+		RTS
+	nursntcls_:
 
 	IF_EQU current_state, GAME_STATE, nursgs_
 		CALL render_animations
@@ -95,5 +108,5 @@ change_state:
 	CALL create_state
 
 	CONFIGURE_PPU
-	
+
 	RTS

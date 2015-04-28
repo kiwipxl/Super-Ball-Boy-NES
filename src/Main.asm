@@ -172,12 +172,12 @@ enemy_max               .db     $08
 current_state           .rs     1       ;the current state of the game
 next_state              .rs     1       ;used to store the next state while nametables are loading
 
-TITLE_SCREEN_STATE      .db     $01
-GAME_STATE              .db     $02
-WIN_STATE               .db     $03
-HALT_STATE              .db     $04
-NT_LOADING_STATE        .db     $05
-
+TITLE_SCREEN_STATE          .db     $01
+GAME_STATE                  .db     $02
+WIN_STATE                   .db     $03
+HALT_STATE                  .db     $04
+NT_LOADING_STATE            .db     $05
+NT_CHAMBER_LOADING_STATE    .db     $06
 ;------------------------------------------------------------------------------------;
 
 SPRING_ANI:
