@@ -400,13 +400,16 @@ LOAD_AND_COMPARE_IF .macro
 
     .IF \?2 = 6
         .IF \2 = reg_a
-            CMP a
+            STA temp_cmp
+            CMP temp_cmp
         .ENDIF
         .IF \2 = reg_x
-            CMP x
+            STX temp_cmp
+            CMP temp_cmp
         .ENDIF
         .IF \2 = reg_y
-            CMP y
+            STY temp_cmp
+            CMP temp_cmp
         .ENDIF
 
         .IF \2 != reg_a
