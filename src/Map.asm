@@ -118,16 +118,20 @@ load_chamber_1:
 
     RTS
 
-;writes nametable bytes pointing from current_room into PPU VRAM
+;writes nametable bytes pointing from nt_pointer into PPU VRAM
 ;before this function is called, the VRAM_NT_ID address must be written to PPU_ADDR
 ;so whenever we write data to PPU_DATA, it will map to the VRAM_NT_ID + write offset address in the PPU VRAM
+;this function also handles scanning each tile and checking if it is of another specific tile and performing
+;an action. The following is a list of tiles with actions performed
+;player ball tile - Sets the respawn point, room, ect at this position
+;slime tile - Creates a slime enemy at this position
 load_room:
     LDY #$00
     LDX #$00
     LDA #$00
     STA temp
     STA temp + 1
-    nt_loop:
+    ntr_loop:
         CPY #$C0
         BCC lt960
             CPX #$03
@@ -167,13 +171,35 @@ load_room:
         nrowreset:
 
         CPY #$00                    ;check if y is equal to 0 (it has overflowed)
-        BNE nt_loop                 ;keep looping if y not equal to 0, otherwise continue
+        BNE ntr_loop                 ;keep looping if y not equal to 0, otherwise continue
 
-        INC nt_pointer + 1          ;increase the high byte of current_room by 1 ((#$FF + 1) low bytes)
+        INC ntr_pointer + 1          ;increase the high byte of current_room by 1 ((#$FF + 1) low bytes)
         INX                         ;increase x by 1
 
         CPX #$04                    ;check if x has looped and overflowed 4 times (1kb, #$04FF)
-        BNE nt_loop                 ;go to the start of the loop if x is not equal to 0, otherwise continue
+        BNE ntr_loop                 ;go to the start of the loop if x is not equal to 0, otherwise continue
+    RTS
+
+;writes nametable bytes pointing from nt_pointer into PPU VRAM
+;before this function is called, the VRAM_NT_ID address must be written to PPU_ADDR
+;so whenever we write data to PPU_DATA, it will map to the VRAM_NT_ID + write offset address in the PPU VRAM
+load_nametable:
+    LDY #$00
+    LDX #$00
+    nt_loop:
+        nt_loop_nested:
+            LDA [nt_pointer], y         ;get the value pointed to by nt_pointer_lo + nt_pointer_hi + y counter offset
+            STA PPU_DATA                ;write byte to the PPU nametable address
+            INY                         ;add by 1 to move to the next byte
+            
+            CPY #$00                    ;check if y is equal to 0 (it has overflowed)
+            BNE nt_loop_nested          ;keep looping if y not equal to 0, otherwise continue
+
+            INC nt_pointer + 1          ;increase the high byte of nt_pointer by 1 ((#$FF + 1) low bytes)
+            INX                         ;increase x by 1
+            
+            CPX #$04                    ;check if x has looped and overflowed 4 times (1kb, #$04FF)
+            BNE nt_loop                 ;go to the start of the loop if x is not equal to 0, otherwise continue
     RTS
 
 ;------------------------------------------------------------------------------------;
