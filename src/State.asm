@@ -7,6 +7,7 @@ create_state:
 	    LDA #$00
 	    STA row_index
 	    STA row_index + 1
+
 	    LDA NT_LOADING_STATE
 	    STA current_state
 
@@ -24,10 +25,6 @@ create_state:
 		RTS
 	ncsws_:
 
-	IF_EQU current_state, HALT_STATE, ncshs_
-		RTS
-	ncshs_:
-
 	RTS
 
 remove_state:
@@ -38,10 +35,6 @@ remove_state:
 	RTS
 
 update_state:
-	IF_NOT_EQU vblank_wait_state, #$00, nusvws_
-		RTS
-	nusvws_:
-
 	IF_EQU current_state, TITLE_SCREEN_STATE, nustss_
 		ANY_BUTTON_DOWN usnabd_
 			CALL change_state, GAME_STATE
@@ -64,10 +57,6 @@ update_state:
 		RTS
 	nusws_:
 
-	IF_EQU current_state, HALT_STATE, nushs_
-		RTS
-	nushs_:
-
 	IF_EQU current_state, NT_LOADING_STATE, nusnts_
 		RTS
 	nusnts_:
@@ -77,11 +66,8 @@ update_state:
 update_render_state:
 	IF_EQU current_state, NT_LOADING_STATE, nursnts_
 		IF_EQU row_index, #$04, ursrin0_
-			LDA vblank_wait_state
+			LDA next_state
 			STA current_state
-
-			LDA #$00
-			STA vblank_wait_state
 
 			RTS
 		ursrin0_:
@@ -92,23 +78,10 @@ update_render_state:
 		RTS
 	nursnts_:
 
-	IF_NOT_EQU vblank_wait_state, #$00, nursvws_
-		LDA vblank_wait_state
-		STA current_state
-
-		CALL create_state
-
-		RTS
-	nursvws_:
-
 	IF_EQU current_state, GAME_STATE, nursgs_
 		CALL render_animations
 		RTS
 	nursgs_:
-
-	IF_EQU current_state, HALT_STATE, nurshs_
-		RTS
-	nurshs_:
 
 	RTS
 
@@ -116,15 +89,11 @@ change_state:
 	CALL remove_state
 
 	LDA param_1
-	STA vblank_wait_state
-	LDA HALT_STATE
+	STA next_state
 	STA current_state
 
-	DEBUG_BRK
-	LDY #$00
-	LDA vblank_wait_state
-	LDA current_state
+	CALL create_state
 
 	CONFIGURE_PPU
-
+	
 	RTS

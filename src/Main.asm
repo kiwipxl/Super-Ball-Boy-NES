@@ -169,8 +169,8 @@ enemy_max               .db     $08
 
 ;------------------------------------------------------------------------------------;
 
-current_state           .rs     1     ;the current state of the game
-vblank_wait_state       .rs     1     ;used to wait for vblank to create a state. 0 = no wait, > 0 = state to create
+current_state           .rs     1       ;the current state of the game
+next_state              .rs     1       ;used to store the next state while nametables are loading
 
 TITLE_SCREEN_STATE      .db     $01
 GAME_STATE              .db     $02
@@ -319,7 +319,7 @@ NMI:
     TYA
     PHA
 
-    IF_EQU vblank_wait_state, #$00, nmivws_
+    IF_NOT_EQU current_state, NT_LOADING_STATE, nminlnt_
         ;copies 256 bytes of OAM data in RAM (OAM_RAM_ADDR - OAM_RAM_ADDR + $FF) to the PPU internal OAM
         ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
 
@@ -330,7 +330,7 @@ NMI:
         LDA #HIGH(OAM_RAM_ADDR)
         STA OAM_DMA                    ;stores OAM_RAM_ADDR to high byte of OAM_DMA
         ;CPU is now suspended and transfer begins
-    nmivws_:
+    nminlnt_:
 
     CALL update_render_state
 
