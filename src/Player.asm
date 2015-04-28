@@ -119,6 +119,8 @@ handle_player_collision:
         IS_SOLID_TILE hpcdownendif_
             IF_SIGNED_GT_OR_EQU gravity, #$00, hpcdownendif_
                 MUL8 c_coord_y
+                CLC
+                ADC #$03
                 STA pos_y
 
                 LDA #$FC
@@ -170,7 +172,7 @@ handle_player_collision:
     ADD pos_y, gravity
     STA pos_y
     STA OAM_RAM_ADDR
-    
+
     RTS
 
 ;-----------------------------------------------------------------------------------;
@@ -212,10 +214,33 @@ set_respawn:
 
     SET_POINTER_TO_VAL current_room, respawn_room + 1, respawn_room
     SET_POINTER_TO_VAL current_VRAM_addr, respawn_VRAM_addr + 1, respawn_VRAM_addr
-    
-    LDA room_load_id
-    STA respawn_scroll_x_type
-    STA respawn_scroll_y_type
+
+    IF_EQU current_VRAM_addr + 1, #HIGH(VRAM_NT_0), srne0_
+        LDA #$00
+        STA respawn_scroll_x_type
+        STA respawn_scroll_y_type
+    srne0_:
+
+    IF_EQU current_VRAM_addr + 1, #HIGH(VRAM_NT_1), srne1_
+        LDA #$01
+        STA respawn_scroll_x_type
+        LDA #$00
+        STA respawn_scroll_y_type
+    srne1_:
+
+    IF_EQU current_VRAM_addr + 1, #HIGH(VRAM_NT_2), srne2_
+        LDA #$00
+        STA respawn_scroll_x_type
+        LDA #$01
+        STA respawn_scroll_y_type
+    srne2_:
+
+    IF_EQU current_VRAM_addr + 1, #HIGH(VRAM_NT_3), srne3_
+        LDA #$01
+        STA respawn_scroll_x_type
+        LDA #$01
+        STA respawn_scroll_y_type
+    srne3_:
 
     RTS
 
@@ -260,7 +285,7 @@ handle_camera_scroll:
             STA scroll_x
     scroll_x_endif:
 
-    IF_UNSIGNED_GT scroll_y_type, #$02, up_scroll_y_map
+    IF_NOT_EQU scroll_y_type, #$00, up_scroll_y_map
         IF_UNSIGNED_LT_OR_EQU pos_y, #$7F, scrydownstartelse
             LDA pos_y
             CLC
@@ -304,7 +329,7 @@ handle_room_intersect:
     IF_NOT_EQU scroll_x_type, #$00, ntransleft
         IF_SIGNED_LT speed_x, #$00, ntransrightjmp
             IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, ntransrightjmp
-                IF_UNSIGNED_GT scroll_y_type, #$02, hrigtsylt_
+                IF_NOT_EQU scroll_y_type, #$00, hrigtsylt_
                     SET_POINTER_TO_VAL room_3, current_room, current_room + 1
                     SET_POINTER_TO_VAL VRAM_room_addr_3, current_VRAM_addr, current_VRAM_addr + 1
                     JMP hrigtsltei_
@@ -324,7 +349,7 @@ handle_room_intersect:
     ntransleft:
         IF_SIGNED_GT speed_x, #$00, ntransright
             IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, ntransright
-                IF_UNSIGNED_GT scroll_y_type, #$02, hrigtsyt_
+                IF_NOT_EQU scroll_y_type, #$00, hrigtsyt_
                     SET_POINTER_TO_VAL room_4, current_room, current_room + 1
                     SET_POINTER_TO_VAL VRAM_room_addr_4, current_VRAM_addr, current_VRAM_addr + 1
                     JMP hrigtstei_
@@ -345,7 +370,7 @@ handle_room_intersect:
     LDA scroll_y_type
     LDA gravity
 
-    IF_UNSIGNED_GT scroll_y_type, #$02, ntransup
+    IF_NOT_EQU scroll_y_type, #$00, ntransup
         IF_SIGNED_LT gravity, #$00, ntransdownjmp
             IF_UNSIGNED_GT_OR_EQU pos_y, #$F7, ntransdownjmp
                 DEBUG_BRK
@@ -375,8 +400,8 @@ handle_room_intersect:
                 LDY #$01
 
                 IF_EQU scroll_x_type, #$00, hrigtstde_
-                    SET_POINTER_TO_VAL room_2, current_room, current_room + 1
-                    SET_POINTER_TO_VAL VRAM_room_addr_2, current_VRAM_addr, current_VRAM_addr + 1
+                    SET_POINTER_TO_VAL room_3, current_room, current_room + 1
+                    SET_POINTER_TO_VAL VRAM_room_addr_3, current_VRAM_addr, current_VRAM_addr + 1
                     JMP hrigtstdei_
                 hrigtstde_:
                     SET_POINTER_TO_VAL room_4, current_room, current_room + 1
