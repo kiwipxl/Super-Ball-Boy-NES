@@ -103,6 +103,7 @@ scroll_x_type       	.rs     1
 nt_pointer              .rs     2
 VRAM_pointer            .rs     2
 row_index               .rs     1
+NT_MAX_LOAD_TILES       .db     $20
 
 ;room variables
 current_room            .rs     2
@@ -329,14 +330,14 @@ NMI:
         LDA #HIGH(OAM_RAM_ADDR)
         STA OAM_DMA                    ;stores OAM_RAM_ADDR to high byte of OAM_DMA
         ;CPU is now suspended and transfer begins
-
-        LDA scroll_x
-        STA $2005
-        LDA scroll_y
-        STA $2005
     nmivws_:
 
     CALL update_render_state
+
+    LDA scroll_x
+    STA $2005
+    LDA scroll_y
+    STA $2005
 
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 
