@@ -32,6 +32,9 @@ CHAMBER_1:
     CHAMBER_1_ROOM_1:
     	.incbin "assets/level-1/chamber1_room2.nam"
 
+TITLE_SCREEN_NT:
+    .incbin "assets/titlescreen.nam"
+    
 PALETTE:
 	.incbin "assets/level-palette.pal"
 	.incbin "assets/sprite-palette.pal"
@@ -274,7 +277,7 @@ load_palettes:
 init:
     LDA TITLE_SCREEN_STATE
     STA current_state
-    
+
     CALL create_state
 
 ;------------------------------------------------------------------------------------;

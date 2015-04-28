@@ -1,6 +1,9 @@
 create_state:
 	IF_EQU current_state, TITLE_SCREEN_STATE, ncstss_
-
+		SET_POINTER_TO_ADDR VRAM_NT_0, PPU_ADDR, PPU_ADDR
+	    SET_POINTER_TO_ADDR TITLE_SCREEN_NT, nt_pointer + 1, nt_pointer
+	    
+	    CALL load_nametable
 	ncstss_:
 
 	IF_EQU current_state, GAME_STATE, ncsgs_

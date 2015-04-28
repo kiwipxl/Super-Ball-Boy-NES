@@ -173,7 +173,7 @@ load_room:
         CPY #$00                    ;check if y is equal to 0 (it has overflowed)
         BNE ntr_loop                 ;keep looping if y not equal to 0, otherwise continue
 
-        INC ntr_pointer + 1          ;increase the high byte of current_room by 1 ((#$FF + 1) low bytes)
+        INC nt_pointer + 1          ;increase the high byte of current_room by 1 ((#$FF + 1) low bytes)
         INX                         ;increase x by 1
 
         CPX #$04                    ;check if x has looped and overflowed 4 times (1kb, #$04FF)
