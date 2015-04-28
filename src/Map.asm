@@ -22,6 +22,10 @@ LOAD_ROOM .macro
     STA VRAM_pointer + 1
     STA current_VRAM_addr
 
+    LDA #$00
+    STA nt_row_x
+    STA nt_row_y
+
     CALL load_room
 
 	INC room_load_id
@@ -168,9 +172,6 @@ room_loading_complete:
 ;slime tile - Creates a slime enemy at this position
 load_room:
     LDY #$00
-    LDA #$00
-    STA temp
-    STA temp + 1
     ntr_loop:
         CPY #$C0
         BCC lt960
@@ -182,32 +183,36 @@ load_room:
             LDA [nt_pointer], y         ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
             CMP #$07
             BNE nt____
-                CALL set_respawn, temp, temp + 1
+                CALL set_respawn, nt_row_x, nt_row_y
                 LDA #$00
                 JMP ntcmpendif
             nt____:
             CMP #$0C
             BNE ntcmpendif
                 INC enemy_len
-                STY temp + 5
-                STX temp + 6
-                CALL create_slime, temp, temp + 1
-                LDY temp + 5
-                LDX temp + 6
+                ;push a, x and y onto the stack to save previous registers
+                TXA
+                PHA
+                TYA
+                PHA
+                CALL create_slime, nt_row_x, nt_row_y
+                ;pull a, x, y from the stack and put them back in their respective registers
+                PLA
+                TAY
+                PLA
+                TAX
                 LDA #$00
         ntcmpendif:
 
         STA PPU_DATA                ;write byte to the PPU nametable address
         INY                         ;add by 1 to move to the next byte
 
-        ADD temp, #$01
-        STA temp
-        IF_UNSIGNED_GT_OR_EQU temp, #$20, nrowreset
+        INC nt_row_x
+        IF_UNSIGNED_GT_OR_EQU nt_row_x, #$20, nrowreset
             LDA #$00
-            STA temp
+            STA nt_row_x
 
-            ADD temp + 1, #$01
-            STA temp + 1
+            INC nt_row_y
         nrowreset:
 
         CPY NT_MAX_LOAD_TILES        ;check if y is equal to 0 (it has overflowed)

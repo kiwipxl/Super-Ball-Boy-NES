@@ -99,11 +99,13 @@ scroll_x            	.rs     1
 scroll_y            	.rs     1
 scroll_x_type       	.rs     1
 
-;nametable column loading
+;nametable row loading
 nt_pointer              .rs     2
 VRAM_pointer            .rs     2
-row_index               .rs     1
+row_index               .rs     2
 NT_MAX_LOAD_TILES       .db     $20
+nt_row_x                .rs     1
+nt_row_y                .rs     1
 
 ;room variables
 current_room            .rs     2

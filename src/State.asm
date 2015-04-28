@@ -88,6 +88,10 @@ update_render_state:
 		CALL load_room
 		CONFIGURE_PPU
 
+		IF_EQU row_index, #$04, ursrinl02_
+			DEBUG_BRK
+		ursrinl02_:
+
 		RTS
 	nursntcls_:
 
