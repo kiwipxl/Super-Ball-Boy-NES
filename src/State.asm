@@ -1,11 +1,14 @@
 create_state:
 	IF_EQU current_state, TITLE_SCREEN_STATE, ncstss_
-		DEBUG_BRK
+		SET_POINTER_TO_ADDR VRAM_NT_0, VRAM_pointer, VRAM_pointer + 1
 		SET_POINTER_TO_ADDR VRAM_NT_0, PPU_ADDR, PPU_ADDR
 	    SET_POINTER_TO_ADDR TITLE_SCREEN_NT, nt_pointer + 1, nt_pointer
 
-	    CALL load_nametable
-	    CONFIGURE_PPU
+	    LDA #$00
+	    STA row_index
+	    STA row_ovf_counter
+	    LDA NT_LOADING_STATE
+	    STA current_state
 
 	    RTS
 	ncstss_:
@@ -61,15 +64,27 @@ update_state:
 		RTS
 	nushs_:
 
+	IF_EQU current_state, NT_LOADING_STATE, nusnts_
+		DEBUG_BRK
+		SET_POINTER_TO_VAL VRAM_pointer, PPU_ADDR, PPU_ADDR
+		CALL load_nametable
+		CONFIGURE_PPU
+		RTS
+	nusnts_:
+
 	RTS
 
 update_render_state:
+	IF_EQU current_state, NT_LOADING_STATE, nursnts_
+		RTS
+	nursnts_:
+
 	IF_NOT_EQU vblank_wait_state, #$00, nursvws_
 		LDA vblank_wait_state
 		STA current_state
 
-		LDA #$00
-		STA vblank_wait_state
+		;LDA #$00
+		;STA vblank_wait_state
 
 		CALL create_state
 

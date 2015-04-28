@@ -99,8 +99,12 @@ scroll_x            	.rs     1
 scroll_y            	.rs     1
 scroll_x_type       	.rs     1
 
-;room variables
+;nametable column loading
 nt_pointer              .rs     2
+VRAM_pointer            .rs     2
+row_index               .rs     1
+
+;room variables
 current_room            .rs     2
 current_VRAM_addr      	.rs     2
 room_1                  .rs     2
@@ -171,6 +175,7 @@ TITLE_SCREEN_STATE      .db     $01
 GAME_STATE              .db     $02
 WIN_STATE               .db     $03
 HALT_STATE              .db     $04
+NT_LOADING_STATE        .db     $05
 
 ;------------------------------------------------------------------------------------;
 
@@ -332,7 +337,7 @@ NMI:
     nmivws_:
 
     CALL update_render_state
-    
+
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 
     ;pull a, x, y from the stack and put them back in their respective registers
