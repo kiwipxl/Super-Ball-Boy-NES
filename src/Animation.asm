@@ -117,4 +117,32 @@ update_animations:
 	aule_:
 
     RTS
-	
+
+render_animations:
+	LDX ani_max
+    arl_:
+        DEX
+        CPX #$FF
+        BEQ arle_
+
+        LDA ani_active, x
+        BEQ arl_
+
+        STX temp + 2
+        TXA
+        ASL a
+        TAX
+
+        SET_POINTER ani_VRAM_pointer, x, ani_VRAM_pointer + 1, x, PPU_ADDR, PPU_ADDR
+        SET_POINTER ani_frames, x, ani_frames + 1, x, temp, temp + 1
+
+        LDX temp + 2
+        LDY ani_current_frame, x
+        LDA [temp], y
+        STA PPU_DATA
+
+        JMP arl_
+    arle_:
+    CONFIGURE_PPU
+
+    RTS

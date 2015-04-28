@@ -246,7 +246,7 @@ game_loop:
         BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
 
     CALL read_controller
-    
+
     CALL handle_room_intersect
     CALL handle_camera_scroll
 
@@ -278,6 +278,7 @@ read_controller:
 ;NMI interrupts the cpu and is called once per video frame
 ;PPU is starting vblank time and is available for graphics updates
 NMI:
+    ;push a, x and y onto the stack to save previous registers
     PHA
     TXA
     PHA
@@ -295,31 +296,7 @@ NMI:
     STA OAM_DMA                    ;stores OAM_RAM_ADDR to high byte of OAM_DMA
     ;CPU is now suspended and transfer begins
 
-    LDX ani_max
-    arl_:
-        DEX
-        CPX #$FF
-        BEQ arle_
-
-        LDA ani_active, x
-        BEQ arl_
-
-        STX temp + 2
-        TXA
-        ASL a
-        TAX
-
-        SET_POINTER ani_VRAM_pointer, x, ani_VRAM_pointer + 1, x, PPU_ADDR, PPU_ADDR
-        SET_POINTER ani_frames, x, ani_frames + 1, x, temp, temp + 1
-
-        LDX temp + 2
-        LDY ani_current_frame, x
-        LDA [temp], y
-        STA PPU_DATA
-
-        JMP arl_
-    arle_:
-    CONFIGURE_PPU
+    CALL render_animations
 
     LDA scroll_x
     STA $2005
@@ -329,6 +306,7 @@ NMI:
     LDA vblank_counter
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 
+    ;pull a, x, y from the stack and put them back in their respective registers
     PLA
     TAY
     PLA
