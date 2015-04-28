@@ -5,8 +5,14 @@ init_player:
     STA OAM_RAM_ADDR + 2
 
     RTS
-    
+
 update_player:
+	CALL handle_player_movement
+	CALL handle_player_collision
+
+    RTS
+
+handle_player_movement:
 	;clamp speed_x
     CALL clamp_signed, speed_x, #$FE, #$02
     LDA rt_val_1
@@ -40,9 +46,21 @@ update_player:
         ST_RT_VAL_IN speed_x, speed_x + 1
     rbnotdown:
 
-	CALL read_controller
+    CALL add_short, gravity, gravity + 1, #$40
+    ST_RT_VAL_IN gravity, gravity + 1
 
-    DIV8 pos_x, #$00, #$00, coord_x
+    ;add gravity to pos_y and set it as the player's y sprite position
+    ADD pos_y, gravity
+    STA pos_y
+    STA OAM_RAM_ADDR
+
+    ADD pos_x, speed_x
+    STA pos_x
+
+    RTS
+
+handle_player_collision:
+	DIV8 pos_x, #$00, #$00, coord_x
     DIV8 pos_x, #$00, #$02, coord_x + 1
     DIV8 pos_x, #$02, #$00, coord_x + 2
 
@@ -141,16 +159,5 @@ update_player:
             LDA #$00
             STA speed_x
     nscrightendif:
-
-    CALL add_short, gravity, gravity + 1, #$40
-    ST_RT_VAL_IN gravity, gravity + 1
-
-    ;add gravity to pos_y and set it as the player's y sprite position
-    ADD pos_y, gravity
-    STA pos_y
-    STA OAM_RAM_ADDR
-
-    ADD pos_x, speed_x
-    STA pos_x
 
     RTS

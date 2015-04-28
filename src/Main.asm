@@ -161,7 +161,7 @@ PPU_MASK_CONFIG:
 	.include "src/Animation.asm"
     .include "src/Enemy.asm"
     .include "src/Player.asm"
-    
+
 ;------------------------------------------------------------------------------------;
 
     .bank 0                         ;uses the first bank, which is a 8kb ROM memory region
@@ -245,11 +245,12 @@ game_loop:
         CMP vblank_counter         ;compare register a with the vblank counter
         BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
 
-    CALL update_player
-
+    CALL read_controller
+    
     CALL handle_room_intersect
     CALL handle_camera_scroll
 
+    CALL update_player
     CALL update_animations
     CALL update_enemies
 
