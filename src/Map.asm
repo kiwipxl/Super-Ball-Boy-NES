@@ -9,7 +9,7 @@ LOAD_ROOM .macro
     SET_POINTER_TO_ADDR \1, current_room + 1, current_room
     SET_POINTER_TO_ADDR \1, nt_pointer + 1, nt_pointer
 
-    CALL load_nametable
+    CALL load_room
 
     .IF \2 = VRAM_NT_0
         SET_POINTER_TO_ADDR \1, room_1, room_1 + 1
@@ -121,7 +121,7 @@ load_chamber_1:
 ;writes nametable bytes pointing from current_room into PPU VRAM
 ;before this function is called, the VRAM_NT_ID address must be written to PPU_ADDR
 ;so whenever we write data to PPU_DATA, it will map to the VRAM_NT_ID + write offset address in the PPU VRAM
-load_nametable:
+load_room:
     LDY #$00
     LDX #$00
     LDA #$00

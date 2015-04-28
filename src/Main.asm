@@ -109,35 +109,47 @@ respawn_VRAM_addr       .rs     2
 respawn_scroll_x_type 	.rs 	1
 
 ;animation pointer variables
-ani_frames 				.rs 	16       ;store hi + lo byte pointer to pre-built animation, 2 bytes per animation
-ani_VRAM_pointer 		.rs 	16       ;stores hi + lo byte pointers to a nametable which tile animations will use, 2 bytes per animation
+ani_frames 				.rs 	16      ;stores hi + lo byte pointers to pre-built animation frames, 2 bytes per animation
+ani_VRAM_pointer 		.rs 	16      ;stores hi + lo byte pointers to a nametable which tile animations will use, 2 bytes per animation
 
-enemy_room              .rs     16
-enemy_VRAM_addr 	 	.rs 	16
+;enemy pointer variables
+enemy_room              .rs     16      ;stores hi + lo byte pointers to the room in ROM where the enemy is, 2 bytes per enemy
+enemy_VRAM_addr 	 	.rs 	16      ;stores hi + lo byte pointers to the VRAM nametable address where the enemy is, 2 bytes per enemy
 
-	;store animation array with a 256 byte offset with a max amount of 8 running animations
+    ;the following variables are stored in main RAM and not zero page (256 byte offset)
 	.rsset $0100
-	
-ani_rate 				.rs     8 	     ;frame rate byte that defines how often the animation will run per frame, 1 byte per animation
-ani_frame_counter 		.rs 	8 	     ;frame counter that increases every frame, 1 byte per animation
-ani_current_frame 		.rs 	8 	     ;byte that defines the current frame of the animation, 1 byte per animation
-ani_loop 				.rs 	8 	     ;defines whether the animation will loop or not, 1 byte per animation
-ani_num_frames 			.rs 	8 	     ;the amount of frames in the current animation, 1 byte per animation
-ani_active              .rs     8        ;defines whether the animation is currently playing or not, 1 byte per animation
+
+;animation struct variables
+ani_rate 				.rs     8 	    ;frame rate byte that defines how often the animation will run per frame, 1 byte per animation
+ani_frame_counter 		.rs 	8 	    ;frame counter that increases every frame, 1 byte per animation
+ani_current_frame 		.rs 	8 	    ;byte that defines the current frame of the animation, 1 byte per animation
+ani_loop 				.rs 	8 	    ;defines whether the animation will loop or not, 1 byte per animation
+ani_num_frames 			.rs 	8 	    ;the amount of frames in the current animation, 1 byte per animation
+ani_active              .rs     8       ;defines whether the animation is currently playing or not, 1 byte per animation
 ani_max:
     .db $08
 
-enemy_type              .rs     8
-enemy_pos_x             .rs     16
-enemy_pos_y             .rs     16
-enemy_speed_x           .rs     16
-enemy_gravity           .rs     16
-enemy_active            .rs     8
-enemy_temp_1            .rs     8
-enemy_temp_2            .rs     8
-enemy_temp_3            .rs     8
-enemy_temp_4            .rs     8
-enemy_len               .rs     1
+;enemy struct variables
+enemy_type              .rs     8       ;defines the type of the enemy, 1 byte per enemy
+                                        ;0 = slime, 1 = bat
+enemy_pos_x             .rs     16      ;defines the pos_x of the enemy, 2 bytes per enemy
+enemy_pos_y             .rs     16      ;defines the pos_y of the enemy, 2 bytes per enemy
+enemy_speed_x           .rs     16      ;defines the speed_x of the enemy, 2 bytes per enemy
+enemy_gravity           .rs     16      ;defines the gravity of the enemy, 2 bytes per enemy
+enemy_active            .rs     8       ;whether the enemy has been created or not (0 = false, 1 = true), 2 bytes per enemy
+enemy_temp_1            .rs     8       ;temp1 variable used to save memory on enemy logic variables, 1 byte per enemy
+                                        ;slime = waiting to jump counter
+                                        ;bat = not used
+enemy_temp_2            .rs     8       ;temp2 variable used to save memory on enemy logic variables, 1 byte per enemy
+                                        ;slime = jump rate value
+                                        ;bat = not used
+enemy_temp_3            .rs     8       ;temp3 variable used to save memory on enemy logic variables, 1 byte per enemy
+                                        ;slime = used as a timer when jumping is activated to allow slimes to readjust
+                                        ;bat = not used
+enemy_temp_4            .rs     8       ;temp4 variable used to save memory on enemy logic variables, 1 byte per enemy
+                                        ;slime = not used
+                                        ;bat = not used
+enemy_len               .rs     1       ;the amount of currently running enemies
 enemy_max:
     .db $08
 
