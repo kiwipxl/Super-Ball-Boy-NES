@@ -213,14 +213,15 @@ set_respawn:
     
     LDA room_load_id
     STA respawn_scroll_x_type
-    
+    STA respawn_scroll_y_type
+
     RTS
 
 ;-----------------------------------------------------------------------------------;
 
 handle_camera_scroll:
-    IF_EQU scroll_x_type, #$00, right_scroll_map
-        IF_UNSIGNED_GT_OR_EQU pos_x, #$7F, scrleftstartelse
+    IF_EQU scroll_x_type, #$00, right_scroll_x_map
+        IF_UNSIGNED_GT_OR_EQU pos_x, #$7F, scrxleftstartelse
             LDA pos_x
             SEC
             SBC #$7F
@@ -230,7 +231,7 @@ handle_camera_scroll:
             STA OAM_RAM_ADDR + 3
 
             JMP scroll_x_endif
-        scrleftstartelse:
+        scrxleftstartelse:
             LDA pos_x
             STA OAM_RAM_ADDR + 3
 
@@ -238,8 +239,8 @@ handle_camera_scroll:
             STA scroll_x
 
             JMP scroll_x_endif
-    right_scroll_map:
-        IF_UNSIGNED_LT_OR_EQU pos_x, #$7F, scrrightstartelse
+    right_scroll_x_map:
+        IF_UNSIGNED_LT_OR_EQU pos_x, #$7F, scrxrightstartelse
             LDA pos_x
             SEC
             SBC #$80
@@ -249,13 +250,51 @@ handle_camera_scroll:
             STA OAM_RAM_ADDR + 3
 
             JMP scroll_x_endif
-        scrrightstartelse:
+        scrxrightstartelse:
             LDA pos_x
             STA OAM_RAM_ADDR + 3
 
             LDA #$FF
             STA scroll_x
     scroll_x_endif:
+
+    IF_UNSIGNED_GT scroll_y_type, #$01, up_scroll_y_map
+        IF_UNSIGNED_GT_OR_EQU pos_y, #$7F, scryleftstartelse
+            LDA pos_y
+            SEC
+            SBC #$7F
+            STA scroll_y
+
+            LDA #$7F
+            STA OAM_RAM_ADDR
+
+            JMP scroll_y_endif
+        scryleftstartelse:
+            LDA pos_y
+            STA OAM_RAM_ADDR
+
+            LDA #$00
+            STA scroll_y
+
+            JMP scroll_y_endif
+    up_scroll_y_map:
+        IF_UNSIGNED_LT_OR_EQU pos_y, #$7F, scryupstartelse
+            LDA pos_y
+            SEC
+            SBC #$80
+            STA scroll_y
+
+            LDA #$80
+            STA OAM_RAM_ADDR
+
+            JMP scroll_y_endif
+        scryupstartelse:
+            LDA pos_y
+            STA OAM_RAM_ADDR
+
+            LDA #$FF
+            STA scroll_y
+    scroll_y_endif:
 
     RTS
 
@@ -284,6 +323,33 @@ handle_room_intersect:
                 LDA #$01
                 STA scroll_x_type
     ntransright:
+
+    IF_UNSIGNED_GT scroll_y_type, #$01, ntransup
+        IF_SIGNED_LT gravity, #$00, ntransup
+            IF_UNSIGNED_GT_OR_EQU pos_y, #$FB, ntransup
+                SET_POINTER_TO_VAL room_2, current_room, current_room + 1
+                SET_POINTER_TO_VAL VRAM_room_addr_2, current_VRAM_addr, current_VRAM_addr + 1
+
+                LDA #$FB
+                STA pos_y
+
+                LDA #$00
+                STA scroll_y_type
+
+                JMP ntransdown
+    ntransup:
+        IF_SIGNED_GT gravity, #$00, ntransdown
+            IF_UNSIGNED_GT_OR_EQU pos_y, #$e0, ntransdown
+                SET_POINTER_TO_VAL room_4, current_room, current_room + 1
+                SET_POINTER_TO_VAL VRAM_room_addr_4, current_VRAM_addr, current_VRAM_addr + 1
+
+                LDA #$00
+                STA pos_y
+
+                LDA #$02
+                STA scroll_y_type
+    ntransdown:
+    
     RTS
 
 ;------------------------------------------------------------------------------------;

@@ -105,6 +105,7 @@ on_floor                .rs     1
 scroll_x            	.rs     1
 scroll_y            	.rs     1
 scroll_x_type       	.rs     1
+scroll_y_type           .rs     1
 
 ;nametable row loading
 nt_pointer              .rs     2
@@ -132,6 +133,7 @@ player_spawn            .rs     2
 respawn_room            .rs     2
 respawn_VRAM_addr       .rs     2
 respawn_scroll_x_type 	.rs 	1
+respawn_scroll_y_type   .rs     1
 
 ;animation pointer variables
 ani_frames 				.rs 	16      ;stores hi + lo byte pointers to pre-built animation frames, 2 bytes per animation
