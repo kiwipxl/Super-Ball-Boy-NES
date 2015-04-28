@@ -159,18 +159,18 @@ enemy_temp_3            .rs     8       ;temp3 variable used to save memory on e
 enemy_temp_4            .rs     8       ;temp4 variable used to save memory on enemy logic variables, 1 byte per enemy
                                         ;slime = not used
                                         ;bat = not used
-enemy_len               .db     $00     ;the amount of currently running enemies
+enemy_len               .rs     1       ;the amount of currently running enemies
 enemy_max               .db     $08
 
 ;------------------------------------------------------------------------------------;
 
-current_state           .rs     1       ;the current state of the game
-vblank_wait_state       .rs     1       ;used to wait for vblank to create a state. 0 = no wait, > 0 = state to create
+current_state           .rs     1     ;the current state of the game
+vblank_wait_state       .rs     1     ;used to wait for vblank to create a state. 0 = no wait, > 0 = state to create
 
-TITLE_SCREEN_STATE      .db     $00
-GAME_STATE              .db     $01
-WIN_STATE               .db     $02
-HALT_STATE              .db     $03
+TITLE_SCREEN_STATE      .db     $01
+GAME_STATE              .db     $02
+WIN_STATE               .db     $03
+HALT_STATE              .db     $04
 
 ;------------------------------------------------------------------------------------;
 
@@ -268,10 +268,7 @@ load_palettes:
         BNE load_palettes_loop      ;keep looping if x is not equal to 32, otherwise continue
 
 init:
-    LDA TITLE_SCREEN_STATE
-    STA current_state
-
-    CALL create_state
+    CALL change_state, TITLE_SCREEN_STATE
 
 ;------------------------------------------------------------------------------------;
 
@@ -316,24 +313,26 @@ NMI:
     TYA
     PHA
 
-    ;copies 256 bytes of OAM data in RAM (OAM_RAM_ADDR - OAM_RAM_ADDR + $FF) to the PPU internal OAM
-    ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
+    IF_EQU vblank_wait_state, #$00, nmivws_
+        ;copies 256 bytes of OAM data in RAM (OAM_RAM_ADDR - OAM_RAM_ADDR + $FF) to the PPU internal OAM
+        ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
 
-    LDA #$00
-    STA OAM_ADDR                   ;sets the low byte of OAM_ADDR to #$00 (the start of internal OAM memory on PPU)
+        LDA #$00
+        STA OAM_ADDR                   ;sets the low byte of OAM_ADDR to #$00 (the start of internal OAM memory on PPU)
 
-    ;stores the #$02 high byte + #$00 sprite attribs memory address in OAM_DMA and then begins the transfer
-    LDA #HIGH(OAM_RAM_ADDR)
-    STA OAM_DMA                    ;stores OAM_RAM_ADDR to high byte of OAM_DMA
-    ;CPU is now suspended and transfer begins
+        ;stores the #$02 high byte + #$00 sprite attribs memory address in OAM_DMA and then begins the transfer
+        LDA #HIGH(OAM_RAM_ADDR)
+        STA OAM_DMA                    ;stores OAM_RAM_ADDR to high byte of OAM_DMA
+        ;CPU is now suspended and transfer begins
+
+        LDA scroll_x
+        STA $2005
+        LDA scroll_y
+        STA $2005
+    nmivws_:
 
     CALL update_render_state
-
-    LDA scroll_x
-    STA $2005
-    LDA scroll_y
-    STA $2005
-
+    
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 
     ;pull a, x, y from the stack and put them back in their respective registers
@@ -346,4 +345,4 @@ NMI:
     RTI                             ;returns from the interrupt
 
 IQR:
-    RTI
+    RTI                             ;returns from the interrupt

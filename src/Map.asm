@@ -195,6 +195,7 @@ load_nametable:
             CPY #$00                    ;check if y is equal to 0 (it has overflowed)
             BNE nt_loop_nested          ;keep looping if y not equal to 0, otherwise continue
 
+            DEBUG_BRK
             INC nt_pointer + 1          ;increase the high byte of nt_pointer by 1 ((#$FF + 1) low bytes)
             INX                         ;increase x by 1
             
