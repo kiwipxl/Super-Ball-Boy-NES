@@ -34,7 +34,7 @@ CHAMBER_1:
 
 TITLE_SCREEN_NT:
     .incbin "assets/titlescreen.nam"
-    
+
 PALETTE:
 	.incbin "assets/level-palette.pal"
 	.incbin "assets/sprite-palette.pal"
@@ -135,8 +135,7 @@ ani_current_frame 		.rs 	8 	    ;byte that defines the current frame of the anim
 ani_loop 				.rs 	8 	    ;defines whether the animation will loop or not, 1 byte per animation
 ani_num_frames 			.rs 	8 	    ;the amount of frames in the current animation, 1 byte per animation
 ani_active              .rs     8       ;defines whether the animation is currently playing or not, 1 byte per animation
-ani_max:
-    .db $08
+ani_max                 .db     $08
 
 ;------------------------------------------------------------------------------------;
 
@@ -160,22 +159,18 @@ enemy_temp_3            .rs     8       ;temp3 variable used to save memory on e
 enemy_temp_4            .rs     8       ;temp4 variable used to save memory on enemy logic variables, 1 byte per enemy
                                         ;slime = not used
                                         ;bat = not used
-enemy_len               .rs     1       ;the amount of currently running enemies
-enemy_max:
-    .db $08
+enemy_len               .db     $00     ;the amount of currently running enemies
+enemy_max               .db     $08
 
 ;------------------------------------------------------------------------------------;
 
 current_state           .rs     1       ;the current state of the game
+vblank_wait_state       .rs     1       ;used to wait for vblank to create a state. 0 = no wait, > 0 = state to create
 
-TITLE_SCREEN_STATE:
-    .db $00
-
-GAME_STATE:
-    .db $01
-
-WIN_STATE
-    .db $02
+TITLE_SCREEN_STATE      .db     $00
+GAME_STATE              .db     $01
+WIN_STATE               .db     $02
+HALT_STATE              .db     $03
 
 ;------------------------------------------------------------------------------------;
 
@@ -187,11 +182,9 @@ SPRING_ANI:
 
 ;------------------------------------------------------------------------------------;
 
-PPU_CTRL_CONFIG:
-    .db %10000000                  ;enable NMI calling and set sprite pattern table to $0000 (0)
+PPU_CTRL_CONFIG         .db     %10000000     ;enable NMI calling and set sprite pattern table to $0000 (0)
 
-PPU_MASK_CONFIG:
-    .db %00011110                  ;enable sprite rendering
+PPU_MASK_CONFIG         .db     %00011110     ;enable sprite rendering
 
 ;------------------------------------------------------------------------------------;
 
@@ -334,14 +327,13 @@ NMI:
     STA OAM_DMA                    ;stores OAM_RAM_ADDR to high byte of OAM_DMA
     ;CPU is now suspended and transfer begins
 
-    CALL render_animations
+    CALL update_render_state
 
     LDA scroll_x
     STA $2005
     LDA scroll_y
     STA $2005
 
-    LDA vblank_counter
     INC vblank_counter              ;increases the vblank counter by 1 so the game loop can check when NMI has been called
 
     ;pull a, x, y from the stack and put them back in their respective registers

@@ -467,18 +467,18 @@ MUL8 .macro
 
 ;macro that checks whether any key is down, if it is not, go to specified label, otherwise continue
 ;input - (else_label)
-ANY_KEY_BUTTON_DOWN .macro
+ANY_BUTTON_DOWN .macro
     LDA button_bits
-    AND INPUT_ANY_KEY_BUTTON
+    AND INPUT_ANY_BUTTON
     BEQ \1
 
     .endm
 
 ;macro that checks whether no key is down, if it is not, go to specified label, otherwise continue
 ;input - (else_label)
-NO_KEY_BUTTON_DOWN .macro
+NO_BUTTON_DOWN .macro
     LDA button_bits
-    AND INPUT_NO_KEY_BUTTON
+    AND INPUT_NO_BUTTON
     BNE \1
 
     .endm
