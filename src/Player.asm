@@ -52,14 +52,6 @@ handle_player_movement:
         ST_RT_VAL_IN speed_x, speed_x + 1
     rbnotdown:
 
-    CALL add_short, gravity, gravity + 1, #$40
-    ST_RT_VAL_IN gravity, gravity + 1
-
-    ;add gravity to pos_y and set it as the player's y sprite position
-    ADD pos_y, gravity
-    STA pos_y
-    STA OAM_RAM_ADDR
-
     RTS
 
 ;-----------------------------------------------------------------------------------;
@@ -120,55 +112,65 @@ handle_player_collision:
     CALL mul_short, downc_pointer + 1, coord_y + 1, #$20
     CALL add_short, rt_val_1, rt_val_2, #$20
     ST_RT_VAL_IN downc_pointer + 1, downc_pointer
-    
-    CALL check_collide_down
-    LDA rt_val_1
-    IS_SOLID_TILE hpcdownendif_
-        IF_SIGNED_GT_OR_EQU gravity, #$00, hpcdownendif_
-            MUL8 c_coord_y
-            STA pos_y
 
-            LDA #$FC
-            STA gravity
-            LDA #$7F
-            STA gravity + 1
+    IF_UNSIGNED_LT pos_y, #$FB, hpcdownendif_
+        CALL check_collide_down
+        LDA rt_val_1
+        IS_SOLID_TILE hpcdownendif_
+            IF_SIGNED_GT_OR_EQU gravity, #$00, hpcdownendif_
+                MUL8 c_coord_y
+                STA pos_y
+
+                LDA #$FC
+                STA gravity
+                LDA #$7F
+                STA gravity + 1
     hpcdownendif_:
 
-    CALL check_collide_up
-    IS_SOLID_TILE hpcupendif_
-        IF_SIGNED_LT_OR_EQU gravity, #$00, hpcupendif_
-            MUL8 c_coord_y
-            SEC
-            SBC #$01
-            STA pos_y
+    IF_UNSIGNED_GT pos_y, #$04, hpcupendif_
+        CALL check_collide_up
+        IS_SOLID_TILE hpcupendif_
+            IF_SIGNED_LT_OR_EQU gravity, #$00, hpcupendif_
+                MUL8 c_coord_y
+                SEC
+                SBC #$01
+                STA pos_y
 
-            LDA #$01
-            STA gravity
+                LDA #$01
+                STA gravity
     hpcupendif_:
 
     IF_UNSIGNED_GT pos_x, #$04, hpcleftendif_
-    CALL check_collide_left
-    IS_SOLID_TILE hpcleftendif_
-        IF_SIGNED_LT_OR_EQU speed_x, #$00, hpcleftendif_
-            MUL8 c_coord_x, #$01, #$00, pos_x
+        CALL check_collide_left
+        IS_SOLID_TILE hpcleftendif_
+            IF_SIGNED_LT_OR_EQU speed_x, #$00, hpcleftendif_
+                MUL8 c_coord_x, #$01, #$00, pos_x
 
-            LDA #$00
-            STA speed_x
+                LDA #$00
+                STA speed_x
     hpcleftendif_:
 
     IF_UNSIGNED_LT pos_x, #$FB, hpcrightendif_
-    CALL check_collide_right
-    IS_SOLID_TILE hpcrightendif_
-        IF_SIGNED_GT_OR_EQU speed_x, #$00, hpcrightendif_
-            MUL8 c_coord_x, #$00, #$01, pos_x
+        CALL check_collide_right
+        IS_SOLID_TILE hpcrightendif_
+            IF_SIGNED_GT_OR_EQU speed_x, #$00, hpcrightendif_
+                MUL8 c_coord_x, #$00, #$01, pos_x
 
-            LDA #$00
-            STA speed_x
+                LDA #$00
+                STA speed_x
     hpcrightendif_:
 
     ADD pos_x, speed_x
     STA pos_x
 
+    CALL add_short, gravity, gravity + 1, #$40
+    ST_RT_VAL_IN gravity, gravity + 1
+
+    ;add gravity to pos_y and set it as the player's y sprite position
+    ADD pos_y, gravity
+    STA pos_y
+    STA OAM_RAM_ADDR
+    
     RTS
 
 ;-----------------------------------------------------------------------------------;
@@ -338,9 +340,14 @@ handle_room_intersect:
                 STA scroll_x_type
     ntransright:
 
+    DEBUG_BRK
+    LDA pos_y
+    LDA scroll_y_type
+    LDA gravity
+
     IF_UNSIGNED_GT scroll_y_type, #$02, ntransup
         IF_SIGNED_LT gravity, #$00, ntransdownjmp
-            IF_UNSIGNED_GT_OR_EQU pos_y, #$FB, ntransdownjmp
+            IF_UNSIGNED_GT_OR_EQU pos_y, #$F7, ntransdownjmp
                 DEBUG_BRK
                 LDY #$00
 
@@ -353,7 +360,7 @@ handle_room_intersect:
                     SET_POINTER_TO_VAL VRAM_room_addr_2, current_VRAM_addr, current_VRAM_addr + 1
                 hrigtstuei_:
 
-                LDA #$FB
+                LDA #$F0
                 STA pos_y
 
                 LDA #$00
@@ -363,7 +370,7 @@ handle_room_intersect:
                     JMP ntransdown
     ntransup:
         IF_SIGNED_GT gravity, #$00, ntransdown
-            IF_UNSIGNED_GT_OR_EQU pos_y, #$FB, ntransdown
+            IF_UNSIGNED_GT_OR_EQU pos_y, #$F0, ntransdown
                 DEBUG_BRK
                 LDY #$01
 
