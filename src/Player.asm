@@ -126,8 +126,6 @@ handle_player_collision:
     IS_SOLID_TILE hpcdownendif_
         IF_SIGNED_GT_OR_EQU gravity, #$00, hpcdownendif_
             MUL8 c_coord_y
-            CLC
-            ADC #$03
             STA pos_y
 
             LDA #$FC
@@ -261,8 +259,8 @@ handle_camera_scroll:
     IF_UNSIGNED_GT scroll_y_type, #$01, up_scroll_y_map
         IF_UNSIGNED_GT_OR_EQU pos_y, #$7F, scryleftstartelse
             LDA pos_y
-            SEC
-            SBC #$7F
+            CLC
+            ADC #$70
             STA scroll_y
 
             LDA #$7F
@@ -280,11 +278,12 @@ handle_camera_scroll:
     up_scroll_y_map:
         IF_UNSIGNED_LT_OR_EQU pos_y, #$7F, scryupstartelse
             LDA pos_y
-            SEC
-            SBC #$80
+            CLC
+            ADC #$70
+            DEBUG_BRK
             STA scroll_y
 
-            LDA #$80
+            LDA #$7f
             STA OAM_RAM_ADDR
 
             JMP scroll_y_endif
@@ -292,7 +291,7 @@ handle_camera_scroll:
             LDA pos_y
             STA OAM_RAM_ADDR
 
-            LDA #$FF
+            LDA #$EF
             STA scroll_y
     scroll_y_endif:
 
