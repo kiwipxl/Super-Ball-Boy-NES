@@ -1,21 +1,24 @@
     .inesprg 1   ;1 16kb PRG code
     .ineschr 1   ;1 8kb CHR data
     .inesmap 0   ;mapper 0 = NROM, no bank swapping
-    .inesmir 1   ;background mirroring
+    .inesmir 9   ;background mirroring
 
 ;------------------------------------------------------------------------------------;
-
+    
+    .CODE
     .bank 3                           ;uses the fourth bank, which is a 8kb ROM memory region
     .org $8000                        ;places graphics tiles at the beginning of ROM (8000 - a000, offset: 0kb)
 	
 ;------------------------------------------------------------------------------------;
-
+    
+    .DATA
     .bank 2                           ;uses the third bank, which is a 8kb ROM memory region
     .org $a000                        ;places graphics tiles in the first quarter of ROM (a000 - e000, offset: 8kb)
 	.incbin "assets/tileset1.chr"     ;includes 8kb graphics file from SMB1
 	
 ;------------------------------------------------------------------------------------;
-
+    
+    .DATA
     .bank 1                           ;uses the second bank, which is a 8kb ROM memory region
     
     .org $fffa                        ;places the address of NMI, reset and BRK handlers at the very end of the ROM
@@ -31,6 +34,8 @@ CHAMBER_1:
     	.incbin "assets/level-1/chamber1_room1.nam"
     CHAMBER_1_ROOM_1:
     	.incbin "assets/level-1/chamber1_room2.nam"
+    CHAMBER_1_ROOM_2:
+        .incbin "assets/level-1/chamber1_room3.nam"
 
 TITLE_SCREEN_NT:
     .incbin "assets/titlescreen.nam"
@@ -114,6 +119,8 @@ room_1                  .rs     2
 VRAM_room_addr_1	   	.rs     2
 room_2                  .rs     2
 VRAM_room_addr_2       	.rs     2
+room_3                  .rs     2
+VRAM_room_addr_3        .rs     2
 room_load_id 			.rs 	1
 
 ;respawn variables
@@ -203,19 +210,18 @@ PPU_MASK_CONFIG         .db     %00011110     ;enable sprite rendering
 
 ;------------------------------------------------------------------------------------;
 
-	.include "src/SystemConstants.asm"
+    .CODE
+    .bank 0                         ;uses the first bank, which is a 8kb ROM memory region
+    .org $c000                      ;place all program code in the middle of PGR_ROM memory (c000 - e000, offset: 16kb)
+
+    .include "src/SystemConstants.asm"
     .include "src/SystemMacros.asm"
     .include "src/Math.asm"
     .include "src/Map.asm"
-	.include "src/Animation.asm"
+    .include "src/Animation.asm"
     .include "src/Enemy.asm"
     .include "src/Player.asm"
     .include "src/State.asm"
-
-;------------------------------------------------------------------------------------;
-
-    .bank 0                         ;uses the first bank, which is a 8kb ROM memory region
-    .org $c000                      ;place all program code in the middle of PGR_ROM memory (c000 - e000, offset: 16kb)
 
 ;wait for vertical blank to make sure the PPU is ready
 vblank_wait:
