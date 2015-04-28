@@ -104,7 +104,8 @@ load_chamber_1:
 	STA room_load_id
     CALL init_enemies
     CALL init_animations
-
+    CALL init_player
+    
     LOAD_ROOM CHAMBER_1_ROOM_0, VRAM_NT_0
     LOAD_ROOM CHAMBER_1_ROOM_1, VRAM_NT_1
 
@@ -112,11 +113,6 @@ load_chamber_1:
     STA speed_x
     STA speed_x + 1
     STA gravity
-
-    LDA #$07
-    STA OAM_RAM_ADDR + 1
-    LDA #$03
-    STA OAM_RAM_ADDR + 2
 
     CALL respawn
 

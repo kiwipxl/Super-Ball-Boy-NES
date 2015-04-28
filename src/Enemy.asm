@@ -168,7 +168,7 @@ handle_enemy_collision:
 	LDX temp + 3
 
 	DIV8 enemy_pos_x, x, #$00, #$00, coord_x
-    DIV8 enemy_pos_x, x, #$00, #$01, coord_x + 1
+    DIV8 enemy_pos_x, x, #$00, #$04, coord_x + 1
     DIV8 enemy_pos_x, x, #$04, #$00, coord_x + 2
 
     DIV8 enemy_pos_y, x, #$00, #$00, coord_y
@@ -218,8 +218,6 @@ handle_enemy_collision:
 				LDA enemy_VRAM_addr + 1, x
 				STA temp + 1
 				CALL create_tile_animation, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$01, #$00, c_coord_x, c_coord_y, temp, temp + 1
-				
-				RTS
 	heclt0_:
 		
     CALL add_short, downc_pointer + 1, downc_pointer, #$20
@@ -300,7 +298,7 @@ handle_enemy_collision:
 	    	LDX temp + 3
 	    	LDA #$FD
 	        STA enemy_gravity, x
-	        LDA #$00
+	        LDA #$7F
 	        STA enemy_gravity + 1, x
 
 	        CALL check_lr_solids
@@ -369,7 +367,6 @@ handle_slime_AI:
     RTS
 
 check_lr_solids:
-	DEBUG_BRK
 	LDA #$00
     STA temp
     STA temp + 1
