@@ -299,23 +299,37 @@ handle_camera_scroll:
     RTS
 
 handle_room_intersect:
-    IF_NOT_EQU scroll_x_type, #$00, ntransright
-        IF_SIGNED_LT speed_x, #$00, ntransright
-            IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, ntransright
-                SET_POINTER_TO_VAL room_1, current_room, current_room + 1
-                SET_POINTER_TO_VAL VRAM_room_addr_1, current_VRAM_addr, current_VRAM_addr + 1
+    IF_NOT_EQU scroll_x_type, #$00, ntransleft
+        IF_SIGNED_LT speed_x, #$00, ntransrightjmp
+            IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, ntransrightjmp
+                IF_UNSIGNED_GT scroll_y_type, #$02, hrigtsylt_
+                    SET_POINTER_TO_VAL room_3, current_room, current_room + 1
+                    SET_POINTER_TO_VAL VRAM_room_addr_3, current_VRAM_addr, current_VRAM_addr + 1
+                    JMP hrigtsltei_
+                hrigtsylt_:
+                    SET_POINTER_TO_VAL room_1, current_room, current_room + 1
+                    SET_POINTER_TO_VAL VRAM_room_addr_1, current_VRAM_addr, current_VRAM_addr + 1
+                hrigtsltei_:
 
                 LDA #$FB
                 STA pos_x
 
                 LDA #$00
                 STA scroll_x_type
-                JMP ntransright
+
+                ntransrightjmp:
+                    JMP ntransright
     ntransleft:
         IF_SIGNED_GT speed_x, #$00, ntransright
             IF_UNSIGNED_GT_OR_EQU pos_x, #$FB, ntransright
-                SET_POINTER_TO_VAL room_2, current_room, current_room + 1
-                SET_POINTER_TO_VAL VRAM_room_addr_2, current_VRAM_addr, current_VRAM_addr + 1
+                IF_UNSIGNED_GT scroll_y_type, #$02, hrigtsyt_
+                    SET_POINTER_TO_VAL room_4, current_room, current_room + 1
+                    SET_POINTER_TO_VAL VRAM_room_addr_4, current_VRAM_addr, current_VRAM_addr + 1
+                    JMP hrigtstei_
+                hrigtsyt_:
+                    SET_POINTER_TO_VAL room_2, current_room, current_room + 1
+                    SET_POINTER_TO_VAL VRAM_room_addr_2, current_VRAM_addr, current_VRAM_addr + 1
+                hrigtstei_:
 
                 LDA #$00
                 STA pos_x
@@ -324,29 +338,48 @@ handle_room_intersect:
                 STA scroll_x_type
     ntransright:
 
-    IF_UNSIGNED_GT scroll_y_type, #$02, ntransdown
-        IF_SIGNED_LT gravity, #$00, ntransdown
-            IF_UNSIGNED_GT_OR_EQU pos_y, #$FB, ntransdown
-                SET_POINTER_TO_VAL room_2, current_room, current_room + 1
-                SET_POINTER_TO_VAL VRAM_room_addr_2, current_VRAM_addr, current_VRAM_addr + 1
+    IF_UNSIGNED_GT scroll_y_type, #$02, ntransup
+        IF_SIGNED_LT gravity, #$00, ntransdownjmp
+            IF_UNSIGNED_GT_OR_EQU pos_y, #$FB, ntransdownjmp
+                DEBUG_BRK
+                LDY #$00
 
-                LDA #$EF
+                IF_EQU scroll_x_type, #$00, hrigtstue_
+                    SET_POINTER_TO_VAL room_1, current_room, current_room + 1
+                    SET_POINTER_TO_VAL VRAM_room_addr_1, current_VRAM_addr, current_VRAM_addr + 1
+                    JMP hrigtstuei_
+                hrigtstue_:
+                    SET_POINTER_TO_VAL room_2, current_room, current_room + 1
+                    SET_POINTER_TO_VAL VRAM_room_addr_2, current_VRAM_addr, current_VRAM_addr + 1
+                hrigtstuei_:
+
+                LDA #$FB
                 STA pos_y
 
                 LDA #$00
                 STA scroll_y_type
 
-                JMP ntransdown
+                ntransdownjmp:
+                    JMP ntransdown
     ntransup:
         IF_SIGNED_GT gravity, #$00, ntransdown
-            IF_UNSIGNED_GT_OR_EQU pos_y, #$E0, ntransdown
-                SET_POINTER_TO_VAL room_4, current_room, current_room + 1
-                SET_POINTER_TO_VAL VRAM_room_addr_4, current_VRAM_addr, current_VRAM_addr + 1
+            IF_UNSIGNED_GT_OR_EQU pos_y, #$FB, ntransdown
+                DEBUG_BRK
+                LDY #$01
+
+                IF_EQU scroll_x_type, #$00, hrigtstde_
+                    SET_POINTER_TO_VAL room_2, current_room, current_room + 1
+                    SET_POINTER_TO_VAL VRAM_room_addr_2, current_VRAM_addr, current_VRAM_addr + 1
+                    JMP hrigtstdei_
+                hrigtstde_:
+                    SET_POINTER_TO_VAL room_4, current_room, current_room + 1
+                    SET_POINTER_TO_VAL VRAM_room_addr_4, current_VRAM_addr, current_VRAM_addr + 1
+                hrigtstdei_:
 
                 LDA #$00
                 STA pos_y
 
-                LDA #$02
+                LDA #$04
                 STA scroll_y_type
     ntransdown:
     
