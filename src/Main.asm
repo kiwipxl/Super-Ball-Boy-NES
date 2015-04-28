@@ -36,6 +36,8 @@ PALETTE:
 	.incbin "assets/level-palette.pal"
 	.incbin "assets/sprite-palette.pal"
 
+;------------------------------------------------------------------------------------;
+
 	;store function params, return values and temporary values in the first 16 bytes of zero page
     .rsset $0000
 	
@@ -57,6 +59,8 @@ rt_val_4                .rs     1
 
 ;temporary value that can be modified at any time
 temp                    .rs     6
+
+;------------------------------------------------------------------------------------;
 
 	;store game variables in zero page with a 18 byte offset
 	.rsset $0012
@@ -116,6 +120,8 @@ ani_VRAM_pointer 		.rs 	16      ;stores hi + lo byte pointers to a nametable whi
 enemy_room              .rs     16      ;stores hi + lo byte pointers to the room in ROM where the enemy is, 2 bytes per enemy
 enemy_VRAM_addr 	 	.rs 	16      ;stores hi + lo byte pointers to the VRAM nametable address where the enemy is, 2 bytes per enemy
 
+;------------------------------------------------------------------------------------;
+
     ;the following variables are stored in main RAM and not zero page (256 byte offset)
 	.rsset $0100
 
@@ -128,6 +134,8 @@ ani_num_frames 			.rs 	8 	    ;the amount of frames in the current animation, 1 
 ani_active              .rs     8       ;defines whether the animation is currently playing or not, 1 byte per animation
 ani_max:
     .db $08
+
+;------------------------------------------------------------------------------------;
 
 ;enemy struct variables
 enemy_type              .rs     8       ;defines the type of the enemy, 1 byte per enemy
@@ -153,17 +161,36 @@ enemy_len               .rs     1       ;the amount of currently running enemies
 enemy_max:
     .db $08
 
+;------------------------------------------------------------------------------------;
+
+current_state           .rs     1       ;the current state of the game
+
+TITLE_SCREEN_STATE:
+    .db $00
+
+GAME_STATE:
+    .db $01
+
+WIN_STATE
+    .db $02
+
+;------------------------------------------------------------------------------------;
+
 SPRING_ANI:
     ;number of frames
 	.db $0B
     ;tile index frame animation
 	.db $0A, $1A, $2A, $3A, $3A, $3A, $3A, $3A, $2A, $1A, $0A
 
+;------------------------------------------------------------------------------------;
+
 PPU_CTRL_CONFIG:
     .db %10000000                  ;enable NMI calling and set sprite pattern table to $0000 (0)
 
 PPU_MASK_CONFIG:
     .db %00011110                  ;enable sprite rendering
+
+;------------------------------------------------------------------------------------;
 
 	.include "src/SystemConstants.asm"
     .include "src/SystemMacros.asm"
@@ -172,6 +199,7 @@ PPU_MASK_CONFIG:
 	.include "src/Animation.asm"
     .include "src/Enemy.asm"
     .include "src/Player.asm"
+    .include "src/State.asm"
 
 ;------------------------------------------------------------------------------------;
 
@@ -244,8 +272,10 @@ load_palettes:
         BNE load_palettes_loop      ;keep looping if x is not equal to 32, otherwise continue
 
 init:
-    CALL load_chamber_1
-    CONFIGURE_PPU
+    LDA TITLE_SCREEN_STATE
+    STA current_state
+    
+    CALL create_state
 
 ;------------------------------------------------------------------------------------;
 
@@ -257,13 +287,7 @@ game_loop:
         BEQ vblank_wait_main       ;keep looping if they are equal, otherwise continue if the vblank counter has changed
 
     CALL read_controller
-
-    CALL handle_room_intersect
-    CALL handle_camera_scroll
-
-    CALL update_player
-    CALL update_animations
-    CALL update_enemies
+    CALL update_state
 
     JMP game_loop                   ;jump back to game_loop, infinite loop
 
