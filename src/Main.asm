@@ -169,6 +169,10 @@ enemy_temp_4            .rs     8       ;temp4 variable used to save memory on e
 enemy_len               .rs     1       ;the amount of currently running enemies
 enemy_max               .db     $08
 
+reg_a                   .db     $00
+reg_x                   .db     $00
+reg_y                   .db     $00
+
 ;------------------------------------------------------------------------------------;
 
 current_state           .rs     1       ;the current state of the game
@@ -180,6 +184,7 @@ WIN_STATE                   .db     $03
 HALT_STATE                  .db     $04
 NT_LOADING_STATE            .db     $05
 NT_CHAMBER_LOADING_STATE    .db     $06
+
 ;------------------------------------------------------------------------------------;
 
 SPRING_ANI:

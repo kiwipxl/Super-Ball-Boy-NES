@@ -173,36 +173,36 @@ room_loading_complete:
 load_room:
     LDY #$00
     ntr_loop:
-        CPY #$C0
-        BCC lt960
-            CPX #$03
-            BNE lt960
-                LDA [nt_pointer], y     ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
-                JMP ntcmpendif
-        lt960:
-            LDA [nt_pointer], y         ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
-            CMP #$07
-            BNE nt____
-                CALL set_respawn, nt_row_x, nt_row_y
-                LDA #$00
-                JMP ntcmpendif
-            nt____:
-            CMP #$0C
-            BNE ntcmpendif
-                INC enemy_len
-                ;push a, x and y onto the stack to save previous registers
-                TXA
-                PHA
-                TYA
-                PHA
-                CALL create_slime, nt_row_x, nt_row_y
-                ;pull a, x, y from the stack and put them back in their respective registers
-                PLA
-                TAY
-                PLA
-                TAX
-                LDA #$00
-        ntcmpendif:
+        IF_UNSIGNED_GT_OR_EQU row_index, #$03, lrltne_
+            IF_UNSIGNED_GT_OR_EQU #$00, #$C0, lrltne_
+                IF_EQU [nt_pointer], y, #$07, lrnsr_
+                    CALL set_respawn, nt_row_x, nt_row_y
+                    LDA #$00
+                    JMP lrltnei_
+                lrnsr_:
+
+                CMP #$0C
+                BNE lrltnei_
+                    INC enemy_len
+
+                    ;push a, x and y onto the stack to save previous registers
+                    TXA
+                    PHA
+                    TYA
+                    PHA
+                    CALL create_slime, nt_row_x, nt_row_y
+
+                    ;pull a, x, y from the stack and put them back in their respective registers
+                    PLA
+                    TAY
+                    PLA
+                    TAX
+                    LDA #$00
+
+                    JMP lrltnei_
+        lrltne_:
+            LDA [nt_pointer], y     ;get the value pointed to by current_room_lo + current_room_hi + y counter offset
+        lrltnei_:
 
         STA PPU_DATA                ;write byte to the PPU nametable address
         INY                         ;add by 1 to move to the next byte

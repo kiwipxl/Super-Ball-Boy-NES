@@ -283,8 +283,7 @@ SET_POINTER_TO_VAL .macro
 ;input - (val_1, val_2, else_label)
 IF_EQU .macro
     ;successful if val_1 = val_2
-    LDA \1
-    CMP \2
+    LOAD_AND_COMPARE_IF \1, \2
     BNE \3
 
     .endm
@@ -293,8 +292,7 @@ IF_EQU .macro
 ;input - (val_1, val_2, else_label)
 IF_NOT_EQU .macro
     ;successful if val_1 != val_2
-    LDA \1
-    CMP \2
+    LOAD_AND_COMPARE_IF \1, \2
     BEQ \3
 
     .endm
@@ -303,8 +301,7 @@ IF_NOT_EQU .macro
 ;input - (val_1, val_2, else_label)
 IF_SIGNED_GT .macro
     ;successful if val_1 > val_2
-    LDA \1
-    CMP \2
+    LOAD_AND_COMPARE_IF \1, \2
     BEQ \3              ;fail if val_1 = val_2
     BMI \3              ;fail if val_1 < val_2
 
@@ -314,8 +311,7 @@ IF_SIGNED_GT .macro
 ;input - (val_1, val_2, else_label)
 IF_SIGNED_GT_OR_EQU .macro
     ;successful if val_1 >= val_2
-    LDA \1
-    CMP \2
+    LOAD_AND_COMPARE_IF \1, \2
     BEQ .success\@      ;success if val_1 = val_2
     BMI \3              ;fail if val_1 <= val_2
     .success\@:
@@ -326,8 +322,7 @@ IF_SIGNED_GT_OR_EQU .macro
 ;input - (val_1, val_2, else_label)
 IF_UNSIGNED_GT .macro
     ;successful if val_1 > val_2
-    LDA \1
-    CMP \2              ;sets carry flag if val_1 >= val_2
+    LOAD_AND_COMPARE_IF \1, \2
     BEQ \3              ;fail if val_1 = val_2
     BCC \3              ;fail if no carry flag set
 
@@ -337,8 +332,7 @@ IF_UNSIGNED_GT .macro
 ;input - (val_1, val_2, else_label)
 IF_UNSIGNED_GT_OR_EQU .macro
     ;successful if val_1 >= val_2
-    LDA \1
-    CMP \2              ;sets carry flag if val_1 >= val_2
+    LOAD_AND_COMPARE_IF \1, \2
     BEQ .success\@      ;success if val_1 = val_2
     BCC \3              ;fail if no carry flag set
     .success\@:
@@ -349,8 +343,7 @@ IF_UNSIGNED_GT_OR_EQU .macro
 ;input - (val_1, val_2, else_label)
 IF_SIGNED_LT .macro
     ;successful if val_1 < val_2
-    LDA \1
-    CMP \2
+    LOAD_AND_COMPARE_IF \1, \2
     BPL \3              ;fail if val_1 >= val_2
 
     .endm
@@ -359,8 +352,7 @@ IF_SIGNED_LT .macro
 ;input - (val_1, val_2, else_label)
 IF_SIGNED_LT_OR_EQU .macro
     ;successful if val_1 <= val_2
-    LDA \1
-    CMP \2
+    LOAD_AND_COMPARE_IF \1, \2
     BEQ .success\@      ;success if val_1 = val_2
     BPL \3              ;fail if val_1 >= val_2
     .success\@:
@@ -371,7 +363,7 @@ IF_SIGNED_LT_OR_EQU .macro
 ;input - (val_1, val_2, else_label)
 IF_UNSIGNED_LT .macro
     ;successful if val_1 < val_2
-    LDA \1
+    LOAD_AND_COMPARE_IF \1, \2
     CMP \2              ;sets carry flag if val_1 >= val_2
     BCS \3              ;fail if carry flag set
 
@@ -381,11 +373,52 @@ IF_UNSIGNED_LT .macro
 ;input - (val_1, val_2, else_label)
 IF_UNSIGNED_LT_OR_EQU .macro
     ;successful if val_1 <= val_2
-    LDA \1
-    CMP \2              ;sets carry flag if val_1 >= val_2
+    LOAD_AND_COMPARE_IF \1, \2
     BEQ .success\@      ;success if val_1 = val_2
     BCS \3              ;fail if carry flag set
     .success\@:
+
+    .endm
+
+LOAD_AND_COMPARE_IF .macro
+    .IF \?1 = 6
+        .IF \1 = reg_x
+            TXA
+        .ENDIF
+        .IF \1 = reg_y
+            TYA
+        .ENDIF
+
+        .IF \1 != reg_x
+            .IF \1 != reg_y
+                LDA \1
+            .ENDIF
+        .ENDIF
+    .ELSE
+        LDA \1
+    .ENDIF
+
+    .IF \?2 = 6
+        .IF \2 = reg_a
+            CMP a
+        .ENDIF
+        .IF \2 = reg_x
+            CMP x
+        .ENDIF
+        .IF \2 = reg_y
+            CMP y
+        .ENDIF
+
+        .IF \2 != reg_a
+            .IF \2 != reg_x
+                .IF \2 != reg_y
+                    CMP \2
+                .ENDIF
+            .ENDIF
+        .ENDIF
+    .ELSE
+        CMP \2
+    .ENDIF
 
     .endm
 
