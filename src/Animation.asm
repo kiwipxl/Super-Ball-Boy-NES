@@ -207,57 +207,35 @@ change_palette_value:
 
     LDX temp + 2
 
-    IF_EQU ani_palette_index, x, #$00, cpvapine0_
-    	LDA ani_palette_index, x
-	    ASL a
-	    ASL a
-	    ASL a
-	    ASL a
-	    ASL a
-	    ASL a
-	    STA temp + 4
-
-    	JMP ralrtdeil_
-    cpvapine0_:
-
-    IF_EQU ani_palette_index, x, #$01, cpvapine1_
-    	LDA ani_palette_index, x
-	    ASL a
-	    ASL a
-	    STA temp + 4
-
-    	JMP ralrtdeil_
-    cpvapine1_:
-
-    IF_EQU ani_palette_index, x, #$02, cpvapine2_
-    	LDA ani_palette_index, x
-	    ASL a
-	    ASL a
-	    ASL a
-	    ASL a
-	    STA temp + 4
-
-    	JMP ralrtdeil_
-    cpvapine2_:
-
-    IF_EQU ani_palette_index, x, #$03, ralrtdei_
-    	LDA ani_palette_index, x
-	    STA temp + 4
-    ralrtdeil_:
-
     LDA ani_tile_x, x
+    LSR a
     AND #$01
     BEQ raright_
     	LDA ani_tile_y, x
+    	LSR a
     	AND #$01
-        BEQ ratopright_ 		;bottom right
+    	BEQ ratopright_ 		;bottom right
+        	LDA ani_palette_index, x
+        	ASL a
+        	ASL a
+        	ASL a
+        	ASL a
+        	ASL a
+        	ASL a
+        	STA temp + 4
+
+        	DEBUG_BRK
         	LDA PPU_DATA
         	STA temp
-        	AND #$80
-        	
+        	AND #$C0
+
         	JMP ralrtdei_
         ratopright_: 			;top right
-		    DEBUG_BRK
+        	LDA ani_palette_index, x
+        	ASL a
+        	ASL a
+        	STA temp + 4
+
         	LDA PPU_DATA
         	STA temp
         	AND #$0C
@@ -265,15 +243,27 @@ change_palette_value:
         	JMP ralrtdei_
     raright_:
         LDA ani_tile_y, x
+        LSR a
         AND #$01
         BEQ ratopleft_ 			;bottom left
+        	LDA ani_palette_index, x
+        	ASL a
+        	ASL a
+        	ASL a
+        	ASL a
+        	STA temp + 4
+
         	LDA PPU_DATA
         	STA temp
         	AND #$30
 
         	JMP ralrtdei_
         ratopleft_: 			;top left
+        	LDA ani_palette_index, x
+        	STA temp + 4
+
         	LDA PPU_DATA
+        	STA temp
         	AND #$03
     ralrtdei_:
 
@@ -286,6 +276,7 @@ change_palette_value:
     ADC temp + 4
     STA temp
 
+    DEBUG_BRK
     LDX temp + 2
     IF_EQU ani_palette_change_due, x, #$00, arl2_
 	    LDX temp + 3
