@@ -115,18 +115,22 @@ handle_player_collision:
 
     IF_UNSIGNED_LT pos_y, #$FB, hpcdownendif_
         CALL check_collide_down
+        IF_NOT_EQU c_coord_y, #$1E, hpcdownendif_
         LDA rt_val_1
-        IS_SOLID_TILE hpcdownendif_
-            IF_SIGNED_GT_OR_EQU gravity, #$00, hpcdownendif_
-                MUL8 c_coord_y
-                CLC
-                ADC #$03
-                STA pos_y
+            IS_SOLID_TILE hpcdownendif_
+                IF_SIGNED_GT_OR_EQU gravity, #$00, hpcdownendif_
+                    DEBUG_BRK
+                    LDA c_coord_y
 
-                LDA #$FC
-                STA gravity
-                LDA #$7F
-                STA gravity + 1
+                    MUL8 c_coord_y
+                    CLC
+                    ADC #$03
+                    STA pos_y
+
+                    LDA #$FC
+                    STA gravity
+                    LDA #$7F
+                    STA gravity + 1
     hpcdownendif_:
 
     IF_UNSIGNED_GT pos_y, #$04, hpcupendif_

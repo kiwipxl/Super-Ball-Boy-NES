@@ -115,8 +115,8 @@ update_enemies:
 		CALL handle_enemy_movement
 	    CALL handle_enemy_collision
 	    CALL handle_enemy_AI
-		CALL handle_enemy_scroll_x
-		
+		CALL handle_enemy_scroll
+
 		JMP eul_
 	eule_:
 
@@ -428,19 +428,48 @@ check_lr_solids:
 handle_bat_AI:
 	RTS
 
-handle_enemy_scroll_x:
+handle_enemy_scroll:
 	LDX temp + 3
-	IF_EQU room_1, enemy_room, x, hesxei_
-		IF_UNSIGNED_LT_OR_EQU scroll_x, enemy_pos_x, x, hesxhe_
-		JMP hesxns_
-	hesxei_:
-		IF_UNSIGNED_GT_OR_EQU scroll_x, enemy_pos_x, x, hesxhe_
-	hesxns_:
+	IF_EQU room_1, enemy_room, x, hesxnse1_
+		IF_UNSIGNED_LT_OR_EQU scroll_x, enemy_pos_x, x, heshejmp_
+		IF_UNSIGNED_LT_OR_EQU scroll_y, enemy_pos_y, x, heshejmp_
+		LDA #$00
+		STA temp + 1
+		JMP hesheskip_
+	hesxnse1_:
+
+	IF_EQU room_2, enemy_room, x, hesxnse2_
+		IF_UNSIGNED_GT_OR_EQU scroll_x, enemy_pos_x, x, heshejmp_
+		IF_UNSIGNED_LT_OR_EQU scroll_y, enemy_pos_y, x, heshejmp_
+		LDA #$00
+		STA temp + 1
+		JMP hesheskip_
+	hesxnse2_:
+
+	IF_EQU room_3, enemy_room, x, hesxnse3_
+		IF_UNSIGNED_LT_OR_EQU scroll_x, enemy_pos_x, x, heshejmp_
+		IF_UNSIGNED_GT_OR_EQU scroll_y, enemy_pos_y, x, heshejmp_
+		LDA #$10
+		STA temp + 1
+		JMP hesheskip_
+	hesxnse3_:
+
+	IF_EQU room_4, enemy_room, x, hesxnse4_
+		IF_UNSIGNED_GT_OR_EQU scroll_x, enemy_pos_x, x, heshejmp_
+		IF_UNSIGNED_GT_OR_EQU scroll_y, enemy_pos_y, x, heshejmp_
+		LDA #$10
+		STA temp + 1
+		JMP hesheskip_
+	hesxnse4_:
+
+	heshejmp_:
+		JMP heshe_
+	hesheskip_:
 
 	LDX temp + 3
 	LDA enemy_pos_y, x
-	SEC
-	SBC #$01
+	SBC scroll_y
+	SBC temp + 1
 	LDX temp + 4
 	STA OAM_RAM_ADDR + 4, x
 
@@ -454,7 +483,7 @@ handle_enemy_scroll_x:
 	LDX temp + 2
 	RTS
 	
-	hesxhe_:
+	heshe_:
 		LDX temp + 4
 		LDA #$FF
 		STA OAM_RAM_ADDR + 4, x
@@ -462,4 +491,3 @@ handle_enemy_scroll_x:
 		STA OAM_RAM_ADDR + 7, x
 		LDX temp + 2
 		RTS
-		
