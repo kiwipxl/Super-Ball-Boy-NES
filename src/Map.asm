@@ -100,7 +100,15 @@ SET_ROOM_POINTERS .macro
 load_chamber_1:
     CALL init_chamber
 
-    SET_ROOM_POINTERS CHAMBER_1_ROOM_0, CHAMBER_1_ROOM_1, CHAMBER_1_ROOM_2, CHAMBER_1_ROOM_3
+    SET_ROOM_POINTERS EMPTY_ROOM, EMPTY_ROOM, CHAMBER_1_ROOM_0, CHAMBER_1_ROOM_1
+    CALL load_next_room
+
+    RTS
+
+load_chamber_2:
+    CALL init_chamber
+
+    SET_ROOM_POINTERS CHAMBER_1_ROOM_2, EMPTY_ROOM, EMPTY_ROOM, CHAMBER_1_ROOM_3
     CALL load_next_room
 
     RTS
@@ -126,38 +134,42 @@ load_next_room:
     STA row_index + 1
 
     IF_EQU room_load_id, #$00, lnrne0_
-        LOAD_ROOM room_1, VRAM_room_addr_1
-        LDA #$00
-        STA scroll_x
-        STA scroll_y
-        JMP lnrlns_
+        IF_NOT_EQU room_1, EMPTY_ROOM, lnrne0_
+            LOAD_ROOM room_1, VRAM_room_addr_1
+            LDA #$00
+            STA scroll_x
+            STA scroll_y
+            JMP lnrlns_
     lnrne0_:
 
     IF_EQU room_load_id, #$01, lnrne1_
-        LOAD_ROOM room_2, VRAM_room_addr_2
-        LDA #$FF
-        STA scroll_x
-        LDA #$00
-        STA scroll_y
-        JMP lnrlns_
+        IF_NOT_EQU room_2, EMPTY_ROOM, lnrne1_
+            LOAD_ROOM room_2, VRAM_room_addr_2
+            LDA #$FF
+            STA scroll_x
+            LDA #$00
+            STA scroll_y
+            JMP lnrlns_
     lnrne1_:
 
     IF_EQU room_load_id, #$02, lnrne2_
-        LOAD_ROOM room_3, VRAM_room_addr_3
-        LDA #$00
-        STA scroll_x
-        LDA #$EF
-        STA scroll_y
-        JMP lnrlns_
+        IF_NOT_EQU room_3, EMPTY_ROOM, lnrne2_
+            LOAD_ROOM room_3, VRAM_room_addr_3
+            LDA #$00
+            STA scroll_x
+            LDA #$EF
+            STA scroll_y
+            JMP lnrlns_
     lnrne2_:
 
     IF_EQU room_load_id, #$03, lnrne3_
-        LOAD_ROOM room_4, VRAM_room_addr_4
-        LDA #$FF
-        STA scroll_x
-        LDA #$EF
-        STA scroll_y
-        JMP lnrlns_
+        IF_NOT_EQU room_4, EMPTY_ROOM, lnrne3_
+            LOAD_ROOM room_4, VRAM_room_addr_4
+            LDA #$FF
+            STA scroll_x
+            LDA #$EF
+            STA scroll_y
+            JMP lnrlns_
     lnrne3_:
 
     ;no more rooms to load, so complete the loading process
@@ -282,8 +294,7 @@ load_room:
                     PHA
                     
                     CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
-                    CALL set_animation_attribs, #HIGH(RAZOR_ANI), #LOW(RAZOR_ANI), #$02, #$01, #$02
-                    
+                    CALL set_animation_attribs, #HIGH(RAZOR_ANI), #LOW(RAZOR_ANI), #$02, #$01, #$01
                     ;pull a, x, y from the stack and put them back in their respective registers
                     PLA
                     TAY

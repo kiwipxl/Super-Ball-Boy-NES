@@ -81,8 +81,8 @@ handle_player_collision:
     CALL check_collide_down
     LDA rt_val_1
     BEQ cte0jmp_
-        IF_SIGNED_GT_OR_EQU gravity, #$00, cte0jmp_
-        	IF_SIGNED_GT_OR_EQU gravity, #$00, cte0jmp_
+        IF_SIGNED_GT_OR_EQU gravity, #$00, hpcnsc_
+        	IF_SIGNED_GT_OR_EQU gravity, #$00, hpcnsc_
 	    		LDA rt_val_1
 	            CMP #$0A
 	            BNE hpcnsc_
@@ -96,38 +96,44 @@ handle_player_collision:
 					
 					CALL create_tile_animation, c_coord_x, c_coord_y, current_VRAM_addr, current_VRAM_addr + 1
                     CALL set_animation_attribs, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$01, #$00, #$03
+		hpcnsc_:
+		LDA rt_val_1
+        CMP #$0B
+        BNE hpcreie_
+            CALL respawn
 
-				hpcnsc_:
-				LDA rt_val_1
-	            CMP #$0B
-	            BNE hpcreie_
-	                CALL respawn
+            RTS
+        hpcreie_:
+        LDA rt_val_1
+        CMP #$40
+        BNE hpcrei_
+            CALL respawn
 
-                    RTS
-                hpcreie_:
-                LDA rt_val_1
-                CMP #$40
-                BNE hpcrei_
-                    CALL respawn
-                    
-                    RTS
-                ;halfway point jmp because page boundary is too large otherwise
-                cte0jmp_:
-                    JMP cte0_
-	            hpcrei_:
+            RTS
+        ;halfway point jmp because page boundary is too large otherwise
+        cte0jmp_:
+            JMP cte0_
+        hpcrei_:
 
-                LDA rt_val_1
-                CMP #$12
-                BNE hpcreicp_
-                    IF_EQU player_spawn, c_coord_x, hpcna_
-                        IF_EQU player_spawn + 1, c_coord_y, hpcna_
-                            JMP hpcreicp_
-                    hpcna_:
-                    CALL set_respawn, c_coord_x, c_coord_y
-                    CALL remove_animation_at, c_coord_x, c_coord_y
-                    CALL create_tile_animation, c_coord_x, c_coord_y, current_VRAM_addr, current_VRAM_addr + 1
-                    CALL set_animation_attribs, #HIGH(CHECK_POINT_ANI), #LOW(CHECK_POINT_ANI), #$04, #$01, #$01
-                hpcreicp_:
+        LDA rt_val_1
+        CMP #$1B
+        BNE hpcreil_
+            CALL change_state, GAME_STATE
+            RTS
+        hpcreil_:
+        
+        LDA rt_val_1
+        CMP #$12
+        BNE hpcreicp_
+            IF_EQU player_spawn, c_coord_x, hpcna_
+                IF_EQU player_spawn + 1, c_coord_y, hpcna_
+                    JMP hpcreicp_
+            hpcna_:
+            CALL set_respawn, c_coord_x, c_coord_y
+            CALL remove_animation_at, c_coord_x, c_coord_y
+            CALL create_tile_animation, c_coord_x, c_coord_y, current_VRAM_addr, current_VRAM_addr + 1
+            CALL set_animation_attribs, #HIGH(CHECK_POINT_ANI), #LOW(CHECK_POINT_ANI), #$04, #$01, #$01
+        hpcreicp_:
     cte0_:
 
     DIV8 pos_y, #$04, #$00, coord_y + 1

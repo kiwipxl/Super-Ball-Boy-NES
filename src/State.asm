@@ -15,8 +15,29 @@ create_state:
 	ncstss_:
 
 	IF_EQU current_state, GAME_STATE, ncsgs_
-		CALL load_chamber_1
-		
+		LDX #$00
+	    coaml_:
+	        LDA #$FF
+	        STA OAM_RAM_ADDR, x             ;set OAM (object attribute memory) in RAM to #$FF so that sprites are off-screen
+
+	        INX                             ;increase x by 1
+	        CPX #$00                        ;check if x has overflowed into 0
+	        BNE coaml_                      ;continue clearing memory if x is not equal to 0
+
+		IF_EQU current_chamber, #$00, cscc0_
+			CALL load_chamber_1
+		cscc0_:
+		IF_EQU current_chamber, #$01, cscc1_
+			CALL load_chamber_2
+		cscc1_:
+		IF_EQU current_chamber, #$02, cscc2_
+			CALL change_state, TITLE_SCREEN_STATE
+			LDA #$FF
+			STA current_chamber
+		cscc2_:
+
+		INC current_chamber
+
 		RTS
 	ncsgs_:
 
