@@ -16,7 +16,7 @@ create_state:
 
 	IF_EQU current_state, GAME_STATE, ncsgs_
 		CALL load_chamber_1
-
+		
 		RTS
 	ncsgs_:
 
@@ -50,7 +50,7 @@ update_state:
 
 	    CALL update_animations
 	    CALL update_enemies
-	    
+
 	    RTS
 	nusgs_:
 
@@ -94,7 +94,8 @@ update_render_state:
 	nursntcls_:
 
 	IF_EQU current_state, GAME_STATE, nursgs_
-		CALL render_animations
+	    CALL render_animations
+
 		RTS
 	nursgs_:
 

@@ -92,7 +92,7 @@ set_animation_attribs:
 	STA ani_frame_counter, x
 	STA ani_current_frame, x
 
-	LDA #$01
+	LDA #$02
     STA ani_palette_change_due, x
 
 	;----------
@@ -191,12 +191,11 @@ render_animations:
         STA PPU_DATA
 
         IF_NOT_EQU ani_palette_change_due, x, #$00, arl_
+        	DEC ani_palette_change_due, x
 	        CALL change_palette_value
 	        LDX temp + 2
-	        LDA #$00
-	        STA ani_palette_change_due, x
 
-        	JMP arl_
+    		JMP arl_
     arle_:
     CONFIGURE_PPU
 
@@ -208,70 +207,92 @@ change_palette_value:
 
     LDX temp + 2
 
+    IF_EQU ani_palette_index, x, #$00, cpvapine0_
+    	LDA ani_palette_index, x
+	    ASL a
+	    ASL a
+	    ASL a
+	    ASL a
+	    ASL a
+	    ASL a
+	    STA temp + 4
+
+    	JMP ralrtdeil_
+    cpvapine0_:
+
+    IF_EQU ani_palette_index, x, #$01, cpvapine1_
+    	LDA ani_palette_index, x
+	    ASL a
+	    ASL a
+	    STA temp + 4
+
+    	JMP ralrtdeil_
+    cpvapine1_:
+
+    IF_EQU ani_palette_index, x, #$02, cpvapine2_
+    	LDA ani_palette_index, x
+	    ASL a
+	    ASL a
+	    ASL a
+	    ASL a
+	    STA temp + 4
+
+    	JMP ralrtdeil_
+    cpvapine2_:
+
+    IF_EQU ani_palette_index, x, #$03, ralrtdei_
+    	LDA ani_palette_index, x
+	    STA temp + 4
+    ralrtdeil_:
+
     LDA ani_tile_x, x
     AND #$01
     BEQ raright_
     	LDA ani_tile_y, x
     	AND #$01
         BEQ ratopright_ 		;bottom right
-        	LDA ani_palette_index, x
-		    ASL a
-		    ASL a
-		    ASL a
-		    ASL a
-		    ASL a
-		    ASL a
-		    STA temp
-
         	LDA PPU_DATA
-        	SEC
-        	SBC #$80
-
+        	STA temp
+        	AND #$80
+        	
         	JMP ralrtdei_
         ratopright_: 			;top right
-        	LDA ani_palette_index, x
-		    ASL a
-		    ASL a
-		    STA temp
-
+		    DEBUG_BRK
         	LDA PPU_DATA
-        	SEC
-        	SBC #$0C
+        	STA temp
+        	AND #$0C
 
         	JMP ralrtdei_
     raright_:
         LDA ani_tile_y, x
         AND #$01
         BEQ ratopleft_ 			;bottom left
-        	LDA ani_palette_index, x
-		    ASL a
-		    ASL a
-		    ASL a
-		    ASL a
-		    STA temp
-
         	LDA PPU_DATA
-        	SEC
-        	SBC #$30
+        	STA temp
+        	AND #$30
 
         	JMP ralrtdei_
         ratopleft_: 			;top left
-        	LDA ani_palette_index, x
-		    STA temp
-
         	LDA PPU_DATA
-
-        	JMP ralrtdei_
+        	AND #$03
     ralrtdei_:
 
+    STA temp + 1
+	LDA temp
+	SEC
+	SBC temp + 1
+
     CLC
-    ADC temp
+    ADC temp + 4
     STA temp
 
-    LDX temp + 3
-    SET_POINTER ani_palette_pointer, x, ani_palette_pointer + 1, x, PPU_ADDR, PPU_ADDR
-    LDA temp
-    STA PPU_DATA
+    LDX temp + 2
+    IF_EQU ani_palette_change_due, x, #$00, arl2_
+	    LDX temp + 3
+	    SET_POINTER ani_palette_pointer, x, ani_palette_pointer + 1, x, PPU_ADDR, PPU_ADDR
+	    LDA temp
+	    STA PPU_DATA
+	arl2_:
 
     RTS
 
