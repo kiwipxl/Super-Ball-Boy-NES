@@ -31,10 +31,13 @@ create_state:
 			CALL load_chamber_2
 		cscc1_:
 		IF_EQU current_chamber, #$02, cscc2_
+			CALL load_chamber_3
+		cscc2_:
+		IF_EQU current_chamber, #$03, cscc3_
 			CALL change_state, TITLE_SCREEN_STATE
 			LDA #$FF
 			STA current_chamber
-		cscc2_:
+		cscc3_:
 
 		INC current_chamber
 
@@ -60,6 +63,7 @@ update_state:
 		ANY_BUTTON_DOWN usnabd_
 			CALL change_state, GAME_STATE
 		usnabd_:
+
 		RTS
 	nustss_:
 
@@ -72,6 +76,10 @@ update_state:
 	    CALL update_animations
 	    CALL update_enemies
 
+	    SELECT_BUTTON_DOWN usnsbd_
+			CALL change_state, GAME_STATE
+		usnsbd_:
+		
 	    RTS
 	nusgs_:
 

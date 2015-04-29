@@ -4,11 +4,11 @@
     .inesmir 9   ;background mirroring
 
 ;------------------------------------------------------------------------------------;
-    
-    .CODE
+
+    .DATA
     .bank 3                           ;uses the fourth bank, which is a 8kb ROM memory region
     .org $8000                        ;places graphics tiles at the beginning of ROM (8000 - a000, offset: 0kb)
-	
+
 ;------------------------------------------------------------------------------------;
     
     .DATA
@@ -29,18 +29,21 @@
 
     .org $e000                        ;place all program code at the third quarter of ROM (e000 - fffa, offset: 24kb)
 
-CHAMBER_1:
-    CHAMBER_1_ROOM_0:
-    	.incbin "assets/level-1/chamber1_room1.nam"
-    CHAMBER_1_ROOM_1:
-    	.incbin "assets/level-1/chamber1_room2.nam"
-    CHAMBER_1_ROOM_2:
-        .incbin "assets/level-1/chamber1_room3.nam"
-    CHAMBER_1_ROOM_3:
-        .incbin "assets/level-1/chamber1_room4.nam"
+CHAMBER_1_ROOM_0:
+	.incbin "assets/chambers/chamber1_room1.nam"
+CHAMBER_1_ROOM_1:
+	.incbin "assets/chambers/chamber1_room2.nam"
 
+CHAMBER_2_ROOM_0:
+    .incbin "assets/chambers/chamber2_room1.nam"
+CHAMBER_2_ROOM_1:
+    .incbin "assets/chambers/chamber2_room2.nam"
+
+CHAMBER_3_ROOM_0:
+    .incbin "assets/chambers/chamber3_room1.nam"
+    
 EMPTY_ROOM:
-    .incbin "assets/level-1/empty_room.nam"
+    .incbin "assets/chambers/empty_room.nam"
 
 TITLE_SCREEN_NT:
     .incbin "assets/titlescreen.nam"

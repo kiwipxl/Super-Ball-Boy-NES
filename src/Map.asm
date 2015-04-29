@@ -108,7 +108,15 @@ load_chamber_1:
 load_chamber_2:
     CALL init_chamber
 
-    SET_ROOM_POINTERS CHAMBER_1_ROOM_2, EMPTY_ROOM, EMPTY_ROOM, CHAMBER_1_ROOM_3
+    SET_ROOM_POINTERS CHAMBER_2_ROOM_0, EMPTY_ROOM, CHAMBER_2_ROOM_1, EMPTY_ROOM
+    CALL load_next_room
+
+    RTS
+
+load_chamber_3:
+    CALL init_chamber
+
+    SET_ROOM_POINTERS CHAMBER_3_ROOM_0, EMPTY_ROOM, EMPTY_ROOM, EMPTY_ROOM
     CALL load_next_room
 
     RTS
@@ -134,42 +142,38 @@ load_next_room:
     STA row_index + 1
 
     IF_EQU room_load_id, #$00, lnrne0_
-        IF_NOT_EQU room_1, EMPTY_ROOM, lnrne0_
-            LOAD_ROOM room_1, VRAM_room_addr_1
-            LDA #$00
-            STA scroll_x
-            STA scroll_y
-            JMP lnrlns_
+        LOAD_ROOM room_1, VRAM_room_addr_1
+        LDA #$00
+        STA scroll_x
+        STA scroll_y
+        JMP lnrlns_
     lnrne0_:
 
     IF_EQU room_load_id, #$01, lnrne1_
-        IF_NOT_EQU room_2, EMPTY_ROOM, lnrne1_
-            LOAD_ROOM room_2, VRAM_room_addr_2
-            LDA #$FF
-            STA scroll_x
-            LDA #$00
-            STA scroll_y
-            JMP lnrlns_
+        LOAD_ROOM room_2, VRAM_room_addr_2
+        LDA #$FF
+        STA scroll_x
+        LDA #$00
+        STA scroll_y
+        JMP lnrlns_
     lnrne1_:
 
     IF_EQU room_load_id, #$02, lnrne2_
-        IF_NOT_EQU room_3, EMPTY_ROOM, lnrne2_
-            LOAD_ROOM room_3, VRAM_room_addr_3
-            LDA #$00
-            STA scroll_x
-            LDA #$EF
-            STA scroll_y
-            JMP lnrlns_
+        LOAD_ROOM room_3, VRAM_room_addr_3
+        LDA #$00
+        STA scroll_x
+        LDA #$EF
+        STA scroll_y
+        JMP lnrlns_
     lnrne2_:
 
     IF_EQU room_load_id, #$03, lnrne3_
-        IF_NOT_EQU room_4, EMPTY_ROOM, lnrne3_
-            LOAD_ROOM room_4, VRAM_room_addr_4
-            LDA #$FF
-            STA scroll_x
-            LDA #$EF
-            STA scroll_y
-            JMP lnrlns_
+        LOAD_ROOM room_4, VRAM_room_addr_4
+        LDA #$FF
+        STA scroll_x
+        LDA #$EF
+        STA scroll_y
+        JMP lnrlns_
     lnrne3_:
 
     ;no more rooms to load, so complete the loading process
@@ -196,6 +200,11 @@ room_loading_complete:
 ;player ball tile - Sets the respawn point, room, ect at this position
 ;slime tile - Creates a slime enemy at this position
 load_room:
+    IF_EQU current_room, #HIGH(EMPTY_ROOM), lrneer_
+        LDA #$04
+        STA row_index
+    lrneer_:
+
     LDY #$00
     ntr_loop:
         IF_UNSIGNED_LT nt_row_y, #$1F, lrltnejmp_
