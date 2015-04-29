@@ -39,6 +39,9 @@ CHAMBER_1:
     CHAMBER_1_ROOM_3:
         .incbin "assets/level-1/chamber1_room4.nam"
 
+EMPTY_ROOM:
+    .incbin "assets/level-1/empty_room.nam"
+
 TITLE_SCREEN_NT:
     .incbin "assets/titlescreen.nam"
 

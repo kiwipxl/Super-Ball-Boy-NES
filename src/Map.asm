@@ -82,7 +82,7 @@ SET_ROOM_POINTERS .macro
         SET_POINTER_TO_ADDR VRAM_NT_2, VRAM_room_addr_3, VRAM_room_addr_3 + 1
     .ELSE
         SET_POINTER #$00, #$00, room_3, room_3 + 1
-        SET_POINTER #$00, #$00, VRAM_room_addr_3, VRAM_room_addr_3, + 1
+        SET_POINTER #$00, #$00, VRAM_room_addr_3, VRAM_room_addr_3 + 1
     .ENDIF
 
     .IF \?4 = 6                 ;if the param 4 is a label, set pointers, otherwise set pointers to #$00
@@ -90,7 +90,7 @@ SET_ROOM_POINTERS .macro
         SET_POINTER_TO_ADDR VRAM_NT_3, VRAM_room_addr_4, VRAM_room_addr_4 + 1
     .ELSE
         SET_POINTER #$00, #$00, room_4, room_4 + 1
-        SET_POINTER #$00, #$00, VRAM_room_addr_4, VRAM_room_addr_4, + 1
+        SET_POINTER #$00, #$00, VRAM_room_addr_4, VRAM_room_addr_4 + 1
     .ENDIF
 
     .endm
@@ -100,7 +100,7 @@ SET_ROOM_POINTERS .macro
 load_chamber_1:
     CALL init_chamber
 
-    SET_ROOM_POINTERS CHAMBER_1_ROOM_0, CHAMBER_1_ROOM_1, CHAMBER_1_ROOM_2, CHAMBER_1_ROOM_3
+    SET_ROOM_POINTERS EMPTY_ROOM, CHAMBER_1_ROOM_1, CHAMBER_1_ROOM_2, CHAMBER_1_ROOM_3
     CALL load_next_room
 
     RTS
