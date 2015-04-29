@@ -13,8 +13,9 @@ init_animations:
 
 	RTS
 
-;creates a tile animation set with specified animation parameters
-;input - (ani_label_hi, ani_label_lo, animation rate, loop (0 or > 0), tile_x, tile_y, VRAM_id_hi, VRAM_id_lo)
+;creates a tile animation set with specified tile parameters
+;you should set animation attribs after calling this function
+;input - (tile_x, tile_y, VRAM_id_hi, VRAM_id_lo)
 create_tile_animation:
 	;loops through all animations to find a non active animation
 	LDX ani_max
@@ -31,7 +32,35 @@ create_tile_animation:
 		RTS
 	aaclfe_:
 
-	STX temp + 2
+	STX ani_last_id
+	LDY #$00
+
+	LDA #$01
+	STA ani_active, x
+
+	CALL mul_short, param_3, param_1, #$20
+	CALL add_short, rt_val_1, rt_val_2, param_2
+
+	LDA ani_last_id
+	ASL a
+	TAX
+
+	LDA rt_val_1
+	STA ani_VRAM_pointer, x
+	LDA rt_val_2
+	STA ani_VRAM_pointer + 1, x
+
+	LDA param_1
+	STA ani_tile_x, x
+	LDA param_2
+	STA ani_tile_y, x
+
+	RTS
+
+;sets animation attribs to the last created animation (this should be called after creation)
+;input - (ani_label_hi, ani_label_lo, animation rate, loop (0 or > 0))
+set_animation_attribs:
+	LDX ani_last_id
 	LDY #$00
 
 	LDA param_3
@@ -50,18 +79,13 @@ create_tile_animation:
 	LDA [temp], y
 	STA ani_num_frames, x
 
-	;----------
-
 	LDA #$00
 	STA ani_frame_counter, x
 	STA ani_current_frame, x
 
-	LDA #$01
-	STA ani_active, x
-
 	;----------
 
-	LDA temp + 2
+	LDA ani_last_id
 	ASL a
 	TAX
 
@@ -72,25 +96,6 @@ create_tile_animation:
 	STA ani_frames + 1, x
 
 	INC ani_frames, x
-
-	;----------
-	
-	CALL mul_short, param_7, param_6, #$20
-	CALL add_short, rt_val_1, rt_val_2, param_5
-
-	LDA temp + 2
-	ASL a
-	TAX
-
-	LDA rt_val_1
-	STA ani_VRAM_pointer, x
-	LDA rt_val_2
-	STA ani_VRAM_pointer + 1, x
-
-	LDA param_5
-	STA ani_tile_x, x
-	LDA param_6
-	STA ani_tile_y, x
 
 	RTS
 

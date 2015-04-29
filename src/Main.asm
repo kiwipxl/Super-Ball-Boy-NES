@@ -157,6 +157,7 @@ ani_num_frames 			.rs 	8 	    ;the amount of frames in the current animation, 1 
 ani_active              .rs     8       ;defines whether the animation is currently playing or not, 1 byte per animation
 ani_tile_x              .rs     8       ;the tile x position where the animation is playing, 1 byte per animation
 ani_tile_y              .rs     8       ;the tile y position where the animation is playing, 1 byte per animation
+ani_last_id             .rs     1       ;the last created animation index
 ani_max                 .db     $08
 
 ;------------------------------------------------------------------------------------;
