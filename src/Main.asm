@@ -210,9 +210,9 @@ SPRING_ANI:
 
 CHECK_POINT_DEACTIVE_ANI:
     ;number of frames
-    .db $04
+    .db $07
     ;tile index frame animation
-    .db $12, $14, $18, $20
+    .db $12, $13, $14, $14, $22, $13, $12
 
 ;------------------------------------------------------------------------------------;
 

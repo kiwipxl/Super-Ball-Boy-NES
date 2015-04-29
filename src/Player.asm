@@ -204,6 +204,12 @@ respawn:
     STA OAM_RAM_ADDR + 3
     STA pos_y
 
+    LDA #$00
+    STA speed_x
+    STA speed_x + 1
+    STA gravity
+    STA gravity + 1
+    
     RTS
 
 set_respawn:
@@ -215,7 +221,7 @@ set_respawn:
 
     SET_POINTER_TO_VAL current_room, respawn_room, respawn_room + 1
     SET_POINTER_TO_VAL current_VRAM_addr, respawn_VRAM_addr, respawn_VRAM_addr + 1
-    
+
     IF_EQU current_VRAM_addr, #HIGH(VRAM_NT_0), srne0_
         LDA #$00
         STA respawn_scroll_x_type
