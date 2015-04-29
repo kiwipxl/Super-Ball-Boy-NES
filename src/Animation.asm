@@ -77,7 +77,7 @@ set_animation_attribs:
 
 	LDA param_5
 	STA ani_palette_index, x
-	
+
 	;----------
 
 	LDA param_1 + 1
@@ -96,6 +96,7 @@ set_animation_attribs:
 
 	LDA ani_last_id
 	ASL a
+	STA temp + 2
 	TAX
 
 	LDA param_1 + 1
@@ -106,6 +107,30 @@ set_animation_attribs:
 
 	INC ani_frames, x
 
+	;----------
+
+	SET_POINTER_TO_ADDR VRAM_ATTRIB_2, temp + 3, temp + 4
+
+	LDX ani_last_id
+
+    LDA ani_tile_x, x
+    LSR a
+    LSR a
+    CLC
+    ADC temp + 4
+    STA temp + 4
+    LDA ani_tile_y, x
+    LSR a
+    LSR a
+    STA temp
+    CALL mul_byte, temp, #$08
+    CLC
+    ADC temp + 4
+    STA temp + 4
+
+    LDX temp + 2
+    SET_POINTER_TO_VAL temp + 3, ani_palette_index, x, ani_palette_index + 1, x
+    
 	RTS
 
 update_animations:
@@ -159,6 +184,32 @@ render_animations:
         LDY ani_current_frame, x
         LDA [temp], y
         STA PPU_DATA
+
+        SET_POINTER_TO_ADDR VRAM_ATTRIB_2, PPU_ADDR, PPU_ADDR
+        DEBUG_BRK
+        LDA PPU_DATA
+        STA temp
+        AND #$80
+        LDA temp
+        AND #$30
+        LDA temp
+        AND #$0C
+
+        DEBUG_BRK
+
+        ;tile_x >> 2 = x offset
+        ;tile_y >> 2 * 8 = y offset
+		;tile_x rol 1, carry flag (0) = left, (1) = right
+		;tile_y rol 1, carry flag (0) = top, (1) = down
+
+		;11 >> 2 = 2
+		;16 >> 2 = 4
+		;right
+		;top
+
+        ;palette_index >> 6
+        ;store in temp
+        ;if tile topright for example, then subtract by 0c and add temp
 
         JMP arl_
     arle_:

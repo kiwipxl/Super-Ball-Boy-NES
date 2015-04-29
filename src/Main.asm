@@ -148,6 +148,7 @@ respawn_scroll_y_type   .rs     1
 ;animation pointer variables
 ani_frames 				.rs 	16      ;stores hi + lo byte pointers to pre-built animation frames, 2 bytes per animation
 ani_VRAM_pointer 		.rs 	16      ;stores hi + lo byte pointers to a nametable which tile animations will use, 2 bytes per animation
+ani_palette_pointer     .rs     16
 
 ;enemy pointer variables
 enemy_room              .rs     16      ;stores hi + lo byte pointers to the room in ROM where the enemy is, 2 bytes per enemy
