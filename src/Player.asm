@@ -104,6 +104,12 @@ handle_player_collision:
 
                     RTS
 	            hpcrei_:
+
+                LDA rt_val_1
+                CMP #$12
+                BNE hpcreicp_
+                    CALL set_respawn, c_coord_x, c_coord_y
+                hpcreicp_:
     cte0_:
 
     DIV8 pos_y, #$04, #$00, coord_y + 1
@@ -119,9 +125,6 @@ handle_player_collision:
         LDA rt_val_1
             IS_SOLID_TILE hpcdownendif_
                 IF_SIGNED_GT_OR_EQU gravity, #$00, hpcdownendif_
-                    DEBUG_BRK
-                    LDA c_coord_y
-
                     MUL8 c_coord_y
                     CLC
                     ADC #$03
@@ -206,40 +209,34 @@ respawn:
 set_respawn:
     LDA param_1
     STA player_spawn
-    DIV8 param_1
-    STA OAM_RAM_ADDR + 3
-    STA pos_x
-    
+
     LDA param_2
     STA player_spawn + 1
-    DIV8 param_2
-    STA OAM_RAM_ADDR + 3
-    STA pos_y
 
-    SET_POINTER_TO_VAL current_room, respawn_room + 1, respawn_room
-    SET_POINTER_TO_VAL current_VRAM_addr, respawn_VRAM_addr + 1, respawn_VRAM_addr
-
-    IF_EQU current_VRAM_addr + 1, #HIGH(VRAM_NT_0), srne0_
+    SET_POINTER_TO_VAL current_room, respawn_room, respawn_room + 1
+    SET_POINTER_TO_VAL current_VRAM_addr, respawn_VRAM_addr, respawn_VRAM_addr + 1
+    
+    IF_EQU current_VRAM_addr, #HIGH(VRAM_NT_0), srne0_
         LDA #$00
         STA respawn_scroll_x_type
         STA respawn_scroll_y_type
     srne0_:
 
-    IF_EQU current_VRAM_addr + 1, #HIGH(VRAM_NT_1), srne1_
+    IF_EQU current_VRAM_addr, #HIGH(VRAM_NT_1), srne1_
         LDA #$01
         STA respawn_scroll_x_type
         LDA #$00
         STA respawn_scroll_y_type
     srne1_:
 
-    IF_EQU current_VRAM_addr + 1, #HIGH(VRAM_NT_2), srne2_
+    IF_EQU current_VRAM_addr, #HIGH(VRAM_NT_2), srne2_
         LDA #$00
         STA respawn_scroll_x_type
         LDA #$01
         STA respawn_scroll_y_type
     srne2_:
 
-    IF_EQU current_VRAM_addr + 1, #HIGH(VRAM_NT_3), srne3_
+    IF_EQU current_VRAM_addr, #HIGH(VRAM_NT_3), srne3_
         LDA #$01
         STA respawn_scroll_x_type
         LDA #$01
@@ -368,12 +365,7 @@ handle_room_intersect:
                 LDA #$01
                 STA scroll_x_type
     ntransright:
-
-    DEBUG_BRK
-    LDA pos_y
-    LDA scroll_y_type
-    LDA gravity
-
+    
     IF_NOT_EQU scroll_y_type, #$00, ntransup
         IF_SIGNED_LT gravity, #$00, ntransdownjmp
             IF_UNSIGNED_GT_OR_EQU pos_y, #$F7, ntransdownjmp

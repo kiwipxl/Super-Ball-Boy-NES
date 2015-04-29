@@ -5,23 +5,23 @@
 ;input - (nametable_address (including attributes), PPU_nametable_address)
 LOAD_ROOM .macro
     LDA \1
-    STA current_room + 1
+    STA current_room
     STA nt_pointer + 1
 
     LDA \1 + 1
-    STA current_room
+    STA current_room + 1
     STA nt_pointer
 
     LDA \2
     STA PPU_ADDR
     STA VRAM_pointer
-    STA current_VRAM_addr + 1
+    STA current_VRAM_addr
 
     LDA \2 + 1
     STA PPU_ADDR
     STA VRAM_pointer + 1
-    STA current_VRAM_addr
-
+    STA current_VRAM_addr + 1
+    
     LDA #$00
     STA nt_row_x
     STA nt_row_y
