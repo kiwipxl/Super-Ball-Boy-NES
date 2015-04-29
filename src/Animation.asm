@@ -87,6 +87,11 @@ create_tile_animation:
 	LDA rt_val_2
 	STA ani_VRAM_pointer + 1, x
 
+	LDA param_5
+	STA ani_tile_x, x
+	LDA param_6
+	STA ani_tile_y, x
+
 	RTS
 
 update_animations:
@@ -146,3 +151,31 @@ render_animations:
     CONFIGURE_PPU
 
     RTS
+
+remove_animation_at:
+	LDX ani_max
+	BEQ nrale_
+	nral_:
+		DEX
+		BEQ nrale_
+
+		LDA ani_active, x
+		BEQ nral_
+
+		STX temp
+		TXA
+		ASL a
+		TAX
+		IF_EQU ani_tile_x, x, param_1, nraaxyne_
+			IF_EQU ani_tile_y, x, param_2, nraaxyne_
+				LDX temp
+				LDA #$00
+				STA ani_active, x
+		nraaxyne_:
+
+		LDX temp
+
+		JMP nral_
+	nrale_:
+
+	RTS
