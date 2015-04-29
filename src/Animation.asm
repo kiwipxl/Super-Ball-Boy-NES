@@ -195,47 +195,77 @@ render_animations:
     RTS
 
 change_palette_value:
-	SET_POINTER_TO_ADDR VRAM_ATTRIB_2, PPU_ADDR, PPU_ADDR
-    DEBUG_BRK
-    LDA PPU_DATA
-    STA temp
-    AND #$80
-    LDA temp
-    AND #$30
-    LDA temp
-    AND #$0C
+	SET_POINTER_TO_VAL ani_palette_index, PPU_ADDR, PPU_ADDR
+    ;LDA PPU_DATA
+    ;STA temp + 6
 
     DEBUG_BRK
     LDX temp + 2
+
     LDA ani_tile_x, x
     AND #$01
     BEQ raright_
     	LDA ani_tile_y, x
     	AND #$01
         BEQ ratopright_ 		;bottom right
-        	DEBUG_BRK
-        	LDY #$00
+        	LDA ani_palette_index, x
+		    LSR a
+		    LSR a
+		    LSR a
+		    LSR a
+		    LSR a
+		    LSR a
+		    STA temp
+
+        	LDA PPU_DATA
+        	SEC
+        	SBC #$80
 
         	JMP ralrtdei_
         ratopright_: 			;top right
-        	DEBUG_BRK
-        	LDY #$01
+        	LDA ani_palette_index, x
+		    LSR a
+		    LSR a
+		    STA temp
+
+        	LDA PPU_DATA
+        	SEC
+        	SBC #$0C
 
         	JMP ralrtdei_
     raright_:
         LDA ani_tile_y, x
         AND #$01
         BEQ ratopleft_ 			;bottom left
-        	DEBUG_BRK
-        	LDY #$02
+        	LDA ani_palette_index, x
+		    LSR a
+		    LSR a
+		    LSR a
+		    LSR a
+		    STA temp
+
+        	LDA PPU_DATA
+        	SEC
+        	SBC #$30
 
         	JMP ralrtdei_
         ratopleft_: 			;top left
-        	DEBUG_BRK
-        	LDY #$04
+        	LDA ani_palette_index, x
+		    STA temp
+
+        	LDA PPU_DATA
 
         	JMP ralrtdei_
     ralrtdei_:
+
+    DEBUG_BRK
+    CLC
+    ADC temp
+    STA temp
+
+    SET_POINTER_TO_VAL ani_palette_index, PPU_ADDR, PPU_ADDR
+    LDA temp
+    STA PPU_DATA
 
     ;tile_x >> 2 = x offset
     ;tile_y >> 2 * 8 = y offset
