@@ -80,9 +80,9 @@ handle_player_collision:
 
     CALL check_collide_down
     LDA rt_val_1
-    BEQ cte0_
-        IF_SIGNED_GT_OR_EQU gravity, #$00, cte0_
-        	IF_SIGNED_GT_OR_EQU gravity, #$00, cte0_
+    BEQ cte0jmp_
+        IF_SIGNED_GT_OR_EQU gravity, #$00, cte0jmp_
+        	IF_SIGNED_GT_OR_EQU gravity, #$00, cte0jmp_
 	    		LDA rt_val_1
 	            CMP #$0A
 	            BNE hpcnsc_
@@ -103,12 +103,21 @@ handle_player_collision:
 	                CALL respawn
 
                     RTS
+                ;halfway point jmp because page boundary is too large otherwise
+                cte0jmp_:
+                    JMP cte0_
 	            hpcrei_:
 
                 LDA rt_val_1
                 CMP #$12
                 BNE hpcreicp_
+                    IF_EQU player_spawn, c_coord_x, hpcna_
+                        IF_EQU player_spawn + 1, c_coord_y, hpcna_
+                            JMP hpcreicp_
+                    hpcna_:
                     CALL set_respawn, c_coord_x, c_coord_y
+                    CALL remove_animation_at, c_coord_x, c_coord_y
+                    CALL create_tile_animation, #HIGH(CHECK_POINT_DEACTIVE_ANI), #LOW(CHECK_POINT_DEACTIVE_ANI), #$04, #$01, c_coord_x, c_coord_y, current_VRAM_addr, current_VRAM_addr + 1
                 hpcreicp_:
     cte0_:
 
@@ -209,7 +218,7 @@ respawn:
     STA speed_x + 1
     STA gravity
     STA gravity + 1
-    
+
     RTS
 
 set_respawn:
