@@ -130,7 +130,7 @@ set_animation_attribs:
 
     LDX temp + 2
     SET_POINTER_TO_VAL temp + 3, ani_palette_index, x, ani_palette_index + 1, x
-    
+
 	RTS
 
 update_animations:
@@ -175,6 +175,7 @@ render_animations:
         STX temp + 2
         TXA
         ASL a
+        STX temp + 1
         TAX
 
         SET_POINTER ani_VRAM_pointer, x, ani_VRAM_pointer + 1, x, PPU_ADDR, PPU_ADDR
@@ -185,35 +186,70 @@ render_animations:
         LDA [temp], y
         STA PPU_DATA
 
-        SET_POINTER_TO_ADDR VRAM_ATTRIB_2, PPU_ADDR, PPU_ADDR
-        DEBUG_BRK
-        LDA PPU_DATA
-        STA temp
-        AND #$80
-        LDA temp
-        AND #$30
-        LDA temp
-        AND #$0C
-
-        DEBUG_BRK
-
-        ;tile_x >> 2 = x offset
-        ;tile_y >> 2 * 8 = y offset
-		;tile_x rol 1, carry flag (0) = left, (1) = right
-		;tile_y rol 1, carry flag (0) = top, (1) = down
-
-		;11 >> 2 = 2
-		;16 >> 2 = 4
-		;right
-		;top
-
-        ;palette_index >> 6
-        ;store in temp
-        ;if tile topright for example, then subtract by 0c and add temp
+        CALL change_palette_value
 
         JMP arl_
     arle_:
     CONFIGURE_PPU
+
+    RTS
+
+change_palette_value:
+	SET_POINTER_TO_ADDR VRAM_ATTRIB_2, PPU_ADDR, PPU_ADDR
+    DEBUG_BRK
+    LDA PPU_DATA
+    STA temp
+    AND #$80
+    LDA temp
+    AND #$30
+    LDA temp
+    AND #$0C
+
+    DEBUG_BRK
+    LDX temp + 2
+    LDA ani_tile_x, x
+    AND #$01
+    BEQ raright_
+    	LDA ani_tile_y, x
+    	AND #$01
+        BEQ ratopright_ 		;bottom right
+        	DEBUG_BRK
+        	LDY #$00
+
+        	JMP ralrtdei_
+        ratopright_: 			;top right
+        	DEBUG_BRK
+        	LDY #$01
+
+        	JMP ralrtdei_
+    raright_:
+        LDA ani_tile_y, x
+        AND #$01
+        BEQ ratopleft_ 			;bottom left
+        	DEBUG_BRK
+        	LDY #$02
+
+        	JMP ralrtdei_
+        ratopleft_: 			;top left
+        	DEBUG_BRK
+        	LDY #$04
+
+        	JMP ralrtdei_
+    ralrtdei_:
+
+    ;tile_x >> 2 = x offset
+    ;tile_y >> 2 * 8 = y offset
+	;tile_x rol 1, carry flag (0) = left, (1) = right
+	;tile_y rol 1, carry flag (0) = top, (1) = down
+
+	;11 >> 2 = 2
+	;16 >> 2 = 4
+	;right
+	;top
+
+    ;palette_index >> 6
+    ;store in temp
+    ;if tile topright for example, then subtract by 0c and add temp
 
     RTS
 
