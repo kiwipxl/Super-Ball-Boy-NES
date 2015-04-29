@@ -171,8 +171,8 @@ room_loading_complete:
 load_room:
     LDY #$00
     ntr_loop:
-        IF_UNSIGNED_LT nt_row_y, #$1F, lrltne_
-            IF_UNSIGNED_LT nt_row_x, #$1F, lrltne_
+        IF_UNSIGNED_LT nt_row_y, #$1F, lrltnejmp_
+            IF_UNSIGNED_LT nt_row_x, #$1F, lrltnejmp_
                 IF_EQU [nt_pointer], y, #$07, lrnsr_
                     CALL set_respawn, nt_row_x, nt_row_y
                     LDA #$00
@@ -180,7 +180,7 @@ load_room:
                 lrnsr_:
 
                 CMP #$0C
-                BNE lrltnei_
+                BNE lrltneil_
                     INC enemy_len
 
                     ;push a, x and y onto the stack to save previous registers
@@ -188,7 +188,33 @@ load_room:
                     PHA
                     TYA
                     PHA
+
                     CALL create_slime, nt_row_x, nt_row_y
+
+                    ;pull a, x, y from the stack and put them back in their respective registers
+                    PLA
+                    TAY
+                    PLA
+                    TAX
+                    LDA #$00
+
+                    JMP lrltnei_
+                ;used as a mid way point to jump to various places in the loop because it crosses page boundaries
+                lrltnejmp_:
+                    JMP lrltne_
+                ntr_loop_jmp_:
+                    JMP ntr_loop
+                lrltneil_:
+
+                CMP #$12
+                BNE lrltnei_
+                    ;push a, x and y onto the stack to save previous registers
+                    TXA
+                    PHA
+                    TYA
+                    PHA
+
+                    CALL create_tile_animation, #HIGH(CHECK_POINT_DEACTIVE_ANI), #LOW(CHECK_POINT_DEACTIVE_ANI), #$04, #$01, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
 
                     ;pull a, x, y from the stack and put them back in their respective registers
                     PLA
@@ -214,7 +240,7 @@ load_room:
         nrowreset:
 
         CPY NT_MAX_LOAD_TILES        ;check if y is equal to 0 (it has overflowed)
-        BNE ntr_loop                 ;keep looping if y not equal to 0, otherwise continue
+        BNE ntr_loop_jmp_                 ;keep looping if y not equal to 0, otherwise continue
     ntr_loop_end_:
 
     CALL add_short, row_index, row_index + 1, NT_MAX_LOAD_TILES

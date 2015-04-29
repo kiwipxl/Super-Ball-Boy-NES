@@ -208,6 +208,12 @@ SPRING_ANI:
     ;tile index frame animation
 	.db $0A, $1A, $2A, $3A, $3A, $3A, $3A, $3A, $2A, $1A, $0A
 
+CHECK_POINT_DEACTIVE_ANI:
+    ;number of frames
+    .db $04
+    ;tile index frame animation
+    .db $12, $14, $18, $20
+
 ;------------------------------------------------------------------------------------;
 
 PPU_CTRL_CONFIG         .db     %10000000     ;enable NMI calling and set sprite pattern table to $0000 (0)
