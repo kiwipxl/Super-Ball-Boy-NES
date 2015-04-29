@@ -44,7 +44,7 @@ create_tile_animation:
 	STA ani_tile_x, x
 	LDA param_2
 	STA ani_tile_y, x
-	
+
 	CALL_NESTED mul_short, param_3, param_2, #$20
 	CALL_NESTED add_short, rt_val_1, rt_val_2, param_1
 
@@ -60,7 +60,7 @@ create_tile_animation:
 	RTS
 
 ;sets animation attribs to the last created animation (this should be called after creation)
-;input - (ani_label_hi, ani_label_lo, animation rate, loop (0 or > 0))
+;input - (ani_label_hi, ani_label_lo, animation rate, loop (0 or > 0), palette_index)
 set_animation_attribs:
 	LDX ani_last_id
 	CPX #$FF
@@ -75,6 +75,9 @@ set_animation_attribs:
 	LDA param_4
 	STA ani_loop, x
 
+	LDA param_5
+	STA ani_palette_index, x
+	
 	;----------
 
 	LDA param_1 + 1

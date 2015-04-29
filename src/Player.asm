@@ -95,7 +95,7 @@ handle_player_collision:
 	                STA gravity + 1
 					
 					CALL create_tile_animation, c_coord_x, c_coord_y, current_VRAM_addr, current_VRAM_addr + 1
-                    CALL set_animation_attribs, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$01, #$00
+                    CALL set_animation_attribs, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$01, #$00, #$03
 
 				hpcnsc_:
 				LDA rt_val_1
@@ -119,7 +119,7 @@ handle_player_collision:
                     CALL set_respawn, c_coord_x, c_coord_y
                     CALL remove_animation_at, c_coord_x, c_coord_y
                     CALL create_tile_animation, c_coord_x, c_coord_y, current_VRAM_addr, current_VRAM_addr + 1
-                    CALL set_animation_attribs, #HIGH(CHECK_POINT_DEACTIVE_ANI), #LOW(CHECK_POINT_DEACTIVE_ANI), #$04, #$01
+                    CALL set_animation_attribs, #HIGH(CHECK_POINT_DEACTIVE_ANI), #LOW(CHECK_POINT_DEACTIVE_ANI), #$04, #$01, #$01
                 hpcreicp_:
     cte0_:
 

@@ -217,7 +217,7 @@ handle_enemy_collision:
 				LDA enemy_VRAM_addr + 1, x
 				STA temp + 1
 				CALL create_tile_animation, c_coord_x, c_coord_y, temp, temp + 1
-				CALL set_animation_attribs, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$01, #$00
+				CALL set_animation_attribs, #HIGH(SPRING_ANI), #LOW(SPRING_ANI), #$01, #$00, #$03
 	heclt0_:
 		
     CALL add_short, downc_pointer + 1, downc_pointer, #$20

@@ -215,8 +215,8 @@ load_room:
                     PHA
                     
                     CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
-                    CALL set_animation_attribs, #HIGH(CHECK_POINT_DEACTIVE_ANI), #LOW(CHECK_POINT_DEACTIVE_ANI), #$04, #$01
-
+                    CALL set_animation_attribs, #HIGH(CHECK_POINT_DEACTIVE_ANI), #LOW(CHECK_POINT_DEACTIVE_ANI), #$04, #$01, #$02
+                    
                     ;pull a, x, y from the stack and put them back in their respective registers
                     PLA
                     TAY
