@@ -239,6 +239,12 @@ GOAL_ANI:
     ;tile index frame animation
     .db $1B, $2B, $3B, $4B
 
+RAZOR_ANI:
+    ;number of frames
+    .db $07
+    ;tile index frame animation
+    .db $40, $41, $42, $43, $44, $45, $46
+
 ;------------------------------------------------------------------------------------;
 
 PPU_CTRL_CONFIG         .db     %10000000     ;enable NMI calling and set sprite pattern table to $0000 (0)

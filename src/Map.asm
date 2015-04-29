@@ -227,13 +227,13 @@ load_room:
                     JMP lrltnei_
                 ;used as a mid way point to jump to various places in the loop because it crosses page boundaries
                 lrltnejmp2_:
-                    JMP lrltne_
+                    JMP lrltnejmp3_
                 ntr_loop_jmp2_:
                     JMP ntr_loop_jmp_
                 lrnlncp_:
 
                 CMP #$1B
-                BNE lrltnei_
+                BNE lrnlncpe_
                     ;push a, x and y onto the stack to save previous registers
                     TXA
                     PHA
@@ -242,6 +242,32 @@ load_room:
                     
                     CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
                     CALL set_animation_attribs, #HIGH(GOAL_ANI), #LOW(GOAL_ANI), #$04, #$01, #$02
+                    
+                    ;pull a, x, y from the stack and put them back in their respective registers
+                    PLA
+                    TAY
+                    PLA
+                    TAX
+                    LDA #$00
+
+                    JMP lrltnei_
+                ;used as a mid way point to jump to various places in the loop because it crosses page boundaries
+                lrltnejmp3_:
+                    JMP lrltne_
+                ntr_loop_jmp3_:
+                    JMP ntr_loop_jmp2_
+                lrnlncpe_:
+
+                CMP #$40
+                BNE lrltnei_
+                    ;push a, x and y onto the stack to save previous registers
+                    TXA
+                    PHA
+                    TYA
+                    PHA
+                    
+                    CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
+                    CALL set_animation_attribs, #HIGH(RAZOR_ANI), #LOW(RAZOR_ANI), #$02, #$01, #$02
                     
                     ;pull a, x, y from the stack and put them back in their respective registers
                     PLA
@@ -267,7 +293,7 @@ load_room:
         nrowreset:
 
         CPY NT_MAX_LOAD_TILES        ;check if y is equal to 0 (it has overflowed)
-        BNE ntr_loop_jmp2_                 ;keep looping if y not equal to 0, otherwise continue
+        BNE ntr_loop_jmp3_           ;keep looping if y not equal to 0, otherwise continue
     ntr_loop_end_:
 
     CALL add_short, row_index, row_index + 1, NT_MAX_LOAD_TILES
