@@ -238,7 +238,6 @@ change_palette_value:
         	ASL a
         	STA temp + 4
 
-        	DEBUG_BRK
         	LDA PPU_DATA
         	STA temp
         	AND #$C0
@@ -289,8 +288,7 @@ change_palette_value:
     CLC
     ADC temp + 4
     STA temp
-
-    DEBUG_BRK
+    
     LDX temp + 2
     IF_EQU ani_palette_change_due, x, #$00, arl2_
 	    LDX temp + 3

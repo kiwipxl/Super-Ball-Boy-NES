@@ -82,7 +82,7 @@ temp                    .rs     6
 
 ;------------------------------------------------------------------------------------;
 
-	;store game variables in zero page with a 18 byte offset
+	;store game variables in zero page with a 26 byte offset
 	.rsset $001A
 
 ;PPU variables

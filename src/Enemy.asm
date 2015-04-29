@@ -68,10 +68,10 @@ create_slime:
 	STA enemy_gravity + 1, x
 	
 	;---------------
-	
-	SET_POINTER_TO_VAL current_room, enemy_room + 1, x, enemy_room, x
-	SET_POINTER_TO_VAL current_VRAM_addr, enemy_VRAM_addr + 1, x, enemy_VRAM_addr, x
-	
+
+	SET_POINTER_TO_VAL current_room, enemy_room, x, enemy_room + 1, x
+	SET_POINTER_TO_VAL current_VRAM_addr, enemy_VRAM_addr, x, enemy_VRAM_addr + 1, x
+
 	MUL8 param_1
 	STA enemy_pos_x, x
 	LDA #$00
@@ -87,7 +87,7 @@ create_slime:
 	STA OAM_RAM_ADDR + 5, x
 	LDA #$02
 	STA OAM_RAM_ADDR + 6, x
-	
+
 	RTS
 
 update_enemies:
@@ -431,6 +431,14 @@ handle_bat_AI:
 
 handle_enemy_scroll:
 	LDX temp + 3
+	DEBUG_BRK
+	LDA room_1
+	LDA room_2
+	LDA room_3
+	LDA room_4
+	LDA enemy_room, x
+	LDA enemy_room + 1, x
+
 	IF_EQU room_1, enemy_room, x, hesxnse1_
 		IF_UNSIGNED_LT_OR_EQU scroll_x, enemy_pos_x, x, heshejmp_
 		IF_UNSIGNED_LT_OR_EQU scroll_y, enemy_pos_y, x, heshejmp_
