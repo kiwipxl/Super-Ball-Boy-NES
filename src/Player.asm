@@ -266,8 +266,13 @@ set_respawn:
 
 handle_camera_scroll:
     IF_EQU scroll_x_type, #$00, right_scroll_x_map
-        ;IF_EQU room_2, #HIGH(EMPTY_ROOM), scrxleftstartelse
-        ;IF_EQU room_4, #HIGH(EMPTY_ROOM), scrxleftstartelse
+        IF_EQU scroll_y_type, #$00, hcssytl0_
+            IF_NOT_EQU room_2, #HIGH(EMPTY_ROOM), scrxleftstartelse
+        hcssytl0_:
+
+        IF_NOT_EQU room_3, #HIGH(EMPTY_ROOM), scrxleftstartelse
+        IF_NOT_EQU room_4, #HIGH(EMPTY_ROOM), scrxleftstartelse
+
         IF_UNSIGNED_GT_OR_EQU pos_x, #$7F, scrxleftstartelse
             LDA pos_x
             SEC
@@ -287,8 +292,13 @@ handle_camera_scroll:
 
             JMP scroll_x_endif
     right_scroll_x_map:
-        ;IF_EQU room_1, #HIGH(EMPTY_ROOM), scrxrightstartelse
-        ;IF_EQU room_3, #HIGH(EMPTY_ROOM), scrxrightstartelse
+        IF_EQU scroll_y_type, #$00, hcssytr0_
+            IF_NOT_EQU room_1, #HIGH(EMPTY_ROOM), scrxrightstartelse
+        hcssytr0_:
+
+        IF_NOT_EQU room_3, #HIGH(EMPTY_ROOM), scrxrightstartelse
+        IF_NOT_EQU room_4, #HIGH(EMPTY_ROOM), scrxrightstartelse
+
         IF_UNSIGNED_LT_OR_EQU pos_x, #$7F, scrxrightstartelse
             LDA pos_x
             SEC
@@ -308,15 +318,13 @@ handle_camera_scroll:
     scroll_x_endif:
 
     IF_NOT_EQU scroll_y_type, #$00, up_scroll_y_map
-        IF_EQU scroll_x_type, #$00, scrydownsxt0_
-            IF_NOT_EQU room_2, #HIGH(EMPTY_ROOM), scrydownstartelse
-            IF_NOT_EQU room_1, #HIGH(EMPTY_ROOM), scrydownstartelse
-        scrydownsxt0_:
+        IF_NOT_EQU room_3, #HIGH(EMPTY_ROOM), hcsreerl1_
+            IF_EQU scroll_x_type, #$00, hcsreerl1_
+                IF_NOT_EQU room_4, #HIGH(EMPTY_ROOM), scrydownstartelse
+        hcsreerl1_:
 
-        IF_EQU scroll_x_type, #$01, scrydownsxt1_
-            IF_NOT_EQU room_1, #HIGH(EMPTY_ROOM), scrydownstartelse
-            IF_NOT_EQU room_2, #HIGH(EMPTY_ROOM), scrydownstartelse
-        scrydownsxt1_:
+        IF_NOT_EQU room_1, #HIGH(EMPTY_ROOM), scrydownstartelse
+        IF_NOT_EQU room_2, #HIGH(EMPTY_ROOM), scrydownstartelse
 
         IF_UNSIGNED_LT_OR_EQU pos_y, #$7F, scrydownstartelse
             LDA pos_y
@@ -337,10 +345,17 @@ handle_camera_scroll:
 
             JMP scroll_y_endif
     up_scroll_y_map:
+        IF_NOT_EQU room_3, #HIGH(EMPTY_ROOM), hcsreerl2_
+            IF_NOT_EQU room_4, #HIGH(EMPTY_ROOM), scryupstartelse
+        hcsreerl2_:
+        IF_NOT_EQU room_4, #HIGH(EMPTY_ROOM), hcsreerl0_
+            IF_EQU scroll_x_type, #$00, hcsreerl0_
+                IF_NOT_EQU room_3, #HIGH(EMPTY_ROOM), scryupstartelse
+        hcsreerl0_:
+
         IF_NOT_EQU room_1, #HIGH(EMPTY_ROOM), scryupstartelse
         IF_NOT_EQU room_2, #HIGH(EMPTY_ROOM), scryupstartelse
-        IF_NOT_EQU room_3, #HIGH(EMPTY_ROOM), scryupstartelse
-        IF_NOT_EQU room_4, #HIGH(EMPTY_ROOM), scryupstartelse
+
         IF_UNSIGNED_GT_OR_EQU pos_y, #$7F, scryupstartelse
             LDA pos_y
             CLC
