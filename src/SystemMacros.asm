@@ -24,39 +24,39 @@ CONFIGURE_PPU .macro
 
 ;macro to store parameters from the stack into the zero page param variables
 ;used to transfer stack values into params
-;input - (stack_starting_address (usually $0103 + num local variables))
+;input - (the number of params to retrieve back from the stack)
 STACK_TO_PARAMS .macro
     TSX
-    .IF \?9
-        LDA \1 + 7, x
+    .IF \1 >= 8
+        LDA $010A, x
         STA param_8
     .ENDIF
-    .IF \?8
-        LDA \1 + 6, x
+    .IF \1 >= 7
+        LDA $0109, x
         STA param_7
     .ENDIF
-    .IF \?7
-        LDA \1 + 5, x
+    .IF \1 >= 6
+        LDA $0108, x
         STA param_6
     .ENDIF
-    .IF \?6
-        LDA \1 + 4, x
+    .IF \1 >= 5
+        LDA $0107, x
         STA param_5
     .ENDIF
-    .IF \?5
-        LDA \1 + 3, x
+    .IF \1 >= 4
+        LDA $0106, x
         STA param_4
     .ENDIF
-    .IF \?4
-        LDA \1 + 2, x
+    .IF \1 >= 3
+        LDA $0105, x
         STA param_3
     .ENDIF
-    .IF \?3
-        LDA \1 + 1, x
+    .IF \1 >= 2
+        LDA $0104, x
         STA param_2
     .ENDIF
-    .IF \?2
-        LDA \1, x
+    .IF \1 >= 1
+        LDA $0103, x
         STA param_1
     .ENDIF
 
@@ -126,85 +126,106 @@ ST_RT_VAL_IN .macro
 
     .endm
 
-;macro to push the specified amount of parameters to the stack, call the specified function and then pop the parameters
+;pushes the current param variables onto the stack and loads the new
+;params into the param variables
+;the function is then called and once it ends, the original params are restored
 ;from the stack
-;this macro is used to call functions from within other functions
-;input - ([param1], [param2], [param3], [param4], [param5], [param6]) [] = optional
+;this macro is used to call functions from within other functions without the original
+;params being overwritten
+;input - ([param1], [param2], [param3], [param4], [param5], [param6], [param7], [param8]) [] = optional
 CALL_NESTED .macro
     .IF \?9
-        LDA \9
+        LDA param_8
         PHA
+        LDA \9
         STA param_8
     .ENDIF
     .IF \?8
-        LDA \8
+        LDA param_7
         PHA
+        LDA \8
         STA param_7
     .ENDIF
     .IF \?7
-        LDA \7
+        LDA param_6
         PHA
+        LDA \7
         STA param_6
     .ENDIF
     .IF \?6
-        LDA \6
+        LDA param_5
         PHA
+        LDA \6
         STA param_5
     .ENDIF
     .IF \?5
-        LDA \5
+        LDA param_4
         PHA
+        LDA \5
         STA param_4
     .ENDIF
     .IF \?4
-        LDA \4
+        LDA param_3
         PHA
+        LDA \4
         STA param_3
     .ENDIF
     .IF \?3
-        LDA \3
+        LDA param_2
         PHA
+        LDA \3
         STA param_2
     .ENDIF
     .IF \?2
-        LDA \2
+        LDA param_1
         PHA
+        LDA \2
         STA param_1
     .ENDIF
 
     JSR \1
 
+    DEBUG_BRK
+    LDY #$90
     .IF \?9
         PLA
+        STA param_8
     .ENDIF
     .IF \?8
         PLA
+        STA param_7
     .ENDIF
     .IF \?7
         PLA
+        STA param_6
     .ENDIF
     .IF \?6
         PLA
+        STA param_5
     .ENDIF
     .IF \?5
         PLA
+        STA param_4
     .ENDIF
     .IF \?4
         PLA
+        STA param_3
     .ENDIF
     .IF \?3
         PLA
+        STA param_2
     .ENDIF
     .IF \?2
         PLA
+        STA param_1
     .ENDIF
 
     .endm
 
 ;macro to store all specified parameters in zero page rather than in stack and call a specified function
 ;note - this macro should not be called within other functions as parameters may be overwritten, therefore
-;this macro is used to call functions that are not nested
-;input - ([param1], [param2], [param3], [param4], [param5], [param6]) [] = optional
+;this macro is used to call functions that are not nested as the original params will be overwritten
+;input - ([param1], [param2], [param3], [param4], [param5], [param6], [param7], [param8]) [] = optional
 CALL .macro
     .IF \?9
         LDA \9
