@@ -127,21 +127,36 @@ load_next_room:
 
     IF_EQU room_load_id, #$00, lnrne0_
         LOAD_ROOM room_1, VRAM_room_addr_1
+        LDA #$00
+        STA scroll_x
+        STA scroll_y
         JMP lnrlns_
     lnrne0_:
 
     IF_EQU room_load_id, #$01, lnrne1_
         LOAD_ROOM room_2, VRAM_room_addr_2
+        LDA #$FF
+        STA scroll_x
+        LDA #$00
+        STA scroll_y
         JMP lnrlns_
     lnrne1_:
 
     IF_EQU room_load_id, #$02, lnrne2_
         LOAD_ROOM room_3, VRAM_room_addr_3
+        LDA #$00
+        STA scroll_x
+        LDA #$EF
+        STA scroll_y
         JMP lnrlns_
     lnrne2_:
 
     IF_EQU room_load_id, #$03, lnrne3_
         LOAD_ROOM room_4, VRAM_room_addr_4
+        LDA #$FF
+        STA scroll_x
+        LDA #$EF
+        STA scroll_y
         JMP lnrlns_
     lnrne3_:
 

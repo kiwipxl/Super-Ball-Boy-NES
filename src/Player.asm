@@ -100,9 +100,16 @@ handle_player_collision:
 				hpcnsc_:
 				LDA rt_val_1
 	            CMP #$0B
-	            BNE hpcrei_
+	            BNE hpcreie_
 	                CALL respawn
 
+                    RTS
+                hpcreie_:
+                LDA rt_val_1
+                CMP #$40
+                BNE hpcrei_
+                    CALL respawn
+                    
                     RTS
                 ;halfway point jmp because page boundary is too large otherwise
                 cte0jmp_:

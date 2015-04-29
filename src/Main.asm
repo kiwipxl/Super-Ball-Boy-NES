@@ -124,7 +124,7 @@ scroll_y_type           .rs     1
 nt_pointer              .rs     2
 VRAM_pointer            .rs     2
 row_index               .rs     2
-NT_MAX_LOAD_TILES       .db     $40
+NT_MAX_LOAD_TILES       .db     $1A
 nt_row_x                .rs     1
 nt_row_y                .rs     1
 
@@ -168,11 +168,11 @@ ani_frame_counter 		.rs 	8 	    ;frame counter that increases every frame, 1 byt
 ani_current_frame 		.rs 	8 	    ;byte that defines the current frame of the animation, 1 byte per animation
 ani_loop 				.rs 	8 	    ;defines whether the animation will loop or not, 1 byte per animation
 ani_num_frames 			.rs 	8 	    ;the amount of frames in the current animation, 1 byte per animation
-ani_active              .rs     8       ;defines whether the animation is currently playing or not, 1 byte per animation
-ani_tile_x              .rs     8       ;the tile x position where the animation is playing, 1 byte per animation
-ani_tile_y              .rs     8       ;the tile y position where the animation is playing, 1 byte per animation
-ani_palette_index       .rs     8       ;the palette index to be set on the animation, 1 byte per animation
-ani_palette_change_due  .rs     8       ;defines whether the palette index is due to be changed, 1 byte per animation
+ani_active              .rs     8      ;defines whether the animation is currently playing or not, 1 byte per animation
+ani_tile_x              .rs     8      ;the tile x position where the animation is playing, 1 byte per animation
+ani_tile_y              .rs     8      ;the tile y position where the animation is playing, 1 byte per animation
+ani_palette_index       .rs     8      ;the palette index to be set on the animation, 1 byte per animation
+ani_palette_change_due  .rs     8      ;defines whether the palette index is due to be changed, 1 byte per animation
 ani_last_id             .rs     1       ;the last created animation index
 ani_max                 .db     $08
 
