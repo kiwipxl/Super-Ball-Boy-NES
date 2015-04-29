@@ -112,7 +112,21 @@ set_animation_attribs:
 
 	;----------
 
-	SET_POINTER_TO_ADDR VRAM_ATTRIB_2, temp + 1, temp + 2
+	IF_EQU current_VRAM_addr, #HIGH(VRAM_NT_0), saant0_
+		SET_POINTER_TO_ADDR VRAM_ATTRIB_0, temp + 1, temp + 2
+	saant0_:
+
+	IF_EQU current_VRAM_addr, #HIGH(VRAM_NT_1), saant1_
+		SET_POINTER_TO_ADDR VRAM_ATTRIB_1, temp + 1, temp + 2
+	saant1_:
+
+	IF_EQU current_VRAM_addr, #HIGH(VRAM_NT_2), saant2_
+		SET_POINTER_TO_ADDR VRAM_ATTRIB_2, temp + 1, temp + 2
+	saant2_:
+
+	IF_EQU current_VRAM_addr, #HIGH(VRAM_NT_3), saant3_
+		SET_POINTER_TO_ADDR VRAM_ATTRIB_3, temp + 1, temp + 2
+	saant3_:
 
 	LDX ani_last_id
 
