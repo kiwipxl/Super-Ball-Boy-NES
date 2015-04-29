@@ -61,6 +61,16 @@ param_6                 .rs     1
 param_7                 .rs     1
 param_8                 .rs     1
 
+;local params used to store inputs from functions - note that these params may be modified when a function with a input is called
+temp_param_1            .rs     1
+temp_param_2            .rs     1
+temp_param_3            .rs     1
+temp_param_4            .rs     1
+temp_param_5            .rs     1
+temp_param_6            .rs     1
+temp_param_7            .rs     1
+temp_param_8            .rs     1
+
 ;return values used for functions that have an output / multiple outputs
 rt_val_1                .rs     1
 rt_val_2                .rs     1
@@ -73,7 +83,7 @@ temp                    .rs     6
 ;------------------------------------------------------------------------------------;
 
 	;store game variables in zero page with a 18 byte offset
-	.rsset $0012
+	.rsset $001A
 
 ;PPU variables
 vblank_counter      	.rs     1

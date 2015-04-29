@@ -44,13 +44,7 @@ create_tile_animation:
 	STA ani_tile_x, x
 	LDA param_2
 	STA ani_tile_y, x
-
-	DEBUG_BRK
-	LDY #$01
-	LDA param_1
-	LDA param_2
-	LDA param_3
-	LDA param_4
+	
 	CALL_NESTED mul_short, param_3, param_2, #$20
 	CALL_NESTED add_short, rt_val_1, rt_val_2, param_1
 
@@ -58,11 +52,9 @@ create_tile_animation:
 	ASL a
 	TAX
 
-	DEBUG_BRK
-	LDY #$01
-	LDA param_3
+	LDA rt_val_1
 	STA ani_VRAM_pointer, x
-	LDA param_4
+	LDA rt_val_2
 	STA ani_VRAM_pointer + 1, x
 
 	RTS
@@ -110,16 +102,6 @@ set_animation_attribs:
 	STA ani_frames + 1, x
 
 	INC ani_frames, x
-
-	DEBUG_BRK
-	LDA ani_VRAM_pointer, x
-	LDA ani_VRAM_pointer + 1, x
-	LDX ani_last_id
-	LDA ani_rate, x
-	LDA ani_loop, x
-	LDA ani_num_frames, x
-	LDA ani_tile_x, x
-	LDA ani_tile_y, x
 
 	RTS
 

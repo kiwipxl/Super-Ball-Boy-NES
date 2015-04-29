@@ -138,86 +138,117 @@ CALL_NESTED .macro
         LDA param_8
         PHA
         LDA \9
-        STA param_8
+        STA temp_param_8
     .ENDIF
     .IF \?8
         LDA param_7
         PHA
         LDA \8
-        STA param_7
+        STA temp_param_7
     .ENDIF
     .IF \?7
         LDA param_6
         PHA
         LDA \7
-        STA param_6
+        STA temp_param_6
     .ENDIF
     .IF \?6
         LDA param_5
         PHA
         LDA \6
-        STA param_5
+        STA temp_param_5
     .ENDIF
     .IF \?5
         LDA param_4
         PHA
         LDA \5
-        STA param_4
+        STA temp_param_4
     .ENDIF
     .IF \?4
         LDA param_3
         PHA
         LDA \4
-        STA param_3
+        STA temp_param_3
     .ENDIF
     .IF \?3
         LDA param_2
         PHA
         LDA \3
-        STA param_2
+        STA temp_param_2
     .ENDIF
     .IF \?2
         LDA param_1
         PHA
         LDA \2
+        STA temp_param_1
+    .ENDIF
+
+    .IF \?9
+        LDA temp_param_8
+        STA param_8
+    .ENDIF
+    .IF \?8
+        LDA temp_param_7
+        STA param_7
+    .ENDIF
+    .IF \?7
+        LDA temp_param_6
+        STA param_6
+    .ENDIF
+    .IF \?6
+        LDA temp_param_5
+        STA param_5
+    .ENDIF
+    .IF \?5
+        LDA temp_param_4
+        STA param_4
+    .ENDIF
+    .IF \?4
+        LDA temp_param_3
+        STA param_3
+    .ENDIF
+    .IF \?3
+        LDA temp_param_2
+        STA param_2
+    .ENDIF
+    .IF \?2
+        LDA temp_param_1
         STA param_1
     .ENDIF
 
     JSR \1
-
-    DEBUG_BRK
-    LDY #$90
-    .IF \?9
+    
+    .IF \?2
         PLA
-        STA param_8
-    .ENDIF
-    .IF \?8
-        PLA
-        STA param_7
-    .ENDIF
-    .IF \?7
-        PLA
-        STA param_6
-    .ENDIF
-    .IF \?6
-        PLA
-        STA param_5
-    .ENDIF
-    .IF \?5
-        PLA
-        STA param_4
-    .ENDIF
-    .IF \?4
-        PLA
-        STA param_3
+        STA param_1
     .ENDIF
     .IF \?3
         PLA
         STA param_2
     .ENDIF
-    .IF \?2
+    .IF \?4
         PLA
-        STA param_1
+        STA param_3
+    .ENDIF
+    .IF \?5
+        PLA
+        STA param_4
+    .ENDIF
+    .IF \?6
+        PLA
+        STA param_5
+    .ENDIF
+    .IF \?7
+        PLA
+        STA param_6
+    .ENDIF
+    .IF \?8
+        PLA
+        STA param_7
+    .ENDIF
+    .IF \?9
+        PLA
+        STA param_8
     .ENDIF
 
     .endm
