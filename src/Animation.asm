@@ -92,11 +92,14 @@ set_animation_attribs:
 	STA ani_frame_counter, x
 	STA ani_current_frame, x
 
+	LDA #$01
+    STA ani_palette_change_due, x
+
 	;----------
 
 	LDA ani_last_id
 	ASL a
-	STA temp + 2
+	STA temp + 3
 	TAX
 
 	LDA param_1 + 1
@@ -109,7 +112,7 @@ set_animation_attribs:
 
 	;----------
 
-	SET_POINTER_TO_ADDR VRAM_ATTRIB_2, temp + 3, temp + 4
+	SET_POINTER_TO_ADDR VRAM_ATTRIB_2, temp + 1, temp + 2
 
 	LDX ani_last_id
 
@@ -117,19 +120,20 @@ set_animation_attribs:
     LSR a
     LSR a
     CLC
-    ADC temp + 4
-    STA temp + 4
+    ADC temp + 2
+    STA temp + 2
+
     LDA ani_tile_y, x
     LSR a
     LSR a
     STA temp
     CALL mul_byte, temp, #$08
     CLC
-    ADC temp + 4
-    STA temp + 4
+    ADC temp + 2
+    STA temp + 2
 
-    LDX temp + 2
-    SET_POINTER_TO_VAL temp + 3, ani_palette_index, x, ani_palette_index + 1, x
+    LDX temp + 3
+    SET_POINTER_TO_VAL temp + 1, ani_palette_pointer, x, ani_palette_pointer + 1, x
 
 	RTS
 
@@ -175,7 +179,7 @@ render_animations:
         STX temp + 2
         TXA
         ASL a
-        STX temp + 1
+        STA temp + 3
         TAX
 
         SET_POINTER ani_VRAM_pointer, x, ani_VRAM_pointer + 1, x, PPU_ADDR, PPU_ADDR
@@ -186,20 +190,22 @@ render_animations:
         LDA [temp], y
         STA PPU_DATA
 
-        CALL change_palette_value
+        IF_NOT_EQU ani_palette_change_due, x, #$00, arl_
+	        CALL change_palette_value
+	        LDX temp + 2
+	        LDA #$00
+	        STA ani_palette_change_due, x
 
-        JMP arl_
+        	JMP arl_
     arle_:
     CONFIGURE_PPU
 
     RTS
 
 change_palette_value:
-	SET_POINTER_TO_VAL ani_palette_index, PPU_ADDR, PPU_ADDR
-    ;LDA PPU_DATA
-    ;STA temp + 6
+	LDX temp + 3
+	SET_POINTER ani_palette_pointer, x, ani_palette_pointer + 1, x, PPU_ADDR, PPU_ADDR
 
-    DEBUG_BRK
     LDX temp + 2
 
     LDA ani_tile_x, x
@@ -209,12 +215,12 @@ change_palette_value:
     	AND #$01
         BEQ ratopright_ 		;bottom right
         	LDA ani_palette_index, x
-		    LSR a
-		    LSR a
-		    LSR a
-		    LSR a
-		    LSR a
-		    LSR a
+		    ASL a
+		    ASL a
+		    ASL a
+		    ASL a
+		    ASL a
+		    ASL a
 		    STA temp
 
         	LDA PPU_DATA
@@ -224,8 +230,8 @@ change_palette_value:
         	JMP ralrtdei_
         ratopright_: 			;top right
         	LDA ani_palette_index, x
-		    LSR a
-		    LSR a
+		    ASL a
+		    ASL a
 		    STA temp
 
         	LDA PPU_DATA
@@ -238,10 +244,10 @@ change_palette_value:
         AND #$01
         BEQ ratopleft_ 			;bottom left
         	LDA ani_palette_index, x
-		    LSR a
-		    LSR a
-		    LSR a
-		    LSR a
+		    ASL a
+		    ASL a
+		    ASL a
+		    ASL a
 		    STA temp
 
         	LDA PPU_DATA
@@ -258,28 +264,14 @@ change_palette_value:
         	JMP ralrtdei_
     ralrtdei_:
 
-    DEBUG_BRK
     CLC
     ADC temp
     STA temp
 
-    SET_POINTER_TO_VAL ani_palette_index, PPU_ADDR, PPU_ADDR
+    LDX temp + 3
+    SET_POINTER ani_palette_pointer, x, ani_palette_pointer + 1, x, PPU_ADDR, PPU_ADDR
     LDA temp
     STA PPU_DATA
-
-    ;tile_x >> 2 = x offset
-    ;tile_y >> 2 * 8 = y offset
-	;tile_x rol 1, carry flag (0) = left, (1) = right
-	;tile_y rol 1, carry flag (0) = top, (1) = down
-
-	;11 >> 2 = 2
-	;16 >> 2 = 4
-	;right
-	;top
-
-    ;palette_index >> 6
-    ;store in temp
-    ;if tile topright for example, then subtract by 0c and add temp
 
     RTS
 
