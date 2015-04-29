@@ -227,11 +227,17 @@ SPRING_ANI:
     ;tile index frame animation
 	.db $0A, $1A, $2A, $3A, $3A, $3A, $3A, $3A, $2A, $1A, $0A
 
-CHECK_POINT_DEACTIVE_ANI:
+CHECK_POINT_ANI:
     ;number of frames
     .db $07
     ;tile index frame animation
     .db $12, $13, $14, $14, $22, $13, $12
+
+GOAL_ANI:
+    ;number of frames
+    .db $04
+    ;tile index frame animation
+    .db $1B, $2B, $3B, $4B
 
 ;------------------------------------------------------------------------------------;
 

@@ -201,12 +201,38 @@ load_room:
                     JMP lrltnei_
                 ;used as a mid way point to jump to various places in the loop because it crosses page boundaries
                 lrltnejmp_:
-                    JMP lrltne_
+                    JMP lrltnejmp2_
                 ntr_loop_jmp_:
                     JMP ntr_loop
                 lrltneil_:
 
                 CMP #$12
+                BNE lrnlncp_
+                    ;push a, x and y onto the stack to save previous registers
+                    TXA
+                    PHA
+                    TYA
+                    PHA
+                    
+                    CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
+                    CALL set_animation_attribs, #HIGH(CHECK_POINT_ANI), #LOW(CHECK_POINT_ANI), #$04, #$01, #$02
+                    
+                    ;pull a, x, y from the stack and put them back in their respective registers
+                    PLA
+                    TAY
+                    PLA
+                    TAX
+                    LDA #$00
+
+                    JMP lrltnei_
+                ;used as a mid way point to jump to various places in the loop because it crosses page boundaries
+                lrltnejmp2_:
+                    JMP lrltne_
+                ntr_loop_jmp2_:
+                    JMP ntr_loop_jmp_
+                lrnlncp_:
+
+                CMP #$1B
                 BNE lrltnei_
                     ;push a, x and y onto the stack to save previous registers
                     TXA
@@ -215,7 +241,7 @@ load_room:
                     PHA
                     
                     CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
-                    CALL set_animation_attribs, #HIGH(CHECK_POINT_DEACTIVE_ANI), #LOW(CHECK_POINT_DEACTIVE_ANI), #$04, #$01, #$02
+                    CALL set_animation_attribs, #HIGH(GOAL_ANI), #LOW(GOAL_ANI), #$04, #$01, #$02
                     
                     ;pull a, x, y from the stack and put them back in their respective registers
                     PLA
@@ -241,7 +267,7 @@ load_room:
         nrowreset:
 
         CPY NT_MAX_LOAD_TILES        ;check if y is equal to 0 (it has overflowed)
-        BNE ntr_loop_jmp_                 ;keep looping if y not equal to 0, otherwise continue
+        BNE ntr_loop_jmp2_                 ;keep looping if y not equal to 0, otherwise continue
     ntr_loop_end_:
 
     CALL add_short, row_index, row_index + 1, NT_MAX_LOAD_TILES
