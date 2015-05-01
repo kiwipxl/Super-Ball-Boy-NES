@@ -135,6 +135,12 @@ init_chamber:
     RTS
 
 load_next_room_case:
+    LDA #$00
+    STA row_index
+    STA row_index + 1
+    STA nt_row_x
+    STA nt_row_y
+
     IF_EQU room_load_id, #$00, lnrne0_
         LOAD_ROOM room_1, VRAM_room_addr_1
         LDA #$00
@@ -172,10 +178,6 @@ load_next_room_case:
     RTS
 
 load_next_room:
-    LDA #$00
-    STA row_index
-    STA row_index + 1
-
     CALL load_next_room_case
     INC room_load_id
 
@@ -211,21 +213,25 @@ load_room:
 
     LDY #$00
     ntr_loop:
-        LDA [nt_pointer], y
         IF_UNSIGNED_LT nt_row_y, #$1F, lrltnei_
             IF_UNSIGNED_LT nt_row_x, #$1F, lrltnei_
                 LDA [nt_pointer], y
                 CMP #$0C
-                BNE lrltnei_
+                BEQ lrl0_
                 CMP #$12
-                BNE lrltnei_
+                BEQ lrl0_
                 CMP #$1B
-                BNE lrltnei_
+                BEQ lrl0_
                 CMP #$40
-                BNE lrltnei_
+                BEQ lrl0_
+                JMP lrltnei_
 
+                lrl0_:
                 LDA #$00
+                JMP lrltne_
         lrltnei_:
+            LDA [nt_pointer], y
+        lrltne_:
 
         STA PPU_DATA               ;write byte to the PPU nametable address
         INY                        ;add by 1 to move to the next byte
@@ -263,6 +269,9 @@ scan_room_case:
         INC enemy_len
         CALL create_slime, nt_row_x, nt_row_y
         LDA #$00
+        ;pull y from the stack and put them back in their respective registers
+        PLA
+        TAY
         RTS
     src0_:
 
@@ -271,6 +280,9 @@ scan_room_case:
         CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
         CALL set_animation_attribs, #HIGH(CHECK_POINT_ANI), #LOW(CHECK_POINT_ANI), #$04, #$01, #$02
         LDA #$00
+        ;pull y from the stack and put them back in their respective registers
+        PLA
+        TAY
         RTS
     src1_:
 
@@ -279,6 +291,9 @@ scan_room_case:
         CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
         CALL set_animation_attribs, #HIGH(GOAL_ANI), #LOW(GOAL_ANI), #$04, #$01, #$02
         LDA #$00
+        ;pull y from the stack and put them back in their respective registers
+        PLA
+        TAY
         RTS
     src2_:
 
@@ -287,9 +302,15 @@ scan_room_case:
         CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
         CALL set_animation_attribs, #HIGH(RAZOR_ANI), #LOW(RAZOR_ANI), #$02, #$01, #$01
         LDA #$00
+        ;pull y from the stack and put them back in their respective registers
+        PLA
+        TAY
         RTS
     src3_:
 
+    ;pull y from the stack and put them back in their respective registers
+    PLA
+    TAY
     RTS
 
 scan_room:
@@ -297,17 +318,13 @@ scan_room:
         RTS
     srneer_:
 
-    LDA #$00
-    STA row_index
-    STA row_index + 1
+    CALL load_next_room_case
 
     LDY #$00
     ntsr_loop:
+        DEBUG_BRK
         LDA [nt_pointer], y
         CALL scan_room_case
-        ;pull y from the stack and put them back in their respective registers
-        PLA
-        TAY
         INY                        ;add by 1 to move to the next byte
 
         INC nt_row_x
@@ -325,6 +342,7 @@ scan_room:
 
         IF_UNSIGNED_LT nt_row_y, #$1F, ntsr_loop
         IF_UNSIGNED_LT nt_row_x, #$1F, ntsr_loop
+        DEBUG_BRK
     RTS
 
 ;writes nametable bytes pointing from nt_pointer into PPU VRAM
