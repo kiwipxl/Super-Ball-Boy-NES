@@ -208,8 +208,6 @@ render_animations:
         	DEC ani_palette_change_due, x
 	        CALL change_palette_value
 	        LDX temp + 2
-
-    		JMP arl_
     arle_:
     CONFIGURE_PPU
 
@@ -258,7 +256,7 @@ change_palette_value:
         LDA ani_tile_y, x
         LSR a
         AND #$01
-        BEQ ratopleft_ 			;bottom left
+        BNE ratopleft_ 			;bottom left
         	LDA ani_palette_index, x
         	ASL a
         	ASL a
