@@ -216,12 +216,12 @@ temp_cmp                .rs     1       ;used when a register is passed in if st
 current_state           .rs     1       ;the current state of the game
 next_state              .rs     1       ;used to store the next state while nametables are loading
 
-TITLE_SCREEN_STATE          .db     $01
-GAME_STATE                  .db     $02
-WIN_STATE                   .db     $03
-HALT_STATE                  .db     $04
-NT_LOADING_STATE            .db     $05
-NT_CHAMBER_LOADING_STATE    .db     $06
+TITLE_SCREEN_STATE          .db     $01     ;the titlescreen state
+GAME_STATE                  .db     $02     ;the actual game state or chamber gameplay state
+WIN_STATE                   .db     $03     ;the winscreen state
+NT_LOADING_STATE            .db     $04     ;the state when a nametable is loading every frame
+NT_CHAMBER_LOADING_STATE    .db     $05     ;the state when a chamber nametable is loading every frame
+NT_CHAMBER_SCAN_STATE       .db     $06     ;the state after a chamber load where a nametable is scanned for special tiles
 
 ;------------------------------------------------------------------------------------;
 
