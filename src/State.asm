@@ -87,6 +87,17 @@ update_state:
 		RTS
 	nusws_:
 
+	IF_EQU current_state, NT_CHAMBER_SCAN_STATE, nusntcss_
+		CALL scan_room
+
+		LDA next_state
+    	STA current_state
+
+		CALL load_next_room
+
+		RTS
+	nusntcss_:
+
 	RTS
 
 update_render_state:
@@ -94,7 +105,6 @@ update_render_state:
 		IF_EQU row_index, #$04, ursrin0_
 			LDA next_state
 			STA current_state
-
 			RTS
 		ursrin0_:
 
@@ -107,11 +117,8 @@ update_render_state:
 
 	IF_EQU current_state, NT_CHAMBER_LOADING_STATE, nursntcls_
 		IF_EQU row_index, #$04, ursrinl0_
-			LDA next_state
-        	STA current_state
-
-			CALL load_next_room
-
+			LDA NT_CHAMBER_SCAN_STATE
+			STA current_state
 			RTS
 		ursrinl0_:
 

@@ -28,8 +28,6 @@ LOAD_ROOM .macro
 
     CALL load_room
 
-	INC room_load_id
-
     LDA NT_CHAMBER_LOADING_STATE
     STA current_state
 
@@ -136,17 +134,13 @@ init_chamber:
 
     RTS
 
-load_next_room:
-    LDA #$00
-    STA row_index
-    STA row_index + 1
-
+load_next_room_case:
     IF_EQU room_load_id, #$00, lnrne0_
         LOAD_ROOM room_1, VRAM_room_addr_1
         LDA #$00
         STA scroll_x
         STA scroll_y
-        JMP lnrlns_
+        RTS
     lnrne0_:
 
     IF_EQU room_load_id, #$01, lnrne1_
@@ -155,7 +149,7 @@ load_next_room:
         STA scroll_x
         LDA #$00
         STA scroll_y
-        JMP lnrlns_
+        RTS
     lnrne1_:
 
     IF_EQU room_load_id, #$02, lnrne2_
@@ -164,7 +158,7 @@ load_next_room:
         STA scroll_x
         LDA #$EF
         STA scroll_y
-        JMP lnrlns_
+        RTS
     lnrne2_:
 
     IF_EQU room_load_id, #$03, lnrne3_
@@ -173,8 +167,17 @@ load_next_room:
         STA scroll_x
         LDA #$EF
         STA scroll_y
-        JMP lnrlns_
+        RTS
     lnrne3_:
+    RTS
+
+load_next_room:
+    LDA #$00
+    STA row_index
+    STA row_index + 1
+
+    CALL load_next_room_case
+    INC room_load_id
 
     ;no more rooms to load, so complete the loading process
     CALL room_loading_complete
@@ -203,6 +206,7 @@ load_room:
     IF_EQU current_room, #HIGH(EMPTY_ROOM), lrneer_
         LDA #$04
         STA row_index
+        RTS
     lrneer_:
 
     LDY #$00
@@ -236,7 +240,7 @@ load_room:
 
         CPY NT_MAX_LOAD_TILES       ;check if y is equal to 0 (it has overflowed)
         BNE ntr_loop                ;keep looping if y not equal to 0, otherwise continue
-        
+
 add_nt_pointers:
     CALL add_short, row_index, row_index + 1, NT_MAX_LOAD_TILES
     ST_RT_VAL_IN row_index, row_index + 1
@@ -288,11 +292,14 @@ scan_room_case:
 
     RTS
 
-scan_rooms:
+scan_room:
     IF_EQU current_room, #HIGH(EMPTY_ROOM), srneer_
-        LDA #$04
-        STA row_index
+        RTS
     srneer_:
+
+    LDA #$00
+    STA row_index
+    STA row_index + 1
 
     LDY #$00
     ntsr_loop:
@@ -301,8 +308,6 @@ scan_rooms:
         ;pull y from the stack and put them back in their respective registers
         PLA
         TAY
-
-        STA PPU_DATA               ;write byte to the PPU nametable address
         INY                        ;add by 1 to move to the next byte
 
         INC nt_row_x
