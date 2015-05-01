@@ -136,7 +136,7 @@ set_animation_attribs:
     CLC
     ADC temp + 2
     STA temp + 2
-    
+
     LDA ani_tile_y, x
     LSR a
     LSR a
@@ -181,8 +181,6 @@ update_animations:
     RTS
 
 render_animations:
-	LDA #$00
-	STA temp + 5
 	LDX ani_max
     arl_:
         DEX
@@ -209,17 +207,12 @@ render_animations:
         IF_NOT_EQU ani_palette_change_due, x, #$00, arl_
         	DEC ani_palette_change_due, x
 	        CALL change_palette_value
-	        LDA #$01
-	        STA temp + 5
     arle_:
     CONFIGURE_PPU
 
     RTS
 
 change_palette_value:
-	DEBUG_BRK
-	LDY #$04
-
 	LDX temp + 3
 	SET_POINTER ani_palette_pointer, x, ani_palette_pointer + 1, x, PPU_ADDR, PPU_ADDR
 

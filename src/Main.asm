@@ -387,7 +387,6 @@ NMI:
     CALL update_render_state
 
     IF_NOT_EQU current_state, NT_LOADING_STATE, nminlnt_
-        IF_EQU temp + 5, #$00, nminlnt_
         ;copies 256 bytes of OAM data in RAM (OAM_RAM_ADDR - OAM_RAM_ADDR + $FF) to the PPU internal OAM
         ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
 
