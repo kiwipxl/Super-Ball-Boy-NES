@@ -75,9 +75,6 @@ set_animation_attribs:
 	LDA param_4
 	STA ani_loop, x
 
-	LDA param_5
-	STA ani_palette_index, x
-
 	;----------
 
 	LDA param_1 + 1
@@ -92,8 +89,11 @@ set_animation_attribs:
 	STA ani_frame_counter, x
 	STA ani_current_frame, x
 
+	LDA param_5
+	STA ani_palette_index, x
+
 	LDA #$02
-    STA ani_palette_change_due, x
+	STA ani_palette_change_due, x
 
 	;----------
 
@@ -136,7 +136,7 @@ set_animation_attribs:
     CLC
     ADC temp + 2
     STA temp + 2
-
+    
     LDA ani_tile_y, x
     LSR a
     LSR a
@@ -218,7 +218,8 @@ render_animations:
 
 change_palette_value:
 	DEBUG_BRK
-	
+	LDY #$04
+
 	LDX temp + 3
 	SET_POINTER ani_palette_pointer, x, ani_palette_pointer + 1, x, PPU_ADDR, PPU_ADDR
 
@@ -291,7 +292,7 @@ change_palette_value:
     CLC
     ADC temp + 4
     STA temp
-    
+
     LDX temp + 2
     IF_EQU ani_palette_change_due, x, #$00, arl2_
 	    LDX temp + 3

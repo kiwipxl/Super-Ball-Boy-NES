@@ -432,9 +432,6 @@ handle_room_intersect:
     IF_NOT_EQU scroll_y_type, #$00, ntransup
         IF_SIGNED_LT gravity, #$00, ntransdownjmp
             IF_UNSIGNED_GT_OR_EQU pos_y, #$F7, ntransdownjmp
-                DEBUG_BRK
-                LDY #$00
-
                 IF_EQU scroll_x_type, #$00, hrigtstue_
                     SET_POINTER_TO_VAL room_1, current_room, current_room + 1
                     SET_POINTER_TO_VAL VRAM_room_addr_1, current_VRAM_addr, current_VRAM_addr + 1
@@ -455,9 +452,6 @@ handle_room_intersect:
     ntransup:
         IF_SIGNED_GT gravity, #$00, ntransdown
             IF_UNSIGNED_GT_OR_EQU pos_y, #$F0, ntransdown
-                DEBUG_BRK
-                LDY #$01
-
                 IF_EQU scroll_x_type, #$00, hrigtstde_
                     SET_POINTER_TO_VAL room_3, current_room, current_room + 1
                     SET_POINTER_TO_VAL VRAM_room_addr_3, current_VRAM_addr, current_VRAM_addr + 1

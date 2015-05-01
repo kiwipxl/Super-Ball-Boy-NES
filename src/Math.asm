@@ -31,21 +31,24 @@ sub_short:
     RTS
     
 mul_byte:
-    LDA param_2
+    LDA param_1
     STA temp
 
-    LDY param_1
+    LDY param_2
+    BEQ mul_end_add_loop
     mul_add_loop:
         DEY
         BEQ mul_end_add_loop
-        LDA param_2
+
+        LDA temp
         CLC
-        ADC temp
-        STA param_2
+        ADC param_1
+        STA param_1
+
         JMP mul_add_loop
     mul_end_add_loop:
     
-    LDA param_2
+    LDA param_1
     STA rt_val_1
     
     RTS

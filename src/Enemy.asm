@@ -431,14 +431,7 @@ handle_bat_AI:
 
 handle_enemy_scroll:
 	LDX temp + 3
-	DEBUG_BRK
-	LDA room_1
-	LDA room_2
-	LDA room_3
-	LDA room_4
-	LDA enemy_room, x
-	LDA enemy_room + 1, x
-
+	
 	IF_EQU room_1, enemy_room, x, hesxnse1_
 		IF_UNSIGNED_LT_OR_EQU scroll_x, enemy_pos_x, x, heshejmp_
 		IF_UNSIGNED_LT_OR_EQU scroll_y, enemy_pos_y, x, heshejmp_
