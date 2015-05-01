@@ -15,15 +15,6 @@ create_state:
 	ncstss_:
 
 	IF_EQU current_state, GAME_STATE, ncsgs_
-		LDX #$00
-	    coaml_:
-	        LDA #$FF
-	        STA OAM_RAM_ADDR, x             ;set OAM (object attribute memory) in RAM to #$FF so that sprites are off-screen
-
-	        INX                             ;increase x by 1
-	        CPX #$00                        ;check if x has overflowed into 0
-	        BNE coaml_                      ;continue clearing memory if x is not equal to 0
-
 		IF_EQU current_chamber, #$00, cscc0_
 			CALL load_chamber_1
 		cscc0_:
@@ -52,6 +43,15 @@ create_state:
 
 remove_state:
 	IF_EQU current_state, GAME_STATE, nrsgs_
+		LDX #$00
+	    coaml_:
+	        LDA #$FF
+	        STA OAM_RAM_ADDR, x             ;set OAM (object attribute memory) in RAM to #$FF so that sprites are off-screen
+
+	        INX                             ;increase x by 1
+	        CPX #$00                        ;check if x has overflowed into 0
+	        BNE coaml_                      ;continue clearing memory if x is not equal to 0
+
 		RTS
 	nrsgs_:
 
@@ -69,6 +69,10 @@ update_state:
 
 	IF_EQU current_state, GAME_STATE, nusgs_
 	    CALL update_player
+
+	    ;check if we are still in the game state after updating the player
+	    ;we are not, if for example, we collide with a goal
+	    IF_EQU current_state, GAME_STATE, nusgs_
 
 	    CALL handle_room_intersect
 	    CALL handle_camera_scroll
