@@ -236,7 +236,8 @@ load_room:
 
         CPY NT_MAX_LOAD_TILES       ;check if y is equal to 0 (it has overflowed)
         BNE ntr_loop                ;keep looping if y not equal to 0, otherwise continue
-
+        
+add_nt_pointers:
     CALL add_short, row_index, row_index + 1, NT_MAX_LOAD_TILES
     ST_RT_VAL_IN row_index, row_index + 1
 
@@ -248,6 +249,45 @@ load_room:
 
     RTS
 
+scan_room_case:
+    ;push y onto the stack to save previous registers
+    TYA
+    PHA
+
+    CMP #$0C
+    BNE src0_
+        INC enemy_len
+        CALL create_slime, nt_row_x, nt_row_y
+        LDA #$00
+        RTS
+    src0_:
+
+    CMP #$12
+    BNE src1_
+        CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
+        CALL set_animation_attribs, #HIGH(CHECK_POINT_ANI), #LOW(CHECK_POINT_ANI), #$04, #$01, #$02
+        LDA #$00
+        RTS
+    src1_:
+
+    CMP #$1B
+    BNE src2_
+        CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
+        CALL set_animation_attribs, #HIGH(GOAL_ANI), #LOW(GOAL_ANI), #$04, #$01, #$02
+        LDA #$00
+        RTS
+    src2_:
+
+    CMP #$40
+    BNE src3_
+        CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
+        CALL set_animation_attribs, #HIGH(RAZOR_ANI), #LOW(RAZOR_ANI), #$02, #$01, #$01
+        LDA #$00
+        RTS
+    src3_:
+
+    RTS
+
 scan_rooms:
     IF_EQU current_room, #HIGH(EMPTY_ROOM), srneer_
         LDA #$04
@@ -255,105 +295,31 @@ scan_rooms:
     srneer_:
 
     LDY #$00
-    ntr_loop:
-        IF_EQU [nt_pointer], y, #$07, lrnsr_
-            CALL set_respawn, nt_row_x, nt_row_y
-            LDA #$00
-            JMP lrltnei_
-        lrnsr_:
+    ntsr_loop:
+        LDA [nt_pointer], y
+        CALL scan_room_case
+        ;pull y from the stack and put them back in their respective registers
+        PLA
+        TAY
 
-        CMP #$0C
-        BNE lrltneil_
-            ;push a, x and y onto the stack to save previous registers
-            TYA
-            PHA
-            INC enemy_len
-            CALL create_slime, nt_row_x, nt_row_y
-            ;pull a, x, y from the stack and put them back in their respective registers
-            PLA
-            TAY
-            LDA #$00
-
-            JMP lrltnei_
-        lrltnejmp_:
-
-        CMP #$12
-        BNE lrnlncp_
-            ;push a, x and y onto the stack to save previous registers
-            TYA
-            PHA
-            CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
-            CALL set_animation_attribs, #HIGH(CHECK_POINT_ANI), #LOW(CHECK_POINT_ANI), #$04, #$01, #$02
-            ;pull a, x, y from the stack and put them back in their respective registers
-            PLA
-            TAY
-            LDA #$00
-
-            JMP lrltnei_
-        lrltnejmp2_:
-
-        CMP #$1B
-        BNE lrnlncpe_
-            ;push a, x and y onto the stack to save previous registers
-            TYA
-            PHA
-            CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
-            CALL set_animation_attribs, #HIGH(GOAL_ANI), #LOW(GOAL_ANI), #$04, #$01, #$02
-            ;pull a, x, y from the stack and put them back in their respective registers
-            PLA
-            TAY
-            LDA #$00
-
-            JMP lrltnei_
-        ;used as a mid way point to jump to various places in the loop because it crosses page boundaries
-        lrltnejmp3_:
-            JMP lrltne_
-        ntr_loop_jmp3_:
-            JMP ntr_loop_jmp2_
-        lrnlncpe_:
-
-        CMP #$40
-        BNE lrltnei_
-            ;push a, x and y onto the stack to save previous registers
-            TYA
-            PHA
-            CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
-            CALL set_animation_attribs, #HIGH(RAZOR_ANI), #LOW(RAZOR_ANI), #$02, #$01, #$01
-            ;pull a, x, y from the stack and put them back in their respective registers
-            PLA
-            TAY
-            LDA #$00
-
-            JMP lrltnei_
-        lrltne_:
-            LDA [nt_pointer], y
-        lrltnei_:
-
-        STA PPU_DATA                ;write byte to the PPU nametable address
-        INY                         ;add by 1 to move to the next byte
+        STA PPU_DATA               ;write byte to the PPU nametable address
+        INY                        ;add by 1 to move to the next byte
 
         INC nt_row_x
-        IF_UNSIGNED_GT_OR_EQU nt_row_x, #$20, nrowreset
+        IF_UNSIGNED_GT_OR_EQU nt_row_x, #$20, ntsrnrr_
             LDA #$00
             STA nt_row_x
 
             INC nt_row_y
-        nrowreset:
+        ntsrnrr_:
 
-        CPY NT_MAX_LOAD_TILES        ;check if y is equal to 0 (it has overflowed)
-        BNE ntr_loop           ;keep looping if y not equal to 0, otherwise continue
+        CPY NT_MAX_LOAD_TILES       ;check if y is equal to 0 (it has overflowed)
+        BNE ntsr_loop               ;keep looping if y not equal to 0, otherwise continue
 
-        CALL add_short, row_index, row_index + 1, NT_MAX_LOAD_TILES
-        ST_RT_VAL_IN row_index, row_index + 1
+        CALL add_nt_pointers
 
-        CALL add_short, nt_pointer + 1, nt_pointer, NT_MAX_LOAD_TILES
-        ST_RT_VAL_IN nt_pointer + 1, nt_pointer
-
-        CALL add_short, VRAM_pointer, VRAM_pointer + 1, NT_MAX_LOAD_TILES
-        ST_RT_VAL_IN VRAM_pointer, VRAM_pointer + 1
-
-        IF_UNSIGNED_LT nt_row_y, #$1F, ntr_loop
-            IF_UNSIGNED_LT nt_row_x, #$1F, ntr_loop
+        IF_UNSIGNED_LT nt_row_y, #$1F, ntsr_loop
+        IF_UNSIGNED_LT nt_row_x, #$1F, ntsr_loop
     RTS
 
 ;writes nametable bytes pointing from nt_pointer into PPU VRAM
