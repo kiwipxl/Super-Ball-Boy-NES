@@ -270,6 +270,10 @@ add_nt_pointers:
 scan_room_case:
     CMP #$07
     BNE src0_
+        DEBUG_BRK
+        LDY #$08
+        LDA nt_row_x
+        LDA nt_row_y
         CALL set_respawn, nt_row_x, nt_row_y
         LDA #$00
     src0_:
@@ -298,7 +302,7 @@ scan_room_case:
     CMP #$40
     BNE src4_
         CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
-        CALL set_animation_attribs, #HIGH(RAZOR_ANI), #LOW(RAZOR_ANI), #$02, #$01, #$01
+        CALL set_animation_attribs, #HIGH(RAZOR_ANI), #LOW(RAZOR_ANI), #$01, #$01, #$01
         LDA #$00
     src4_:
 
@@ -310,7 +314,7 @@ scan_room:
     srneer_:
 
     CALL load_next_room_case
-
+    
     LDY #$00
     ntsr_loop:
         STY prev_y
@@ -320,21 +324,17 @@ scan_room:
         INY                        ;add by 1 to move to the next byte
 
         INC nt_row_x
-        IF_UNSIGNED_GT_OR_EQU nt_row_x, #$20, ntsrnrre_
+        IF_UNSIGNED_GT_OR_EQU nt_row_x, #$20, ntsrnrr_
             LDA #$00
             STA nt_row_x
 
             INC nt_row_y
-            JMP ntsrnrr_
-        ntsrnrre_:
-            IF_UNSIGNED_GT_OR_EQU nt_row_x, #$1F, ntsrnrr_
-                LDA #$00
-                STA nt_row_x
-
-                INC nt_row_y
-                IF_UNSIGNED_GT_OR_EQU nt_row_y, #$1F, ntsrnrr_
-                    JMP ntsr_loop_end
         ntsrnrr_:
+
+        IF_UNSIGNED_GT_OR_EQU nt_row_x, #$1F, srnp_
+            IF_UNSIGNED_GT_OR_EQU nt_row_y, #$1E, srnp_
+                JMP ntsr_loop_end
+        srnp_:
 
         CPY NT_MAX_LOAD_TILES       ;check if y is equal to 0 (it has overflowed)
         BNE ntsr_loop               ;keep looping if y not equal to 0, otherwise continue

@@ -127,7 +127,7 @@ scroll_y_type           .rs     1
 nt_pointer              .rs     2
 VRAM_pointer            .rs     2
 row_index               .rs     2
-NT_MAX_LOAD_TILES       .db     $10
+NT_MAX_LOAD_TILES       .db     $40
 nt_row_x                .rs     1
 nt_row_y                .rs     1
 
