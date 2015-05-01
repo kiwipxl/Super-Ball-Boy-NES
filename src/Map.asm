@@ -268,18 +268,10 @@ add_nt_pointers:
     RTS
 
 scan_room_case:
-    ;push y onto the stack to save previous registers
-    TYA
-    PHA
-
     CMP #$07
     BNE src0_
         CALL set_respawn, nt_row_x, nt_row_y
         LDA #$00
-        ;pull y from the stack and put them back in their respective registers
-        PLA
-        TAY
-        RTS
     src0_:
 
     CMP #$0C
@@ -287,10 +279,6 @@ scan_room_case:
         INC enemy_len
         CALL create_slime, nt_row_x, nt_row_y
         LDA #$00
-        ;pull y from the stack and put them back in their respective registers
-        PLA
-        TAY
-        RTS
     src1_:
 
     CMP #$12
@@ -298,10 +286,6 @@ scan_room_case:
         CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
         CALL set_animation_attribs, #HIGH(CHECK_POINT_ANI), #LOW(CHECK_POINT_ANI), #$04, #$01, #$02
         LDA #$00
-        ;pull y from the stack and put them back in their respective registers
-        PLA
-        TAY
-        RTS
     src2_:
 
     CMP #$1B
@@ -309,10 +293,6 @@ scan_room_case:
         CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
         CALL set_animation_attribs, #HIGH(GOAL_ANI), #LOW(GOAL_ANI), #$04, #$01, #$02
         LDA #$00
-        ;pull y from the stack and put them back in their respective registers
-        PLA
-        TAY
-        RTS
     src3_:
 
     CMP #$40
@@ -320,15 +300,8 @@ scan_room_case:
         CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
         CALL set_animation_attribs, #HIGH(RAZOR_ANI), #LOW(RAZOR_ANI), #$02, #$01, #$01
         LDA #$00
-        ;pull y from the stack and put them back in their respective registers
-        PLA
-        TAY
-        RTS
     src4_:
 
-    ;pull y from the stack and put them back in their respective registers
-    PLA
-    TAY
     RTS
 
 scan_room:
@@ -338,20 +311,12 @@ scan_room:
 
     CALL load_next_room_case
 
-    DEBUG_BRK
-    LDY #$01
-    LDA room_3
-    LDA room_3 + 1
-    LDA nt_pointer
-    LDA nt_pointer + 1
-
     LDY #$00
     ntsr_loop:
-        ;DEBUG_BRK
-        LDA nt_row_x
-        LDA nt_row_y
+        STY prev_y
         LDA [nt_pointer], y
         CALL scan_room_case
+        LDY prev_y
         INY                        ;add by 1 to move to the next byte
 
         INC nt_row_x
@@ -368,9 +333,6 @@ scan_room:
 
                 INC nt_row_y
                 IF_UNSIGNED_GT_OR_EQU nt_row_y, #$1F, ntsrnrr_
-                    DEBUG_BRK
-                    LDA nt_pointer
-                    LDA nt_pointer + 1
                     JMP ntsr_loop_end
         ntsrnrr_:
 

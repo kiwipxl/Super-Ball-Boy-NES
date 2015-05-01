@@ -210,6 +210,9 @@ reg_a                   .db     $00     ;used to pass in the value of register a
 reg_x                   .db     $00     ;used to pass in the value of register x in if statement macros
 reg_y                   .db     $00     ;used to pass in the value of register y in if statement macros
 temp_cmp                .rs     1       ;used when a register is passed in if statement macros to prevent x, y registers from being changed
+prev_a                  .rs     1       ;used to store the previous value of a and retrieve it later
+prev_x                  .rs     1       ;used to store the previous value of x and retrieve it later
+prev_y                  .rs     1       ;used to store the previous value of y and retrieve it later
 
 ;------------------------------------------------------------------------------------;
 
