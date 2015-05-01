@@ -270,10 +270,6 @@ add_nt_pointers:
 scan_room_case:
     CMP #$07
     BNE src0_
-        DEBUG_BRK
-        LDY #$08
-        LDA nt_row_x
-        LDA nt_row_y
         CALL set_respawn, nt_row_x, nt_row_y
         LDA #$00
     src0_:
@@ -314,7 +310,7 @@ scan_room:
     srneer_:
 
     CALL load_next_room_case
-    
+
     LDY #$00
     ntsr_loop:
         STY prev_y

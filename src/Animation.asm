@@ -181,6 +181,8 @@ update_animations:
     RTS
 
 render_animations:
+	LDA #$00
+	STA temp + 5
 	LDX ani_max
     arl_:
         DEX
@@ -207,13 +209,16 @@ render_animations:
         IF_NOT_EQU ani_palette_change_due, x, #$00, arl_
         	DEC ani_palette_change_due, x
 	        CALL change_palette_value
-	        LDX temp + 2
+	        LDA #$01
+	        STA temp + 5
     arle_:
     CONFIGURE_PPU
 
     RTS
 
 change_palette_value:
+	DEBUG_BRK
+	
 	LDX temp + 3
 	SET_POINTER ani_palette_pointer, x, ani_palette_pointer + 1, x, PPU_ADDR, PPU_ADDR
 
@@ -256,7 +261,7 @@ change_palette_value:
         LDA ani_tile_y, x
         LSR a
         AND #$01
-        BNE ratopleft_ 			;bottom left
+        BEQ ratopleft_ 			;bottom left
         	LDA ani_palette_index, x
         	ASL a
         	ASL a

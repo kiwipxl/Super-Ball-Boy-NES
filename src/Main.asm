@@ -384,7 +384,10 @@ NMI:
     TYA
     PHA
 
+    CALL update_render_state
+
     IF_NOT_EQU current_state, NT_LOADING_STATE, nminlnt_
+        IF_EQU temp + 5, #$00, nminlnt_
         ;copies 256 bytes of OAM data in RAM (OAM_RAM_ADDR - OAM_RAM_ADDR + $FF) to the PPU internal OAM
         ;this takes 513 cpu clock cycles and the cpu is temporarily suspended during the transfer
 
@@ -396,8 +399,6 @@ NMI:
         STA OAM_DMA                    ;stores OAM_RAM_ADDR to high byte of OAM_DMA
         ;CPU is now suspended and transfer begins
     nminlnt_:
-
-    CALL update_render_state
 
     LDA scroll_x
     STA $2005
