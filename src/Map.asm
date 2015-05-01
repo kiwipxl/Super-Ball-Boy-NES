@@ -28,9 +28,6 @@ LOAD_ROOM .macro
 
     CALL load_room
 
-    LDA NT_CHAMBER_LOADING_STATE
-    STA current_state
-
     .endm
 
 IS_SOLID_TILE .macro
@@ -146,6 +143,9 @@ load_next_room_case:
         LDA #$00
         STA scroll_x
         STA scroll_y
+
+        LDA #$01
+        STA rt_val_1
         RTS
     lnrne0_:
 
@@ -155,6 +155,9 @@ load_next_room_case:
         STA scroll_x
         LDA #$00
         STA scroll_y
+
+        LDA #$01
+        STA rt_val_1
         RTS
     lnrne1_:
 
@@ -164,6 +167,9 @@ load_next_room_case:
         STA scroll_x
         LDA #$EF
         STA scroll_y
+
+        LDA #$01
+        STA rt_val_1
         RTS
     lnrne2_:
 
@@ -173,13 +179,21 @@ load_next_room_case:
         STA scroll_x
         LDA #$EF
         STA scroll_y
+
+        LDA #$01
+        STA rt_val_1
         RTS
     lnrne3_:
+
+    LDA #$00
+    STA rt_val_1
     RTS
 
 load_next_room:
     CALL load_next_room_case
     INC room_load_id
+    LDA rt_val_1
+    BNE lnrlns_
 
     ;no more rooms to load, so complete the loading process
     CALL room_loading_complete
@@ -216,6 +230,8 @@ load_room:
         IF_UNSIGNED_LT nt_row_y, #$1F, lrltnei_
             IF_UNSIGNED_LT nt_row_x, #$1F, lrltnei_
                 LDA [nt_pointer], y
+                CMP #$07
+                BEQ lrl0_
                 CMP #$0C
                 BEQ lrl0_
                 CMP #$12
@@ -264,10 +280,9 @@ scan_room_case:
     TYA
     PHA
 
-    CMP #$0C
+    CMP #$07
     BNE src0_
-        INC enemy_len
-        CALL create_slime, nt_row_x, nt_row_y
+        CALL set_respawn, nt_row_x, nt_row_y
         LDA #$00
         ;pull y from the stack and put them back in their respective registers
         PLA
@@ -275,10 +290,10 @@ scan_room_case:
         RTS
     src0_:
 
-    CMP #$12
+    CMP #$0C
     BNE src1_
-        CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
-        CALL set_animation_attribs, #HIGH(CHECK_POINT_ANI), #LOW(CHECK_POINT_ANI), #$04, #$01, #$02
+        INC enemy_len
+        CALL create_slime, nt_row_x, nt_row_y
         LDA #$00
         ;pull y from the stack and put them back in their respective registers
         PLA
@@ -286,10 +301,10 @@ scan_room_case:
         RTS
     src1_:
 
-    CMP #$1B
+    CMP #$12
     BNE src2_
         CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
-        CALL set_animation_attribs, #HIGH(GOAL_ANI), #LOW(GOAL_ANI), #$04, #$01, #$02
+        CALL set_animation_attribs, #HIGH(CHECK_POINT_ANI), #LOW(CHECK_POINT_ANI), #$04, #$01, #$02
         LDA #$00
         ;pull y from the stack and put them back in their respective registers
         PLA
@@ -297,8 +312,19 @@ scan_room_case:
         RTS
     src2_:
 
-    CMP #$40
+    CMP #$1B
     BNE src3_
+        CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
+        CALL set_animation_attribs, #HIGH(GOAL_ANI), #LOW(GOAL_ANI), #$04, #$01, #$02
+        LDA #$00
+        ;pull y from the stack and put them back in their respective registers
+        PLA
+        TAY
+        RTS
+    src3_:
+
+    CMP #$40
+    BNE src4_
         CALL create_tile_animation, nt_row_x, nt_row_y, current_VRAM_addr, current_VRAM_addr + 1
         CALL set_animation_attribs, #HIGH(RAZOR_ANI), #LOW(RAZOR_ANI), #$02, #$01, #$01
         LDA #$00
@@ -306,7 +332,7 @@ scan_room_case:
         PLA
         TAY
         RTS
-    src3_:
+    src4_:
 
     ;pull y from the stack and put them back in their respective registers
     PLA
@@ -322,7 +348,7 @@ scan_room:
 
     LDY #$00
     ntsr_loop:
-        DEBUG_BRK
+        ;DEBUG_BRK
         LDA [nt_pointer], y
         CALL scan_room_case
         INY                        ;add by 1 to move to the next byte
@@ -335,14 +361,17 @@ scan_room:
             INC nt_row_y
         ntsrnrr_:
 
+        IF_UNSIGNED_GT_OR_EQU nt_row_y, #$1F, ntsrpc_
+            IF_UNSIGNED_GT_OR_EQU nt_row_x, #$1F, ntsrpc_
+                JMP ntsr_loop_end
+        ntsrpc_:
+
         CPY NT_MAX_LOAD_TILES       ;check if y is equal to 0 (it has overflowed)
         BNE ntsr_loop               ;keep looping if y not equal to 0, otherwise continue
 
         CALL add_nt_pointers
+    ntsr_loop_end:
 
-        IF_UNSIGNED_LT nt_row_y, #$1F, ntsr_loop
-        IF_UNSIGNED_LT nt_row_x, #$1F, ntsr_loop
-        DEBUG_BRK
     RTS
 
 ;writes nametable bytes pointing from nt_pointer into PPU VRAM
