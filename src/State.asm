@@ -92,7 +92,8 @@ update_state:
 
 		LDA next_state
     	STA current_state
-
+    	
+    	INC room_load_id
 		CALL load_next_room
 
 		RTS

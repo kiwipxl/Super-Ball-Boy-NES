@@ -25,8 +25,8 @@ LOAD_ROOM .macro
     LDA #$00
     STA nt_row_x
     STA nt_row_y
-
-    CALL load_room
+    STA row_index
+    STA row_index + 1
 
     .endm
 
@@ -119,25 +119,18 @@ load_chamber_3:
 init_chamber:
     LDA #$00
     STA enemy_len
+    STA speed_x
+    STA speed_x + 1
+    STA gravity
     STA room_load_id
+
     CALL init_enemies
     CALL init_animations
     CALL init_player
 
-    LDA #$00
-    STA speed_x
-    STA speed_x + 1
-    STA gravity
-
     RTS
 
 load_next_room_case:
-    LDA #$00
-    STA row_index
-    STA row_index + 1
-    STA nt_row_x
-    STA nt_row_y
-
     IF_EQU room_load_id, #$00, lnrne0_
         LOAD_ROOM room_1, VRAM_room_addr_1
         LDA #$00
@@ -191,7 +184,6 @@ load_next_room_case:
 
 load_next_room:
     CALL load_next_room_case
-    INC room_load_id
     LDA rt_val_1
     BNE lnrlns_
 
@@ -346,30 +338,49 @@ scan_room:
 
     CALL load_next_room_case
 
+    DEBUG_BRK
+    LDY #$01
+    LDA room_3
+    LDA room_3 + 1
+    LDA nt_pointer
+    LDA nt_pointer + 1
+
     LDY #$00
     ntsr_loop:
         ;DEBUG_BRK
+        LDA nt_row_x
+        LDA nt_row_y
         LDA [nt_pointer], y
         CALL scan_room_case
         INY                        ;add by 1 to move to the next byte
 
         INC nt_row_x
-        IF_UNSIGNED_GT_OR_EQU nt_row_x, #$20, ntsrnrr_
+        IF_UNSIGNED_GT_OR_EQU nt_row_x, #$20, ntsrnrre_
             LDA #$00
             STA nt_row_x
 
             INC nt_row_y
-        ntsrnrr_:
+            JMP ntsrnrr_
+        ntsrnrre_:
+            IF_UNSIGNED_GT_OR_EQU nt_row_x, #$1F, ntsrnrr_
+                LDA #$00
+                STA nt_row_x
 
-        IF_UNSIGNED_GT_OR_EQU nt_row_y, #$1F, ntsrpc_
-            IF_UNSIGNED_GT_OR_EQU nt_row_x, #$1F, ntsrpc_
-                JMP ntsr_loop_end
-        ntsrpc_:
+                INC nt_row_y
+                IF_UNSIGNED_GT_OR_EQU nt_row_y, #$1F, ntsrnrr_
+                    DEBUG_BRK
+                    LDA nt_pointer
+                    LDA nt_pointer + 1
+                    JMP ntsr_loop_end
+        ntsrnrr_:
 
         CPY NT_MAX_LOAD_TILES       ;check if y is equal to 0 (it has overflowed)
         BNE ntsr_loop               ;keep looping if y not equal to 0, otherwise continue
+        LDY #$00
 
         CALL add_nt_pointers
+
+        JMP ntsr_loop
     ntsr_loop_end:
 
     RTS
